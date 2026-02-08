@@ -16,7 +16,6 @@
         <dependency>
             <groupId>com.example</groupId>
             <artifactId>generator</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.swagger.parser.v3</groupId>
