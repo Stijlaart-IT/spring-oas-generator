@@ -10,12 +10,5 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>spring-boot-openapi-generator-generator</artifactId>
-
-    <dependencies>
-        <dependency>
-            <groupId>com.squareup</groupId>
-            <artifactId>javapoet</artifactId>
-        </dependency>
-    </dependencies>
+    <artifactId>client-restclient</artifactId>
 </project>

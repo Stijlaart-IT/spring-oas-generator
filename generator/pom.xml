@@ -10,12 +10,12 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>spring-boot-openapi-generator-client-generation</artifactId>
+    <artifactId>generator</artifactId>
 
     <dependencies>
         <dependency>
-            <groupId>io.swagger.parser.v3</groupId>
-            <artifactId>swagger-parser</artifactId>
+            <groupId>com.squareup</groupId>
+            <artifactId>javapoet</artifactId>
         </dependency>
     </dependencies>
 </project>
