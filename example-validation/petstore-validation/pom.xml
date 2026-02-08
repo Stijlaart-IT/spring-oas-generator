@@ -11,4 +11,11 @@
     </parent>
 
     <artifactId>petstore-validation</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
+        </dependency>
+    </dependencies>
 </project>
