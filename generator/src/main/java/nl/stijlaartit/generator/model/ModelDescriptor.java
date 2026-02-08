@@ -1,4 +1,4 @@
-package com.example.generator.model;
+package nl.stijlaartit.generator.model;
 
 import java.util.List;
 import java.util.Objects;

@@ -1,8 +1,8 @@
-package com.example.generation.model;
+package nl.stijlaartit.generation.model;
 
-import com.example.generator.model.FieldDescriptor;
-import com.example.generator.model.ModelDescriptor;
-import com.example.generator.model.TypeDescriptor;
+import nl.stijlaartit.generator.model.FieldDescriptor;
+import nl.stijlaartit.generator.model.ModelDescriptor;
+import nl.stijlaartit.generator.model.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.media.Schema;

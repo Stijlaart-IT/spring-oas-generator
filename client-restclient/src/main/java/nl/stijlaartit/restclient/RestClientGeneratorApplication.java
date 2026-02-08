@@ -1,7 +1,7 @@
-package com.example.restclient;
+package nl.stijlaartit.restclient;
 
-import com.example.generation.model.ModelResolver;
-import com.example.generator.model.ModelDescriptor;
+import nl.stijlaartit.generation.model.ModelResolver;
+import nl.stijlaartit.generator.model.ModelDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
