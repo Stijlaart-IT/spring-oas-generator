@@ -1,11 +1,15 @@
 package com.example.restclient;
 
+import com.example.generation.model.ModelResolver;
+import com.example.generator.model.ModelDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import java.util.List;
 
 @SpringBootApplication
 public class RestClientGeneratorApplication implements CommandLineRunner {
@@ -33,6 +37,19 @@ public class RestClientGeneratorApplication implements CommandLineRunner {
             System.exit(1);
         }
 
-        System.out.println(openAPI);
+        ModelResolver modelResolver = new ModelResolver();
+        List<ModelDescriptor> models = modelResolver.resolve(openAPI);
+
+        System.out.println("Resolved " + models.size() + " model(s):");
+        for (ModelDescriptor model : models) {
+            System.out.println("  " + model.name());
+            for (var field : model.fields()) {
+                System.out.println("    - " + field.name() + ": " + field.type()
+                        + (field.required() ? " (required)" : ""));
+            }
+            if (!model.dependencies().isEmpty()) {
+                System.out.println("    depends on: " + model.dependencies());
+            }
+        }
     }
 }

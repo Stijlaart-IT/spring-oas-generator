@@ -1,0 +1,213 @@
+package com.example.generation.model;
+
+import com.example.generator.model.FieldDescriptor;
+import com.example.generator.model.ModelDescriptor;
+import com.example.generator.model.TypeDescriptor;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.media.Schema;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Resolves OpenAPI schemas into a list of {@link ModelDescriptor}s.
+ *
+ * <h2>Naming rules</h2>
+ * <ol>
+ *   <li>Named component schemas ({@code #/components/schemas/Foo}) use their component name.</li>
+ *   <li>Anonymous inline object schemas are named by joining the parent name and the property name
+ *       in PascalCase (e.g., parent "User" + property "address" = "UserAddress").</li>
+ *   <li>If two anonymous schemas have the same shape (same fields, types, required set),
+ *       the second one reuses the model generated for the first.</li>
+ *   <li>If a named (component) schema has the same shape as an anonymous one,
+ *       the component name takes priority.</li>
+ * </ol>
+ */
+public class ModelResolver {
+
+    /** Signature -> model name that was created for it */
+    private final Map<SchemaSignature, String> signatureToName = new LinkedHashMap<>();
+
+    /** All resolved models, keyed by name */
+    private final Map<String, ModelDescriptor> models = new LinkedHashMap<>();
+
+    public List<ModelDescriptor> resolve(OpenAPI openAPI) {
+        signatureToName.clear();
+        models.clear();
+
+        // First pass: component schemas (named schemas take priority)
+        if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
+            for (var entry : openAPI.getComponents().getSchemas().entrySet()) {
+                resolveSchema(entry.getKey(), entry.getValue(), true);
+            }
+        }
+
+        return List.copyOf(models.values());
+    }
+
+    /**
+     * Resolves a schema into a model. Returns the model name if this schema represents
+     * a complex object type, or null if it maps to a simple/built-in Java type.
+     */
+    private String resolveSchema(String name, Schema<?> schema, boolean isComponent) {
+        if (schema.get$ref() != null) {
+            return extractRefName(schema.get$ref());
+        }
+
+        if (!isObjectSchema(schema)) {
+            return null;
+        }
+
+        SchemaSignature signature = SchemaSignature.of(schema);
+
+        // If a model with this signature already exists...
+        String existingName = signatureToName.get(signature);
+        if (existingName != null) {
+            // Component schemas take priority: replace anonymous name with component name
+            if (isComponent && !models.containsKey(name)) {
+                ModelDescriptor existing = models.remove(existingName);
+                if (existing != null) {
+                    ModelDescriptor renamed = new ModelDescriptor(name, existing.fields());
+                    models.put(name, renamed);
+                    signatureToName.put(signature, name);
+                    return name;
+                }
+            }
+            return existingName;
+        }
+
+        // Build field descriptors (this may recursively resolve nested anonymous schemas)
+        List<FieldDescriptor> fields = resolveFields(name, schema);
+
+        ModelDescriptor model = new ModelDescriptor(name, fields);
+        models.put(name, model);
+        signatureToName.put(signature, name);
+        return name;
+    }
+
+    private List<FieldDescriptor> resolveFields(String parentName, Schema<?> schema) {
+        Map<String, Schema> properties = schema.getProperties();
+        if (properties == null) {
+            return List.of();
+        }
+
+        Set<String> required = schema.getRequired() != null
+                ? Set.copyOf(schema.getRequired())
+                : Set.of();
+
+        List<FieldDescriptor> fields = new ArrayList<>();
+        for (var entry : properties.entrySet()) {
+            String propertyName = entry.getKey();
+            Schema<?> propertySchema = entry.getValue();
+
+            TypeDescriptor type = resolveType(parentName, propertyName, propertySchema);
+            String javaName = toCamelCase(propertyName);
+
+            fields.add(new FieldDescriptor(javaName, propertyName, type, required.contains(propertyName)));
+        }
+        return fields;
+    }
+
+    TypeDescriptor resolveType(String parentName, String propertyName, Schema<?> schema) {
+        if (schema.get$ref() != null) {
+            return TypeDescriptor.complex(extractRefName(schema.get$ref()));
+        }
+
+        String type = schema.getType();
+
+        if ("array".equals(type) && schema.getItems() != null) {
+            TypeDescriptor elementType = resolveType(parentName, propertyName, schema.getItems());
+            return TypeDescriptor.list(elementType);
+        }
+
+        if (schema.getAdditionalProperties() instanceof Schema<?> additional) {
+            TypeDescriptor valueType = resolveType(parentName, propertyName, additional);
+            return TypeDescriptor.map(valueType);
+        }
+
+        if (isObjectSchema(schema)) {
+            // Anonymous nested object - generate an intermediate model
+            String nestedName = parentName + toPascalCase(propertyName);
+            String resolvedName = resolveSchema(nestedName, schema, false);
+            return TypeDescriptor.complex(resolvedName);
+        }
+
+        return mapSimpleType(type, schema.getFormat());
+    }
+
+    static TypeDescriptor mapSimpleType(String type, String format) {
+        if (type == null) {
+            return TypeDescriptor.simple("java.lang.Object");
+        }
+
+        return switch (type) {
+            case "string" -> mapStringType(format);
+            case "integer" -> "int64".equals(format)
+                    ? TypeDescriptor.simple("java.lang.Long")
+                    : TypeDescriptor.simple("java.lang.Integer");
+            case "number" -> switch (format != null ? format : "") {
+                case "float" -> TypeDescriptor.simple("java.lang.Float");
+                case "double" -> TypeDescriptor.simple("java.lang.Double");
+                default -> TypeDescriptor.simple("java.math.BigDecimal");
+            };
+            case "boolean" -> TypeDescriptor.simple("java.lang.Boolean");
+            default -> TypeDescriptor.simple("java.lang.Object");
+        };
+    }
+
+    private static TypeDescriptor mapStringType(String format) {
+        if (format == null) {
+            return TypeDescriptor.simple("java.lang.String");
+        }
+        return switch (format) {
+            case "date" -> TypeDescriptor.simple("java.time.LocalDate");
+            case "date-time" -> TypeDescriptor.simple("java.time.OffsetDateTime");
+            case "uuid" -> TypeDescriptor.simple("java.util.UUID");
+            default -> TypeDescriptor.simple("java.lang.String");
+        };
+    }
+
+    private static boolean isObjectSchema(Schema<?> schema) {
+        return ("object".equals(schema.getType()) || schema.getType() == null)
+                && schema.getProperties() != null
+                && !schema.getProperties().isEmpty();
+    }
+
+    static String extractRefName(String ref) {
+        int lastSlash = ref.lastIndexOf('/');
+        return lastSlash >= 0 ? ref.substring(lastSlash + 1) : ref;
+    }
+
+    static String toCamelCase(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        StringBuilder result = new StringBuilder();
+        boolean capitalizeNext = false;
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (c == '_' || c == '-') {
+                capitalizeNext = true;
+            } else if (capitalizeNext) {
+                result.append(Character.toUpperCase(c));
+                capitalizeNext = false;
+            } else if (i == 0) {
+                result.append(Character.toLowerCase(c));
+            } else {
+                result.append(c);
+            }
+        }
+        return result.toString();
+    }
+
+    static String toPascalCase(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        String camel = toCamelCase(input);
+        return Character.toUpperCase(camel.charAt(0)) + camel.substring(1);
+    }
+}
