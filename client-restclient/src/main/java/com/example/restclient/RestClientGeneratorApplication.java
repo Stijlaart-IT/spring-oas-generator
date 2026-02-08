@@ -20,12 +20,16 @@ public class RestClientGeneratorApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if (args.length < 1) {
-            System.err.println("Usage: <openapi-spec-file>");
+        if (args.length < 3) {
+            System.err.println("Usage: <openapi-spec-file> <output-path> <output-package>");
             System.exit(1);
         }
 
         String specFile = args[0];
+        String outputPath = args[1];
+        String outputPackage = args[2];
+        String modelsPackage = outputPackage + ".models";
+
         SwaggerParseResult result = new OpenAPIV3Parser().readLocation(specFile, null, null);
         OpenAPI openAPI = result.getOpenAPI();
 
@@ -40,9 +44,11 @@ public class RestClientGeneratorApplication implements CommandLineRunner {
         ModelResolver modelResolver = new ModelResolver();
         List<ModelDescriptor> models = modelResolver.resolve(openAPI);
 
+        System.out.println("Output path: " + outputPath);
+        System.out.println("Models package: " + modelsPackage);
         System.out.println("Resolved " + models.size() + " model(s):");
         for (ModelDescriptor model : models) {
-            System.out.println("  " + model.name());
+            System.out.println("  " + modelsPackage + "." + model.name());
             for (var field : model.fields()) {
                 System.out.println("    - " + field.name() + ": " + field.type()
                         + (field.required() ? " (required)" : ""));
