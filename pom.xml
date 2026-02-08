@@ -16,7 +16,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.example</groupId>
+    <groupId>nl.stijlaartit</groupId>
     <artifactId>spring-boot-openapi-generator-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -34,12 +34,12 @@
                 <version>${swagger-parser.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.example</groupId>
+                <groupId>nl.stijlaartit</groupId>
                 <artifactId>generator</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.example</groupId>
+                <groupId>nl.stijlaartit</groupId>
                 <artifactId>generation-model</artifactId>
                 <version>${project.version}</version>
             </dependency>

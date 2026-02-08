@@ -1,4 +1,4 @@
-package com.example.generation.model;
+package nl.stijlaartit.generation.model;
 
 import io.swagger.v3.oas.models.media.Schema;
 
