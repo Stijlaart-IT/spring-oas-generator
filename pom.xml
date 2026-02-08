@@ -4,6 +4,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <properties>
+        <javapoet.version>1.13.0</javapoet.version>
+        <swagger-parser.version>2.1.24</swagger-parser.version>
+    </properties>
+
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -16,7 +21,25 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.squareup</groupId>
+                <artifactId>javapoet</artifactId>
+                <version>${javapoet.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger.parser.v3</groupId>
+                <artifactId>swagger-parser</artifactId>
+                <version>${swagger-parser.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <modules>
+        <module>spring-boot-openapi-generator-generator</module>
+        <module>spring-boot-openapi-generator-model-generation</module>
+        <module>spring-boot-openapi-generator-client-generation</module>
         <module>spring-boot-openapi-generator-client-restclient</module>
         <module>spring-boot-openapi-generator-client-webclient</module>
     </modules>
