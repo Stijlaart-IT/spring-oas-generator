@@ -25,6 +25,16 @@ This project is a Maven multi-module build for OpenAPI-related source generation
 - **spring-boot-openapi-generator-client-webclient**
   - Placeholder module for WebClient-focused client generation/runtime support.
 
+## Examples
+
+To download the example OpenAPI specs, run:
+
+```bash
+./scripts/download-examples.sh
+```
+
+This downloads the Petstore OpenAPI spec to `examples/petstore.json`.
+
 ## Dependency version management
 
 Dependency versions are managed centrally in the root `pom.xml` using the `<properties>` and `<dependencyManagement>` sections. Child modules declare dependencies without explicit versions.
