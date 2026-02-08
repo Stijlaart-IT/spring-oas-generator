@@ -35,6 +35,16 @@ To download the example OpenAPI specs, run:
 
 This downloads the Petstore OpenAPI spec to `examples/petstore.json`.
 
+## Example Validation
+
+The `example-validation/petstore-validation` module contains generated sources from the Petstore OpenAPI spec and tests that validate the generated code. JSON serialization tests verify that each generated model can be serialized to JSON and deserialized back, yielding an equal object. This ensures the generated code is stable and functions as expected.
+
+To run the validation tests:
+
+```bash
+mvn -f example-validation/pom.xml test
+```
+
 ## Dependency version management
 
 Dependency versions are managed centrally in the root `pom.xml` using the `<properties>` and `<dependencyManagement>` sections. Child modules declare dependencies without explicit versions.
