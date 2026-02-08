@@ -10,12 +10,5 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>spring-boot-openapi-generator-model-generation</artifactId>
-
-    <dependencies>
-        <dependency>
-            <groupId>io.swagger.parser.v3</groupId>
-            <artifactId>swagger-parser</artifactId>
-        </dependency>
-    </dependencies>
+    <artifactId>client-webclient</artifactId>
 </project>

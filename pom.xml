@@ -37,10 +37,10 @@
     </dependencyManagement>
 
     <modules>
-        <module>spring-boot-openapi-generator-generator</module>
-        <module>spring-boot-openapi-generator-model-generation</module>
-        <module>spring-boot-openapi-generator-client-generation</module>
-        <module>spring-boot-openapi-generator-client-restclient</module>
-        <module>spring-boot-openapi-generator-client-webclient</module>
+        <module>generator</module>
+        <module>generation-model</module>
+        <module>generation-client</module>
+        <module>client-restclient</module>
+        <module>client-webclient</module>
     </modules>
 </project>
