@@ -2,6 +2,7 @@ package nl.stijlaartit.restclient;
 
 import nl.stijlaartit.generation.model.ModelResolver;
 import nl.stijlaartit.generator.model.ModelDescriptor;
+import nl.stijlaartit.generator.model.ModelWriter;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
@@ -9,6 +10,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import java.nio.file.Path;
 import java.util.List;
 
 @SpringBootApplication
@@ -44,18 +46,11 @@ public class RestClientGeneratorApplication implements CommandLineRunner {
         ModelResolver modelResolver = new ModelResolver();
         List<ModelDescriptor> models = modelResolver.resolve(openAPI);
 
-        System.out.println("Output path: " + outputPath);
-        System.out.println("Models package: " + modelsPackage);
-        System.out.println("Resolved " + models.size() + " model(s):");
-        for (ModelDescriptor model : models) {
-            System.out.println("  " + modelsPackage + "." + model.name());
-            for (var field : model.fields()) {
-                System.out.println("    - " + field.name() + ": " + field.type()
-                        + (field.required() ? " (required)" : ""));
-            }
-            if (!model.dependencies().isEmpty()) {
-                System.out.println("    depends on: " + model.dependencies());
-            }
-        }
+        Path output = Path.of(outputPath);
+        ModelWriter modelWriter = new ModelWriter(modelsPackage);
+        modelWriter.writeAll(models, output);
+
+        System.out.println("Generated " + models.size() + " model(s) to "
+                + output.resolve(modelsPackage.replace('.', '/')));
     }
 }

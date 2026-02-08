@@ -214,6 +214,27 @@ class ModelResolverTest {
                     .filter(f -> f.name().equals("address")).findFirst().orElseThrow();
             assertEquals(TypeDescriptor.complex("Address"), addressField.type());
         }
+
+        @Test
+        void doesNotDeduplicateTwoComponentSchemasWithSameShape() {
+            Schema<?> categorySchema = new ObjectSchema()
+                    .addProperty("id", new IntegerSchema().format("int64"))
+                    .addProperty("name", new StringSchema());
+
+            Schema<?> tagSchema = new ObjectSchema()
+                    .addProperty("id", new IntegerSchema().format("int64"))
+                    .addProperty("name", new StringSchema());
+
+            Map<String, Schema> schemas = new LinkedHashMap<>();
+            schemas.put("Category", categorySchema);
+            schemas.put("Tag", tagSchema);
+
+            List<ModelDescriptor> models = resolver.resolve(openAPIWith(schemas));
+
+            assertEquals(2, models.size());
+            assertTrue(models.stream().anyMatch(m -> m.name().equals("Category")));
+            assertTrue(models.stream().anyMatch(m -> m.name().equals("Tag")));
+        }
     }
 
     @Nested

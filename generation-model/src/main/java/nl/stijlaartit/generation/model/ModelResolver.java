@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.Schema;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,9 +35,13 @@ public class ModelResolver {
     /** All resolved models, keyed by name */
     private final Map<String, ModelDescriptor> models = new LinkedHashMap<>();
 
+    /** Names that originated from component schemas (not anonymous inline objects) */
+    private final Set<String> componentNames = new HashSet<>();
+
     public List<ModelDescriptor> resolve(OpenAPI openAPI) {
         signatureToName.clear();
         models.clear();
+        componentNames.clear();
 
         // First pass: component schemas (named schemas take priority)
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
@@ -66,17 +71,22 @@ public class ModelResolver {
         // If a model with this signature already exists...
         String existingName = signatureToName.get(signature);
         if (existingName != null) {
-            // Component schemas take priority: replace anonymous name with component name
-            if (isComponent && !models.containsKey(name)) {
+            if (!isComponent) {
+                // Anonymous schemas always reuse existing models with the same shape
+                return existingName;
+            }
+            if (!componentNames.contains(existingName)) {
+                // Component schema takes priority: replace anonymous name with component name
                 ModelDescriptor existing = models.remove(existingName);
                 if (existing != null) {
                     ModelDescriptor renamed = new ModelDescriptor(name, existing.fields());
                     models.put(name, renamed);
                     signatureToName.put(signature, name);
+                    componentNames.add(name);
                     return name;
                 }
             }
-            return existingName;
+            // Existing is also a component — both must exist, so fall through to create new model
         }
 
         // Build field descriptors (this may recursively resolve nested anonymous schemas)
@@ -85,6 +95,9 @@ public class ModelResolver {
         ModelDescriptor model = new ModelDescriptor(name, fields);
         models.put(name, model);
         signatureToName.put(signature, name);
+        if (isComponent) {
+            componentNames.add(name);
+        }
         return name;
     }
 
