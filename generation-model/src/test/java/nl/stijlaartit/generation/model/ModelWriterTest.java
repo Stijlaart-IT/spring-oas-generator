@@ -14,7 +14,7 @@ class ModelWriterTest {
 
     @Test
     void generatesRecordWithSingleField() {
-        ModelDescriptor model = new ModelDescriptor("User", List.of(
+        ModelDescriptor model = ModelDescriptor.record("User", List.of(
                 new FieldDescriptor("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true)
         ));
@@ -28,7 +28,7 @@ class ModelWriterTest {
 
     @Test
     void generatesRecordWithMultipleFields() {
-        ModelDescriptor model = new ModelDescriptor("User", List.of(
+        ModelDescriptor model = ModelDescriptor.record("User", List.of(
                 new FieldDescriptor("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true),
                 new FieldDescriptor("age", "age",
@@ -43,7 +43,7 @@ class ModelWriterTest {
 
     @Test
     void addsJsonPropertyWhenNamesDisagree() {
-        ModelDescriptor model = new ModelDescriptor("User", List.of(
+        ModelDescriptor model = ModelDescriptor.record("User", List.of(
                 new FieldDescriptor("firstName", "first_name",
                         TypeDescriptor.simple("java.lang.String"), true)
         ));
@@ -56,7 +56,7 @@ class ModelWriterTest {
 
     @Test
     void omitsJsonPropertyWhenNamesMatch() {
-        ModelDescriptor model = new ModelDescriptor("User", List.of(
+        ModelDescriptor model = ModelDescriptor.record("User", List.of(
                 new FieldDescriptor("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true)
         ));
@@ -69,7 +69,7 @@ class ModelWriterTest {
 
     @Test
     void resolvesComplexTypeFromModelsPackage() {
-        ModelDescriptor model = new ModelDescriptor("Owner", List.of(
+        ModelDescriptor model = ModelDescriptor.record("Owner", List.of(
                 new FieldDescriptor("pet", "pet",
                         TypeDescriptor.complex("Pet"), true)
         ));
@@ -81,7 +81,7 @@ class ModelWriterTest {
 
     @Test
     void resolvesListType() {
-        ModelDescriptor model = new ModelDescriptor("Pet", List.of(
+        ModelDescriptor model = ModelDescriptor.record("Pet", List.of(
                 new FieldDescriptor("tags", "tags",
                         TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), false)
         ));
@@ -93,7 +93,7 @@ class ModelWriterTest {
 
     @Test
     void resolvesMapType() {
-        ModelDescriptor model = new ModelDescriptor("Config", List.of(
+        ModelDescriptor model = ModelDescriptor.record("Config", List.of(
                 new FieldDescriptor("metadata", "metadata",
                         TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")), false)
         ));
@@ -105,7 +105,7 @@ class ModelWriterTest {
 
     @Test
     void resolvesListOfComplexType() {
-        ModelDescriptor model = new ModelDescriptor("Pet", List.of(
+        ModelDescriptor model = ModelDescriptor.record("Pet", List.of(
                 new FieldDescriptor("tags", "tags",
                         TypeDescriptor.list(TypeDescriptor.complex("Tag")), false)
         ));
@@ -113,5 +113,21 @@ class ModelWriterTest {
         String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("List<Tag> tags"));
+    }
+
+    @Test
+    void generatesEnumWithJsonPropertyValues() {
+        ModelDescriptor model = ModelDescriptor.enumModel("PetStatus", List.of(
+                "available",
+                "pending",
+                "sold"
+        ));
+
+        String source = writer.toJavaFile(model).toString();
+
+        assertTrue(source.contains("enum PetStatus"));
+        assertTrue(source.contains("@JsonProperty(\"available\")"));
+        assertTrue(source.contains("@JsonProperty(\"pending\")"));
+        assertTrue(source.contains("@JsonProperty(\"sold\")"));
     }
 }

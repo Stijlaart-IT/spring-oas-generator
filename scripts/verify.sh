@@ -8,13 +8,13 @@ echo "Building project..."
 mvn -f "$PROJECT_DIR/pom.xml" package -DskipTests
 
 echo "Generating petstore sources..."
-java -jar "$PROJECT_DIR/generator-client/target/generator-client-0.0.1-SNAPSHOT.jar" \
+java -jar "$PROJECT_DIR/generator-client/target/spring-boot-openapi-generator-client-0.0.1-SNAPSHOT.jar" \
   "$PROJECT_DIR/examples/petstore.json" \
   "$PROJECT_DIR/example-validation/petstore-validation-restclient/src/main/java" \
   "nl.stijlaartit.petstore.generated"
 
 echo "Generating realworld sources..."
-java -jar "$PROJECT_DIR/generator-client/target/generator-client-0.0.1-SNAPSHOT.jar" \
+java -jar "$PROJECT_DIR/generator-client/target/spring-boot-openapi-generator-client-0.0.1-SNAPSHOT.jar" \
   "$PROJECT_DIR/examples/realworld.yml" \
   "$PROJECT_DIR/example-validation/realworld-validation-restclient/src/main/java" \
   "nl.stijlaartit.realworld.generated"

@@ -31,6 +31,7 @@ public class ModelResolver {
 
     /** Signature -> model name that was created for it */
     private final Map<SchemaSignature, String> signatureToName = new LinkedHashMap<>();
+    private final Map<EnumSignature, String> enumSignatureToName = new LinkedHashMap<>();
 
     /** All resolved models, keyed by name */
     private final Map<String, ModelDescriptor> models = new LinkedHashMap<>();
@@ -40,6 +41,7 @@ public class ModelResolver {
 
     public List<ModelDescriptor> resolve(OpenAPI openAPI) {
         signatureToName.clear();
+        enumSignatureToName.clear();
         models.clear();
         componentNames.clear();
 
@@ -62,6 +64,10 @@ public class ModelResolver {
             return extractRefName(schema.get$ref());
         }
 
+        if (isEnumSchema(schema)) {
+            return resolveEnumSchema(name, schema, isComponent);
+        }
+
         if (!isObjectSchema(schema)) {
             return null;
         }
@@ -79,11 +85,11 @@ public class ModelResolver {
                 // Component schema takes priority: replace anonymous name with component name
                 ModelDescriptor existing = models.remove(existingName);
                 if (existing != null) {
-                    ModelDescriptor renamed = new ModelDescriptor(name, existing.fields());
-                    models.put(name, renamed);
-                    signatureToName.put(signature, name);
-                    componentNames.add(name);
-                    return name;
+                ModelDescriptor renamed = ModelDescriptor.record(name, existing.fields());
+                models.put(name, renamed);
+                signatureToName.put(signature, name);
+                componentNames.add(name);
+                return name;
                 }
             }
             // Existing is also a component — both must exist, so fall through to create new model
@@ -92,7 +98,7 @@ public class ModelResolver {
         // Build field descriptors (this may recursively resolve nested anonymous schemas)
         List<FieldDescriptor> fields = resolveFields(name, schema);
 
-        ModelDescriptor model = new ModelDescriptor(name, fields);
+        ModelDescriptor model = ModelDescriptor.record(name, fields);
         models.put(name, model);
         signatureToName.put(signature, name);
         if (isComponent) {
@@ -129,6 +135,12 @@ public class ModelResolver {
             return TypeDescriptor.complex(extractRefName(schema.get$ref()));
         }
 
+        if (isEnumSchema(schema)) {
+            String enumName = parentName + toPascalCase(propertyName);
+            String resolvedName = resolveEnumSchema(enumName, schema, false);
+            return TypeDescriptor.complex(resolvedName);
+        }
+
         String type = schema.getType();
 
         if ("array".equals(type) && schema.getItems() != null) {
@@ -149,6 +161,36 @@ public class ModelResolver {
         }
 
         return mapSimpleType(type, schema.getFormat());
+    }
+
+    private String resolveEnumSchema(String name, Schema<?> schema, boolean isComponent) {
+        EnumSignature signature = EnumSignature.of(schema);
+
+        String existingName = enumSignatureToName.get(signature);
+        if (existingName != null) {
+            if (!isComponent) {
+                return existingName;
+            }
+            if (!componentNames.contains(existingName)) {
+                ModelDescriptor existing = models.remove(existingName);
+                if (existing != null) {
+                    ModelDescriptor renamed = ModelDescriptor.enumModel(name, existing.enumValues());
+                    models.put(name, renamed);
+                    enumSignatureToName.put(signature, name);
+                    componentNames.add(name);
+                    return name;
+                }
+            }
+        }
+
+        List<String> values = extractEnumValues(schema);
+        ModelDescriptor model = ModelDescriptor.enumModel(name, values);
+        models.put(name, model);
+        enumSignatureToName.put(signature, name);
+        if (isComponent) {
+            componentNames.add(name);
+        }
+        return name;
     }
 
     static TypeDescriptor mapSimpleType(String type, String format) {
@@ -187,6 +229,16 @@ public class ModelResolver {
         return ("object".equals(schema.getType()) || schema.getType() == null)
                 && schema.getProperties() != null
                 && !schema.getProperties().isEmpty();
+    }
+
+    private static boolean isEnumSchema(Schema<?> schema) {
+        return schema.getEnum() != null && !schema.getEnum().isEmpty();
+    }
+
+    private static List<String> extractEnumValues(Schema<?> schema) {
+        return schema.getEnum().stream()
+                .map(String::valueOf)
+                .toList();
     }
 
     static String extractRefName(String ref) {

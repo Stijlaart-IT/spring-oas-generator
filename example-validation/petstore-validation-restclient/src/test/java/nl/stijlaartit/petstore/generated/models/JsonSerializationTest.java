@@ -34,7 +34,7 @@ class JsonSerializationTest {
     void order() throws Exception {
         var original = new Order(10L, 198772L, 7,
                 OffsetDateTime.of(2024, 1, 15, 10, 30, 0, 0, ZoneOffset.UTC),
-                "approved", true);
+                OrderStatus.APPROVED, true);
         var json = objectMapper.writeValueAsString(original);
         var deserialized = objectMapper.readValue(json, Order.class);
         assertThat(deserialized).isEqualTo(original);
@@ -45,7 +45,7 @@ class JsonSerializationTest {
         var category = new Category(1L, "Dogs");
         var tags = List.of(new Tag(0L, "friendly"), new Tag(1L, "large"));
         var original = new Pet(10L, "Doggo", category,
-                List.of("http://example.com/photo1.jpg"), tags, "available");
+                List.of("http://example.com/photo1.jpg"), tags, PetStatus.AVAILABLE);
         var json = objectMapper.writeValueAsString(original);
         var deserialized = objectMapper.readValue(json, Pet.class);
         assertThat(deserialized).isEqualTo(original);

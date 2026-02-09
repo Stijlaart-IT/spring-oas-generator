@@ -380,4 +380,80 @@ class ModelResolverTest {
             assertEquals(List.of("Pet"), owner.dependencies());
         }
     }
+
+    @Nested
+    class Enums {
+
+        @Test
+        void resolvesComponentEnumSchema() {
+            StringSchema statusSchema = new StringSchema();
+            statusSchema.setEnum(List.of("available", "pending", "sold"));
+
+            Schema<?> orderSchema = new ObjectSchema()
+                    .addProperty("status", new Schema<>().$ref("#/components/schemas/Status"));
+
+            Map<String, Schema> schemas = new LinkedHashMap<>();
+            schemas.put("Status", statusSchema);
+            schemas.put("Order", orderSchema);
+
+            List<ModelDescriptor> models = resolver.resolve(openAPIWith(schemas));
+
+            ModelDescriptor status = models.stream()
+                    .filter(m -> m.name().equals("Status")).findFirst().orElseThrow();
+            ModelDescriptor order = models.stream()
+                    .filter(m -> m.name().equals("Order")).findFirst().orElseThrow();
+
+            assertTrue(status.isEnum());
+            assertEquals(List.of("available", "pending", "sold"), status.enumValues());
+
+            FieldDescriptor statusField = order.fields().stream()
+                    .filter(f -> f.name().equals("status")).findFirst().orElseThrow();
+            assertEquals(TypeDescriptor.complex("Status"), statusField.type());
+        }
+
+        @Test
+        void resolvesInlineEnumSchema() {
+            StringSchema statusSchema = new StringSchema();
+            statusSchema.setEnum(List.of("active", "inactive"));
+
+            Schema<?> userSchema = new ObjectSchema()
+                    .addProperty("status", statusSchema);
+
+            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+
+            ModelDescriptor user = models.stream()
+                    .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
+            ModelDescriptor userStatus = models.stream()
+                    .filter(m -> m.name().equals("UserStatus")).findFirst().orElseThrow();
+
+            FieldDescriptor statusField = user.fields().stream()
+                    .filter(f -> f.name().equals("status")).findFirst().orElseThrow();
+            assertEquals(TypeDescriptor.complex("UserStatus"), statusField.type());
+            assertEquals(List.of("active", "inactive"), userStatus.enumValues());
+        }
+
+        @Test
+        void reusesAnonymousEnumsWithSameValues() {
+            StringSchema primarySchema = new StringSchema();
+            primarySchema.setEnum(List.of("open", "closed"));
+            StringSchema secondarySchema = new StringSchema();
+            secondarySchema.setEnum(List.of("open", "closed"));
+
+            Schema<?> userSchema = new ObjectSchema()
+                    .addProperty("primaryStatus", primarySchema)
+                    .addProperty("secondaryStatus", secondarySchema);
+
+            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+
+            ModelDescriptor user = models.stream()
+                    .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
+
+            FieldDescriptor primary = user.fields().stream()
+                    .filter(f -> f.name().equals("primaryStatus")).findFirst().orElseThrow();
+            FieldDescriptor secondary = user.fields().stream()
+                    .filter(f -> f.name().equals("secondaryStatus")).findFirst().orElseThrow();
+
+            assertEquals(primary.type(), secondary.type());
+        }
+    }
 }

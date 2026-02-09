@@ -31,10 +31,10 @@ public class IntegrationTest {
         Objects.requireNonNull(userApi);
 
     }
-    
+
     @Test
     void shouldMakeACall() {
-        Pet newPet = new Pet(null, "Name", new Category(1L, "Name"), List.of(), List.of(), "status");
+        Pet newPet = new Pet(null, "Name", new Category(1L, "Name"), List.of(), List.of(), PetStatus.AVAILABLE);
         ResourceAccessException failure =assertThrows(ResourceAccessException.class, () -> petApi.addPet(newPet));
         assertThat(failure).hasMessage("I/O error on POST request for \"http://localhost:7777/pet\": null");
     }

@@ -36,6 +36,15 @@ record SchemaSignature(Map<String, String> fieldSignatures, Set<String> required
         String type = Objects.toString(schema.getType(), "object");
         String format = schema.getFormat();
 
+        if (schema.getEnum() != null && !schema.getEnum().isEmpty()) {
+            String valueSignature = schema.getEnum().stream()
+                    .map(String::valueOf)
+                    .reduce((left, right) -> left + "|" + right)
+                    .orElse("");
+            String base = format != null ? type + ":" + format : type;
+            return "enum<" + base + ">:" + valueSignature;
+        }
+
         if ("array".equals(type) && schema.getItems() != null) {
             return "array<" + typeSignature(schema.getItems()) + ">";
         }
