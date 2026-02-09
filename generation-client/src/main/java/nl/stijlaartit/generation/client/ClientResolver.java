@@ -19,7 +19,13 @@ import java.util.Map;
 
 public class ClientResolver {
 
+    private Map<String, Schema> componentSchemas = Map.of();
+
     public List<ClientDescriptor> resolve(OpenAPI openAPI) {
+        componentSchemas = Map.of();
+        if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
+            componentSchemas = openAPI.getComponents().getSchemas();
+        }
         Map<String, List<OperationDescriptor>> operationsByTag = new LinkedHashMap<>();
 
         if (openAPI.getPaths() != null) {
@@ -146,8 +152,25 @@ public class ClientResolver {
             return null;
         }
 
+        if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
+            if (schema.getAllOf().size() == 1) {
+                return resolveSchemaType(schema.getAllOf().get(0));
+            }
+        }
+
         if (schema.get$ref() != null) {
-            return TypeDescriptor.complex(extractRefName(schema.get$ref()));
+            String refName = extractRefName(schema.get$ref());
+            Schema<?> refSchema = componentSchemas.get(refName);
+            if (refSchema != null) {
+                if (refSchema.getEnum() != null && !refSchema.getEnum().isEmpty()) {
+                    return TypeDescriptor.complex(refName);
+                }
+                if ("object".equals(refSchema.getType()) || refSchema.getType() == null) {
+                    return TypeDescriptor.complex(refName);
+                }
+                return resolveSchemaType(refSchema);
+            }
+            return TypeDescriptor.complex(refName);
         }
 
         String type = schema.getType();

@@ -108,6 +108,40 @@ class ClientWriterTest {
     }
 
     @Test
+    void sanitizesKeywordParameterName() {
+        ClientDescriptor client = new ClientDescriptor("PlaylistApi", List.of(
+                new OperationDescriptor("getPlaylist", OperationDescriptor.HttpMethod.GET,
+                        "/playlists/{id}",
+                        List.of(new ParameterDescriptor("public",
+                                ParameterDescriptor.ParameterLocation.QUERY,
+                                TypeDescriptor.simple("java.lang.Boolean"), false)),
+                        null,
+                        TypeDescriptor.simple("java.lang.String"))
+        ));
+
+        String source = writer.toJavaFile(client).toString();
+
+        assertTrue(source.contains("@RequestParam(\"public\") Boolean public_"));
+    }
+
+    @Test
+    void sanitizesOperationIdToValidMethodName() {
+        ClientDescriptor client = new ClientDescriptor("AlbumApi", List.of(
+                new OperationDescriptor("get-an-album", OperationDescriptor.HttpMethod.GET,
+                        "/albums/{id}",
+                        List.of(new ParameterDescriptor("id",
+                                ParameterDescriptor.ParameterLocation.PATH,
+                                TypeDescriptor.simple("java.lang.String"), true)),
+                        null,
+                        TypeDescriptor.simple("java.lang.String"))
+        ));
+
+        String source = writer.toJavaFile(client).toString();
+
+        assertTrue(source.contains("String getAnAlbum("));
+    }
+
+    @Test
     void generatesMultipleOperationsInOneInterface() {
         ClientDescriptor client = new ClientDescriptor("StoreApi", List.of(
                 new OperationDescriptor("getInventory", OperationDescriptor.HttpMethod.GET,

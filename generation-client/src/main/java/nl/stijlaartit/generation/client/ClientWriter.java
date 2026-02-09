@@ -6,6 +6,7 @@ import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.TypeSpec;
+import nl.stijlaartit.generator.model.JavaIdentifierUtils;
 import nl.stijlaartit.generator.model.TypeNameResolver;
 
 import javax.lang.model.element.Modifier;
@@ -67,7 +68,9 @@ public class ClientWriter {
     }
 
     private MethodSpec toMethodSpec(OperationDescriptor operation) {
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(operation.name())
+        String methodName = JavaIdentifierUtils.sanitize(toCamelCase(operation.name()));
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .addAnnotation(exchangeAnnotation(operation.method(), operation.path()));
 
@@ -110,7 +113,7 @@ public class ClientWriter {
             case HEADER -> REQUEST_HEADER;
         };
 
-        String javaName = toCamelCase(param.name());
+        String javaName = JavaIdentifierUtils.sanitize(toCamelCase(param.name()));
 
         AnnotationSpec.Builder annotationBuilder = AnnotationSpec.builder(annotation);
         if (!javaName.equals(param.name())) {

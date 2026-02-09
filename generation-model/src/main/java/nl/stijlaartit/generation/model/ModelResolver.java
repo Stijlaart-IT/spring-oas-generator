@@ -2,6 +2,7 @@ package nl.stijlaartit.generation.model;
 
 import nl.stijlaartit.generation.model.FieldDescriptor;
 import nl.stijlaartit.generation.model.ModelDescriptor;
+import nl.stijlaartit.generator.model.JavaIdentifierUtils;
 import nl.stijlaartit.generator.model.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.Schema;
@@ -38,15 +39,18 @@ public class ModelResolver {
 
     /** Names that originated from component schemas (not anonymous inline objects) */
     private final Set<String> componentNames = new HashSet<>();
+    private Map<String, Schema> componentSchemas = Map.of();
 
     public List<ModelDescriptor> resolve(OpenAPI openAPI) {
         signatureToName.clear();
         enumSignatureToName.clear();
         models.clear();
         componentNames.clear();
+        componentSchemas = Map.of();
 
         // First pass: component schemas (named schemas take priority)
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
+            componentSchemas = openAPI.getComponents().getSchemas();
             for (var entry : openAPI.getComponents().getSchemas().entrySet()) {
                 resolveSchema(entry.getKey(), entry.getValue(), true);
             }
@@ -108,14 +112,12 @@ public class ModelResolver {
     }
 
     private List<FieldDescriptor> resolveFields(String parentName, Schema<?> schema) {
-        Map<String, Schema> properties = schema.getProperties();
-        if (properties == null) {
+        Map<String, Schema> properties = collectProperties(schema);
+        if (properties.isEmpty()) {
             return List.of();
         }
 
-        Set<String> required = schema.getRequired() != null
-                ? Set.copyOf(schema.getRequired())
-                : Set.of();
+        Set<String> required = collectRequired(schema);
 
         List<FieldDescriptor> fields = new ArrayList<>();
         for (var entry : properties.entrySet()) {
@@ -123,7 +125,7 @@ public class ModelResolver {
             Schema<?> propertySchema = entry.getValue();
 
             TypeDescriptor type = resolveType(parentName, propertyName, propertySchema);
-            String javaName = toCamelCase(propertyName);
+            String javaName = JavaIdentifierUtils.sanitize(toCamelCase(propertyName));
 
             fields.add(new FieldDescriptor(javaName, propertyName, type, required.contains(propertyName)));
         }
@@ -131,8 +133,22 @@ public class ModelResolver {
     }
 
     TypeDescriptor resolveType(String parentName, String propertyName, Schema<?> schema) {
+        if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
+            if (schema.getAllOf().size() == 1) {
+                return resolveType(parentName, propertyName, schema.getAllOf().get(0));
+            }
+        }
+
         if (schema.get$ref() != null) {
-            return TypeDescriptor.complex(extractRefName(schema.get$ref()));
+            String refName = extractRefName(schema.get$ref());
+            Schema<?> refSchema = componentSchemas.get(refName);
+            if (refSchema != null) {
+                if (isEnumSchema(refSchema) || isObjectSchema(refSchema)) {
+                    return TypeDescriptor.complex(refName);
+                }
+                return resolveType(parentName, propertyName, refSchema);
+            }
+            return TypeDescriptor.complex(refName);
         }
 
         if (isEnumSchema(schema)) {
@@ -225,10 +241,17 @@ public class ModelResolver {
         };
     }
 
-    private static boolean isObjectSchema(Schema<?> schema) {
-        return ("object".equals(schema.getType()) || schema.getType() == null)
-                && schema.getProperties() != null
-                && !schema.getProperties().isEmpty();
+    private boolean isObjectSchema(Schema<?> schema) {
+        if (!("object".equals(schema.getType()) || schema.getType() == null)) {
+            return false;
+        }
+        if (schema.getProperties() != null && !schema.getProperties().isEmpty()) {
+            return true;
+        }
+        if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
+            return !collectProperties(schema).isEmpty();
+        }
+        return false;
     }
 
     private static boolean isEnumSchema(Schema<?> schema) {
@@ -239,6 +262,42 @@ public class ModelResolver {
         return schema.getEnum().stream()
                 .map(String::valueOf)
                 .toList();
+    }
+
+    private Map<String, Schema> collectProperties(Schema<?> schema) {
+        Map<String, Schema> properties = new LinkedHashMap<>();
+        if (schema.getAllOf() != null) {
+            for (Schema<?> part : schema.getAllOf()) {
+                Schema<?> resolved = resolveRefSchema(part);
+                properties.putAll(collectProperties(resolved));
+            }
+        }
+        if (schema.getProperties() != null) {
+            properties.putAll(schema.getProperties());
+        }
+        return properties;
+    }
+
+    private Set<String> collectRequired(Schema<?> schema) {
+        Set<String> required = new HashSet<>();
+        if (schema.getAllOf() != null) {
+            for (Schema<?> part : schema.getAllOf()) {
+                Schema<?> resolved = resolveRefSchema(part);
+                required.addAll(collectRequired(resolved));
+            }
+        }
+        if (schema.getRequired() != null) {
+            required.addAll(schema.getRequired());
+        }
+        return Set.copyOf(required);
+    }
+
+    private Schema<?> resolveRefSchema(Schema<?> schema) {
+        if (schema.get$ref() == null) {
+            return schema;
+        }
+        String refName = extractRefName(schema.get$ref());
+        return componentSchemas.getOrDefault(refName, schema);
     }
 
     static String extractRefName(String ref) {

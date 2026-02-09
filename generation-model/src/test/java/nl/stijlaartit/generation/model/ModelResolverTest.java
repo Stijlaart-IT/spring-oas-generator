@@ -334,6 +334,18 @@ class ModelResolverTest {
             assertEquals("firstName", field.name());
             assertEquals("first_name", field.jsonName());
         }
+
+        @Test
+        void sanitizesKeywordPropertyName() {
+            Schema<?> schema = new ObjectSchema()
+                    .addProperty("public", new BooleanSchema());
+
+            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("Playlist", schema)));
+
+            FieldDescriptor field = models.get(0).fields().get(0);
+            assertEquals("public_", field.name());
+            assertEquals("public", field.jsonName());
+        }
     }
 
     @Nested

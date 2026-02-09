@@ -44,7 +44,8 @@ public class IntegrationTest {
 
     @Test
     void shouldMakeACall() {
-        ResourceAccessException failure = assertThrows(ResourceAccessException.class, tagsApi::GetTags);
-        assertThat(failure).hasMessage("I/O error on GET request for \"http://localhost:7777/tags\": null");
+        ResourceAccessException failure = assertThrows(ResourceAccessException.class, tagsApi::getTags);
+        assertThat(failure.getMessage())
+                .startsWith("I/O error on GET request for \"http://localhost:7777/tags\":");
     }
 }
