@@ -43,6 +43,11 @@
                 <artifactId>generation-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>nl.stijlaartit</groupId>
+                <artifactId>generation-client</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

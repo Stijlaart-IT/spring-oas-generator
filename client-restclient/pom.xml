@@ -22,6 +22,10 @@
             <artifactId>generation-model</artifactId>
         </dependency>
         <dependency>
+            <groupId>nl.stijlaartit</groupId>
+            <artifactId>generation-client</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.swagger.parser.v3</groupId>
             <artifactId>swagger-parser</artifactId>
         </dependency>
