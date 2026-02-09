@@ -10,7 +10,7 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>generation-base</artifactId>
+    <artifactId>spring-boot-openapi-generation-base</artifactId>
 
     <dependencies>
         <dependency>

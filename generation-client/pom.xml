@@ -10,12 +10,12 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>generation-client</artifactId>
+    <artifactId>spring-boot-openapi-generation-client</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>nl.stijlaartit</groupId>
-            <artifactId>generation-base</artifactId>
+            <artifactId>spring-boot-openapi-generation-base</artifactId>
         </dependency>
         <dependency>
             <groupId>io.swagger.parser.v3</groupId>

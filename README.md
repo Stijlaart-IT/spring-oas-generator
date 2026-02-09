@@ -19,8 +19,8 @@ This project is a Maven multi-module build for OpenAPI-related source generation
   - Responsible for generating a set of source files for a client based on schema/API definitions.
   - No source implementation is added yet.
 
-- **spring-boot-openapi-generator-client-restclient**
-  - Placeholder module for RestClient-focused client generation/runtime support.
+- **spring-boot-openapi-generator-generator-client**
+  - Placeholder module for client generation/runtime support.
 
 - **spring-boot-openapi-generator-client-webclient**
   - Placeholder module for WebClient-focused client generation/runtime support.

@@ -36,17 +36,17 @@
             </dependency>
             <dependency>
                 <groupId>nl.stijlaartit</groupId>
-                <artifactId>generation-base</artifactId>
+                <artifactId>spring-boot-openapi-generation-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>nl.stijlaartit</groupId>
-                <artifactId>generation-model</artifactId>
+                <artifactId>spring-boot-openapi-generation-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>nl.stijlaartit</groupId>
-                <artifactId>generation-client</artifactId>
+                <artifactId>spring-boot-openapi-generation-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
@@ -56,7 +56,6 @@
         <module>generation-base</module>
         <module>generation-model</module>
         <module>generation-client</module>
-        <module>client-restclient</module>
-        <module>client-webclient</module>
+        <module>generator-client</module>
     </modules>
 </project>

@@ -10,7 +10,7 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>client-restclient</artifactId>
+    <artifactId>spring-boot-openapi-generator-client</artifactId>
 
     <dependencies>
         <dependency>
@@ -19,11 +19,11 @@
         </dependency>
         <dependency>
             <groupId>nl.stijlaartit</groupId>
-            <artifactId>generation-model</artifactId>
+            <artifactId>spring-boot-openapi-generation-model</artifactId>
         </dependency>
         <dependency>
             <groupId>nl.stijlaartit</groupId>
-            <artifactId>generation-client</artifactId>
+            <artifactId>spring-boot-openapi-generation-client</artifactId>
         </dependency>
         <dependency>
             <groupId>io.swagger.parser.v3</groupId>
