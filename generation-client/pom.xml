@@ -15,7 +15,7 @@
     <dependencies>
         <dependency>
             <groupId>nl.stijlaartit</groupId>
-            <artifactId>generator</artifactId>
+            <artifactId>generation-base</artifactId>
         </dependency>
         <dependency>
             <groupId>io.swagger.parser.v3</groupId>

@@ -10,7 +10,7 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>generator</artifactId>
+    <artifactId>generation-base</artifactId>
 
     <dependencies>
         <dependency>

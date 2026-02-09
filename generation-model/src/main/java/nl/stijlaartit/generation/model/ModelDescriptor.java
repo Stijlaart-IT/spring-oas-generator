@@ -1,4 +1,6 @@
-package nl.stijlaartit.generator.model;
+package nl.stijlaartit.generation.model;
+
+import nl.stijlaartit.generator.model.TypeDescriptor;
 
 import java.util.List;
 import java.util.Objects;

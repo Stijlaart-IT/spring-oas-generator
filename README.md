@@ -4,7 +4,7 @@ This project is a Maven multi-module build for OpenAPI-related source generation
 
 ## Modules
 
-- **spring-boot-openapi-generator-generator**
+- **spring-boot-openapi-generator-generation-base**
   - Depends on `com.squareup:javapoet`.
   - Responsible for generating Java source files.
   - No source implementation is added yet.
@@ -48,4 +48,3 @@ mvn -f example-validation/pom.xml test
 ## Dependency version management
 
 Dependency versions are managed centrally in the root `pom.xml` using the `<properties>` and `<dependencyManagement>` sections. Child modules declare dependencies without explicit versions.
-

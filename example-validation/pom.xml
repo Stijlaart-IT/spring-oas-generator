@@ -21,7 +21,7 @@
     </properties>
 
     <modules>
-        <module>petstore-validation</module>
-        <module>realworld-validation</module>
+        <module>petstore-validation-restclient</module>
+        <module>realworld-validation-restclient</module>
     </modules>
 </project>

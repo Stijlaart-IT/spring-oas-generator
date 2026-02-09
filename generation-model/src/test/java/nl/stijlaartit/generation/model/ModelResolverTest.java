@@ -1,7 +1,7 @@
 package nl.stijlaartit.generation.model;
 
-import nl.stijlaartit.generator.model.FieldDescriptor;
-import nl.stijlaartit.generator.model.ModelDescriptor;
+import nl.stijlaartit.generation.model.FieldDescriptor;
+import nl.stijlaartit.generation.model.ModelDescriptor;
 import nl.stijlaartit.generator.model.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Components;

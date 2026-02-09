@@ -1,4 +1,4 @@
-package nl.stijlaartit.generator.model;
+package nl.stijlaartit.generation.model;
 
 import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
@@ -6,6 +6,7 @@ import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.TypeSpec;
+import nl.stijlaartit.generator.model.TypeNameResolver;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;

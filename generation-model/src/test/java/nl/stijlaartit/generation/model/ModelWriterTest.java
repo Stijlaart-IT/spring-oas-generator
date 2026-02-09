@@ -1,6 +1,7 @@
-package nl.stijlaartit.generator.model;
+package nl.stijlaartit.generation.model;
 
 import com.palantir.javapoet.JavaFile;
+import nl.stijlaartit.generator.model.TypeDescriptor;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
