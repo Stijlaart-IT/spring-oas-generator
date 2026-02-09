@@ -462,9 +462,13 @@ components:
         username:
           type: string
         bio:
-          type: string
+          type:
+            - string
+            - 'null'
         image:
-          type: string
+          type:
+            - string
+            - 'null'
     UpdateUser:
       type: object
       properties:
@@ -475,9 +479,13 @@ components:
         username:
           type: string
         bio:
-          type: string
+          type:
+            - string
+            - 'null'
         image:
-          type: string
+          type:
+            - string
+            - 'null'
     Profile:
       required:
         - bio
@@ -489,9 +497,13 @@ components:
         username:
           type: string
         bio:
-          type: string
+          type:
+            - string
+            - 'null'
         image:
-          type: string
+          type:
+            - string
+            - 'null'
         following:
           type: boolean
     Article:

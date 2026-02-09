@@ -10,3 +10,6 @@ echo "Downloaded petstore.json to examples/petstore.json"
 
 curl -sL https://raw.githubusercontent.com/realworld-apps/realworld/refs/heads/main/api/openapi.yml -o "$PROJECT_DIR/examples/realworld.yml"
 echo "Downloaded realworld.yml to examples/realworld.yml"
+
+curl -sL https://raw.githubusercontent.com/sonallux/spotify-web-api/refs/heads/main/fixed-spotify-open-api.yml -o "$PROJECT_DIR/examples/spotify.yml"
+echo "Downloaded spotify.yml to examples/spotify.yml"

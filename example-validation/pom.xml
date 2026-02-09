@@ -23,5 +23,6 @@
     <modules>
         <module>petstore-validation-restclient</module>
         <module>realworld-validation-restclient</module>
+        <module>spotify-validation-restclient</module>
     </modules>
 </project>
