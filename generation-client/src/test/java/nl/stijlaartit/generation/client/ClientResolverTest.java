@@ -244,6 +244,22 @@ class ClientResolverTest {
 
             assertEquals(TypeDescriptor.simple("org.springframework.core.io.Resource"), body);
         }
+
+        @Test
+        void resolvesInlineObjectRequestBody() {
+            Schema<?> bodySchema = new ObjectSchema()
+                    .addProperty("ids", new ArraySchema().items(new StringSchema()));
+
+            OpenAPI openAPI = openApiWithOperation(
+                    "/me/albums", "put", "save-albums-user", "albums",
+                    List.of(), jsonBody(bodySchema), null
+            );
+
+            List<ClientDescriptor> clients = resolver.resolve(openAPI);
+            TypeDescriptor body = clients.get(0).operations().get(0).requestBody();
+
+            assertEquals(TypeDescriptor.complex("SaveAlbumsUserRequest"), body);
+        }
     }
 
     @Nested
@@ -317,6 +333,22 @@ class ClientResolverTest {
             TypeDescriptor response = clients.get(0).operations().get(0).responseType();
 
             assertEquals(TypeDescriptor.simple("java.lang.String"), response);
+        }
+
+        @Test
+        void resolvesInlineObjectResponse() {
+            Schema<?> responseSchema = new ObjectSchema()
+                    .addProperty("status", new StringSchema());
+
+            OpenAPI openAPI = openApiWithOperation(
+                    "/user/status", "get", "get-user-status", "user",
+                    List.of(), null, jsonResponse(responseSchema)
+            );
+
+            List<ClientDescriptor> clients = resolver.resolve(openAPI);
+            TypeDescriptor response = clients.get(0).operations().get(0).responseType();
+
+            assertEquals(TypeDescriptor.complex("GetUserStatusResponse"), response);
         }
     }
 

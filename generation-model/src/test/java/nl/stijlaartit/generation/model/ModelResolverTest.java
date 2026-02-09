@@ -5,12 +5,20 @@ import nl.stijlaartit.generation.model.ModelDescriptor;
 import nl.stijlaartit.generator.model.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.Paths;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.parameters.RequestBody;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,6 +43,31 @@ class ModelResolverTest {
         Components components = new Components();
         components.setSchemas(schemas);
         openAPI.setComponents(components);
+        return openAPI;
+    }
+
+    private OpenAPI openApiWithOperation(
+            String path, String method, String operationId,
+            RequestBody requestBody, ApiResponses responses) {
+        OpenAPI openAPI = new OpenAPI();
+        Paths paths = new Paths();
+
+        Operation operation = new Operation()
+                .operationId(operationId)
+                .requestBody(requestBody)
+                .responses(responses != null ? responses : new ApiResponses());
+
+        PathItem pathItem = new PathItem();
+        switch (method) {
+            case "get" -> pathItem.setGet(operation);
+            case "post" -> pathItem.setPost(operation);
+            case "put" -> pathItem.setPut(operation);
+            case "delete" -> pathItem.setDelete(operation);
+            case "patch" -> pathItem.setPatch(operation);
+        }
+        paths.addPathItem(path, pathItem);
+        openAPI.setPaths(paths);
+
         return openAPI;
     }
 
@@ -234,6 +267,38 @@ class ModelResolverTest {
             assertEquals(2, models.size());
             assertTrue(models.stream().anyMatch(m -> m.name().equals("Category")));
             assertTrue(models.stream().anyMatch(m -> m.name().equals("Tag")));
+        }
+    }
+
+    @Nested
+    class OperationSchemas {
+
+        @Test
+        void generatesModelForInlineRequestAndResponseBodies() {
+            Schema<?> requestSchema = new ObjectSchema()
+                    .addProperty("ids", new ArraySchema().items(new StringSchema()));
+            RequestBody requestBody = new RequestBody()
+                    .content(new Content()
+                            .addMediaType("application/json",
+                                    new MediaType().schema(requestSchema)));
+
+            Schema<?> responseSchema = new ObjectSchema()
+                    .addProperty("status", new StringSchema());
+            ApiResponses responses = new ApiResponses()
+                    .addApiResponse("200", new ApiResponse()
+                            .content(new Content()
+                                    .addMediaType("application/json",
+                                            new MediaType().schema(responseSchema))));
+
+            OpenAPI openAPI = openApiWithOperation(
+                    "/me/albums", "put", "save-albums-user",
+                    requestBody, responses
+            );
+
+            List<ModelDescriptor> models = resolver.resolve(openAPI);
+
+            assertTrue(models.stream().anyMatch(m -> m.name().equals("SaveAlbumsUserRequest")));
+            assertTrue(models.stream().anyMatch(m -> m.name().equals("SaveAlbumsUserResponse")));
         }
     }
 

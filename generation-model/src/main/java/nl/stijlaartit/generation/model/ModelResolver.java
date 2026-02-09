@@ -56,7 +56,115 @@ public class ModelResolver {
             }
         }
 
+        if (openAPI.getPaths() != null) {
+            for (var pathEntry : openAPI.getPaths().entrySet()) {
+                resolveOperationSchemas(pathEntry.getValue());
+            }
+        }
+
         return List.copyOf(models.values());
+    }
+
+    private void resolveOperationSchemas(io.swagger.v3.oas.models.PathItem pathItem) {
+        resolveOperationSchema(pathItem.getGet());
+        resolveOperationSchema(pathItem.getPost());
+        resolveOperationSchema(pathItem.getPut());
+        resolveOperationSchema(pathItem.getDelete());
+        resolveOperationSchema(pathItem.getPatch());
+    }
+
+    private void resolveOperationSchema(io.swagger.v3.oas.models.Operation operation) {
+        if (operation == null) {
+            return;
+        }
+
+        String operationId = operation.getOperationId();
+        String baseName = toPascalCase(operationId);
+        if (baseName == null || baseName.isBlank()) {
+            baseName = "Operation";
+        }
+
+        if (operation.getRequestBody() != null && operation.getRequestBody().getContent() != null) {
+            Schema<?> requestSchema = resolveContentSchema(operation.getRequestBody().getContent());
+            resolveInlineSchema(baseName + "Request", requestSchema);
+        }
+
+        if (operation.getResponses() != null && operation.getResponses().get("200") != null) {
+            var response = operation.getResponses().get("200");
+            if (response.getContent() != null) {
+                Schema<?> responseSchema = resolveContentSchema(response.getContent());
+                resolveInlineSchema(baseName + "Response", responseSchema);
+            }
+        }
+    }
+
+    private Schema<?> resolveContentSchema(io.swagger.v3.oas.models.media.Content content) {
+        if (content == null) {
+            return null;
+        }
+        io.swagger.v3.oas.models.media.MediaType mediaType = content.get("application/json");
+        if (mediaType == null) {
+            mediaType = content.values().iterator().next();
+        }
+        if (mediaType == null) {
+            return null;
+        }
+        return mediaType.getSchema();
+    }
+
+    private void resolveInlineSchema(String name, Schema<?> schema) {
+        if (schema == null) {
+            return;
+        }
+
+        if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
+            if (schema.getAllOf().size() == 1) {
+                resolveInlineSchema(name, schema.getAllOf().get(0));
+                return;
+            }
+        }
+
+        if (schema.get$ref() != null) {
+            return;
+        }
+
+        if (isEnumSchema(schema)) {
+            createOperationEnumModel(name, schema);
+            return;
+        }
+
+        if (isObjectSchema(schema)) {
+            createOperationRecordModel(name, schema);
+            return;
+        }
+
+        String type = schema.getType();
+        if ("array".equals(type) && schema.getItems() != null) {
+            resolveInlineSchema(name + "Item", schema.getItems());
+            return;
+        }
+
+        if (schema.getAdditionalProperties() instanceof Schema<?> additional) {
+            resolveInlineSchema(name + "Value", additional);
+        }
+    }
+
+    private void createOperationRecordModel(String name, Schema<?> schema) {
+        if (models.containsKey(name)) {
+            return;
+        }
+        List<FieldDescriptor> fields = resolveFields(name, schema);
+        ModelDescriptor model = ModelDescriptor.record(name, fields);
+        models.put(name, model);
+    }
+
+    private void createOperationEnumModel(String name, Schema<?> schema) {
+        if (models.containsKey(name)) {
+            return;
+        }
+        List<String> values = extractEnumValues(schema);
+        ModelDescriptor model = ModelDescriptor.enumModel(name, values, enumValueType(schema));
+        models.put(name, model);
     }
 
     /**

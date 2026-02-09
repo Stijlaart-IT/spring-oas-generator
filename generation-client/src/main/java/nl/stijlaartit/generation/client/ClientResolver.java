@@ -65,8 +65,9 @@ public class ClientResolver {
                 : "default";
 
         List<ParameterDescriptor> parameters = resolveParameters(operation.getParameters());
-        TypeDescriptor requestBody = resolveRequestBody(operation.getRequestBody());
-        TypeDescriptor responseType = resolveResponseType(operation.getResponses());
+        String operationId = operation.getOperationId();
+        TypeDescriptor requestBody = resolveRequestBody(operationId, operation.getRequestBody());
+        TypeDescriptor responseType = resolveResponseType(operationId, operation.getResponses());
 
         OperationDescriptor descriptor = new OperationDescriptor(
                 operation.getOperationId(), method, path, parameters, requestBody, responseType
@@ -101,7 +102,7 @@ public class ClientResolver {
         return result;
     }
 
-    private TypeDescriptor resolveRequestBody(RequestBody requestBody) {
+    private TypeDescriptor resolveRequestBody(String operationId, RequestBody requestBody) {
         if (requestBody == null || requestBody.getContent() == null) {
             return null;
         }
@@ -118,10 +119,10 @@ public class ClientResolver {
             return null;
         }
 
-        return resolveSchemaType(mediaType.getSchema());
+        return resolveSchemaTypeForOperation(operationId, "Request", mediaType.getSchema());
     }
 
-    private TypeDescriptor resolveResponseType(ApiResponses responses) {
+    private TypeDescriptor resolveResponseType(String operationId, ApiResponses responses) {
         if (responses == null) {
             return null;
         }
@@ -144,7 +145,7 @@ public class ClientResolver {
             return null;
         }
 
-        return resolveSchemaType(mediaType.getSchema());
+        return resolveSchemaTypeForOperation(operationId, "Response", mediaType.getSchema());
     }
 
     TypeDescriptor resolveSchemaType(Schema<?> schema) {
@@ -173,6 +174,10 @@ public class ClientResolver {
             return TypeDescriptor.complex(refName);
         }
 
+        if (schema.getEnum() != null && !schema.getEnum().isEmpty()) {
+            return TypeDescriptor.simple("java.lang.String");
+        }
+
         String type = schema.getType();
 
         if ("array".equals(type) && schema.getItems() != null) {
@@ -190,6 +195,71 @@ public class ClientResolver {
         }
 
         return mapSimpleType(type, schema.getFormat());
+    }
+
+    private TypeDescriptor resolveSchemaTypeForOperation(String operationId, String suffix, Schema<?> schema) {
+        if (schema == null) {
+            return null;
+        }
+
+        if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
+            if (schema.getAllOf().size() == 1) {
+                return resolveSchemaTypeForOperation(operationId, suffix, schema.getAllOf().get(0));
+            }
+        }
+
+        if (schema.get$ref() != null) {
+            return resolveSchemaType(schema);
+        }
+
+        String baseName = toPascalCase(operationId);
+        if (baseName == null || baseName.isBlank()) {
+            baseName = "Operation";
+        }
+        String typeName = baseName + suffix;
+
+        if (schema.getEnum() != null && !schema.getEnum().isEmpty()) {
+            return TypeDescriptor.complex(typeName);
+        }
+
+        if (isObjectSchema(schema)) {
+            return TypeDescriptor.complex(typeName);
+        }
+
+        String type = schema.getType();
+        if ("array".equals(type) && schema.getItems() != null) {
+            TypeDescriptor elementType = resolveSchemaTypeForOperation(
+                    operationId, suffix + "Item", schema.getItems());
+            return TypeDescriptor.list(elementType);
+        }
+
+        if (schema.getAdditionalProperties() instanceof Schema<?> additional) {
+            TypeDescriptor valueType = resolveSchemaTypeForOperation(
+                    operationId, suffix + "Value", additional);
+            return TypeDescriptor.map(valueType);
+        }
+
+        return resolveSchemaType(schema);
+    }
+
+    private boolean isObjectSchema(Schema<?> schema) {
+        if (!("object".equals(schema.getType()) || schema.getType() == null)) {
+            return false;
+        }
+        if (schema.getProperties() != null && !schema.getProperties().isEmpty()) {
+            return true;
+        }
+        if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
+            for (Schema<?> part : schema.getAllOf()) {
+                Schema<?> resolved = part.get$ref() != null
+                        ? componentSchemas.getOrDefault(extractRefName(part.get$ref()), part)
+                        : part;
+                if (resolved.getProperties() != null && !resolved.getProperties().isEmpty()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     static TypeDescriptor mapSimpleType(String type, String format) {
