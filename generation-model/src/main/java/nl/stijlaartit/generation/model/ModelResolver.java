@@ -88,12 +88,12 @@ public class ModelResolver {
             if (!componentNames.contains(existingName)) {
                 // Component schema takes priority: replace anonymous name with component name
                 ModelDescriptor existing = models.remove(existingName);
-                if (existing != null) {
-                ModelDescriptor renamed = ModelDescriptor.record(name, existing.fields());
-                models.put(name, renamed);
-                signatureToName.put(signature, name);
-                componentNames.add(name);
-                return name;
+                if (existing instanceof RecordDescriptor record) {
+                    ModelDescriptor renamed = ModelDescriptor.record(name, record.fields());
+                    models.put(name, renamed);
+                    signatureToName.put(signature, name);
+                    componentNames.add(name);
+                    return name;
                 }
             }
             // Existing is also a component — both must exist, so fall through to create new model
@@ -189,8 +189,9 @@ public class ModelResolver {
             }
             if (!componentNames.contains(existingName)) {
                 ModelDescriptor existing = models.remove(existingName);
-                if (existing != null) {
-                    ModelDescriptor renamed = ModelDescriptor.enumModel(name, existing.enumValues());
+                if (existing instanceof EnumDescriptor enumDescriptor) {
+                    ModelDescriptor renamed = ModelDescriptor.enumModel(
+                            name, enumDescriptor.enumValues(), enumDescriptor.enumValueType());
                     models.put(name, renamed);
                     enumSignatureToName.put(signature, name);
                     componentNames.add(name);
@@ -200,7 +201,7 @@ public class ModelResolver {
         }
 
         List<String> values = extractEnumValues(schema);
-        ModelDescriptor model = ModelDescriptor.enumModel(name, values);
+        ModelDescriptor model = ModelDescriptor.enumModel(name, values, enumValueType(schema));
         models.put(name, model);
         enumSignatureToName.put(signature, name);
         if (isComponent) {
@@ -262,6 +263,20 @@ public class ModelResolver {
         return schema.getEnum().stream()
                 .map(String::valueOf)
                 .toList();
+    }
+
+    private static EnumValueType enumValueType(Schema<?> schema) {
+        String type = schema.getType();
+        if ("integer".equals(type)) {
+            return EnumValueType.INTEGER;
+        }
+        if ("number".equals(type)) {
+            return EnumValueType.NUMBER;
+        }
+        if ("boolean".equals(type)) {
+            return EnumValueType.BOOLEAN;
+        }
+        return EnumValueType.STRING;
     }
 
     private Map<String, Schema> collectProperties(Schema<?> schema) {

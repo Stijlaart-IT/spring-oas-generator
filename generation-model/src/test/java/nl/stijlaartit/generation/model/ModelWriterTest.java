@@ -121,7 +121,7 @@ class ModelWriterTest {
                 "available",
                 "pending",
                 "sold"
-        ));
+        ), EnumValueType.STRING);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -129,5 +129,21 @@ class ModelWriterTest {
         assertTrue(source.contains("@JsonProperty(\"available\")"));
         assertTrue(source.contains("@JsonProperty(\"pending\")"));
         assertTrue(source.contains("@JsonProperty(\"sold\")"));
+    }
+
+    @Test
+    void generatesNumericEnumWithLiteralJsonProperty() {
+        ModelDescriptor model = ModelDescriptor.enumModel("Mode", List.of(
+                "-1",
+                "0",
+                "1"
+        ), EnumValueType.NUMBER);
+
+        String source = writer.toJavaFile(model).toString();
+
+        assertTrue(source.contains("@JsonValue"));
+        assertTrue(source.contains("new BigDecimal(\"-1\")"));
+        assertTrue(source.contains("new BigDecimal(\"0\")"));
+        assertTrue(source.contains("new BigDecimal(\"1\")"));
     }
 }

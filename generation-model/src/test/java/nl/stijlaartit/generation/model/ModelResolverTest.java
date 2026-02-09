@@ -51,7 +51,7 @@ class ModelResolverTest {
             List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
 
             assertEquals(1, models.size());
-            ModelDescriptor user = models.get(0);
+            RecordDescriptor user = (RecordDescriptor) models.get(0);
             assertEquals("User", user.name());
             assertEquals(2, user.fields().size());
 
@@ -104,9 +104,9 @@ class ModelResolverTest {
 
             assertEquals(2, models.size());
 
-            ModelDescriptor user = models.stream()
+            RecordDescriptor user = (RecordDescriptor) models.stream()
                     .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
-            ModelDescriptor userAddress = models.stream()
+            RecordDescriptor userAddress = (RecordDescriptor) models.stream()
                     .filter(m -> m.name().equals("UserAddress")).findFirst().orElseThrow();
 
             // User.address should reference UserAddress
@@ -169,7 +169,7 @@ class ModelResolverTest {
             assertTrue(models.stream().anyMatch(m -> m.name().equals("UserHomeAddress")));
 
             // Both address fields should reference the same model
-            ModelDescriptor user = models.stream()
+            RecordDescriptor user = (RecordDescriptor) models.stream()
                     .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
 
             FieldDescriptor homeAddr = user.fields().stream()
@@ -208,7 +208,7 @@ class ModelResolverTest {
             assertTrue(models.stream().anyMatch(m -> m.name().equals("User")));
 
             // User.address should reference Address (the component name)
-            ModelDescriptor user = models.stream()
+            RecordDescriptor user = (RecordDescriptor) models.stream()
                     .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
             FieldDescriptor addressField = user.fields().stream()
                     .filter(f -> f.name().equals("address")).findFirst().orElseThrow();
@@ -330,7 +330,7 @@ class ModelResolverTest {
 
             List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", schema)));
 
-            FieldDescriptor field = models.get(0).fields().get(0);
+            FieldDescriptor field = ((RecordDescriptor) models.get(0)).fields().get(0);
             assertEquals("firstName", field.name());
             assertEquals("first_name", field.jsonName());
         }
@@ -342,7 +342,7 @@ class ModelResolverTest {
 
             List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("Playlist", schema)));
 
-            FieldDescriptor field = models.get(0).fields().get(0);
+            FieldDescriptor field = ((RecordDescriptor) models.get(0)).fields().get(0);
             assertEquals("public_", field.name());
             assertEquals("public", field.jsonName());
         }
@@ -362,7 +362,7 @@ class ModelResolverTest {
 
             List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
 
-            ModelDescriptor user = models.stream()
+            RecordDescriptor user = (RecordDescriptor) models.stream()
                     .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
 
             assertEquals(List.of("UserAddress"), user.dependencies());
@@ -386,7 +386,7 @@ class ModelResolverTest {
 
             List<ModelDescriptor> models = resolver.resolve(openAPIWith(schemas));
 
-            ModelDescriptor owner = models.stream()
+            RecordDescriptor owner = (RecordDescriptor) models.stream()
                     .filter(m -> m.name().equals("Owner")).findFirst().orElseThrow();
 
             assertEquals(List.of("Pet"), owner.dependencies());
@@ -410,12 +410,11 @@ class ModelResolverTest {
 
             List<ModelDescriptor> models = resolver.resolve(openAPIWith(schemas));
 
-            ModelDescriptor status = models.stream()
+            EnumDescriptor status = (EnumDescriptor) models.stream()
                     .filter(m -> m.name().equals("Status")).findFirst().orElseThrow();
-            ModelDescriptor order = models.stream()
+            RecordDescriptor order = (RecordDescriptor) models.stream()
                     .filter(m -> m.name().equals("Order")).findFirst().orElseThrow();
 
-            assertTrue(status.isEnum());
             assertEquals(List.of("available", "pending", "sold"), status.enumValues());
 
             FieldDescriptor statusField = order.fields().stream()
@@ -433,9 +432,9 @@ class ModelResolverTest {
 
             List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
 
-            ModelDescriptor user = models.stream()
+            RecordDescriptor user = (RecordDescriptor) models.stream()
                     .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
-            ModelDescriptor userStatus = models.stream()
+            EnumDescriptor userStatus = (EnumDescriptor) models.stream()
                     .filter(m -> m.name().equals("UserStatus")).findFirst().orElseThrow();
 
             FieldDescriptor statusField = user.fields().stream()
@@ -457,7 +456,7 @@ class ModelResolverTest {
 
             List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
 
-            ModelDescriptor user = models.stream()
+            RecordDescriptor user = (RecordDescriptor) models.stream()
                     .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
 
             FieldDescriptor primary = user.fields().stream()

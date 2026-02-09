@@ -2,6 +2,8 @@ package nl.stijlaartit.generation.model;
 
 import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
+import com.palantir.javapoet.CodeBlock;
+import com.palantir.javapoet.FieldSpec;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
@@ -10,10 +12,12 @@ import nl.stijlaartit.generator.model.TypeNameResolver;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class ModelWriter {
 
@@ -39,10 +43,13 @@ public class ModelWriter {
     }
 
     JavaFile toJavaFile(ModelDescriptor model) {
-        if (model.isEnum()) {
-            return toEnumJavaFile(model);
-        }
+        return switch (model) {
+            case EnumDescriptor enumDescriptor -> toEnumJavaFile(enumDescriptor);
+            case RecordDescriptor recordDescriptor -> toRecordJavaFile(recordDescriptor);
+        };
+    }
 
+    private JavaFile toRecordJavaFile(RecordDescriptor model) {
         MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder();
 
         for (FieldDescriptor field : model.fields()) {
@@ -72,7 +79,7 @@ public class ModelWriter {
                 .build();
     }
 
-    private JavaFile toEnumJavaFile(ModelDescriptor model) {
+    private JavaFile toEnumJavaFile(EnumDescriptor model) {
         TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(model.name())
                 .addModifiers(Modifier.PUBLIC);
 
@@ -80,12 +87,53 @@ public class ModelWriter {
         for (String value : model.enumValues()) {
             String baseName = toEnumConstantName(value);
             String name = uniqueName(baseName, usedNames);
-            TypeSpec constantSpec = TypeSpec.anonymousClassBuilder("")
-                    .addAnnotation(AnnotationSpec.builder(JSON_PROPERTY)
-                            .addMember("value", "$S", value)
-                            .build())
-                    .build();
-            enumBuilder.addEnumConstant(name, constantSpec);
+            if (model.enumValueType() == EnumValueType.STRING) {
+                TypeSpec constantSpec = TypeSpec.anonymousClassBuilder("")
+                        .addAnnotation(AnnotationSpec.builder(JSON_PROPERTY)
+                                .addMember("value", "$S", value)
+                                .build())
+                        .build();
+                enumBuilder.addEnumConstant(name, constantSpec);
+            } else {
+                enumBuilder.addEnumConstant(name,
+                        TypeSpec.anonymousClassBuilder(enumValueCode(model.enumValueType(), value))
+                                .build());
+            }
+        }
+
+        if (model.enumValueType() != EnumValueType.STRING) {
+            ClassName jsonValue = ClassName.get("com.fasterxml.jackson.annotation", "JsonValue");
+            ClassName jsonCreator = ClassName.get("com.fasterxml.jackson.annotation", "JsonCreator");
+            var valueType = enumValueTypeName(model.enumValueType());
+
+            enumBuilder.addField(FieldSpec.builder(valueType, "value", Modifier.PRIVATE, Modifier.FINAL)
+                    .build());
+
+            enumBuilder.addMethod(MethodSpec.constructorBuilder()
+                    .addParameter(valueType, "value")
+                    .addStatement("this.value = value")
+                    .build());
+
+            enumBuilder.addMethod(MethodSpec.methodBuilder("value")
+                    .addAnnotation(jsonValue)
+                    .addModifiers(Modifier.PUBLIC)
+                    .returns(valueType)
+                    .addStatement("return value")
+                    .build());
+
+            enumBuilder.addMethod(MethodSpec.methodBuilder("fromValue")
+                    .addAnnotation(jsonCreator)
+                    .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                    .returns(ClassName.get(modelsPackage, model.name()))
+                    .addParameter(valueType, "value")
+                    .beginControlFlow("for ($T candidate : values())", ClassName.get(modelsPackage, model.name()))
+                    .beginControlFlow("if ($T.equals(candidate.value, value))", Objects.class)
+                    .addStatement("return candidate")
+                    .endControlFlow()
+                    .endControlFlow()
+                    .addStatement("throw new $T(\"Unexpected value '\" + value + \"'\")",
+                            IllegalArgumentException.class)
+                    .build());
         }
 
         return JavaFile.builder(modelsPackage, enumBuilder.build())
@@ -93,14 +141,33 @@ public class ModelWriter {
                 .build();
     }
 
+    private static CodeBlock enumValueCode(EnumValueType enumValueType, String value) {
+        return switch (enumValueType) {
+            case INTEGER, BOOLEAN -> CodeBlock.of("$L", value);
+            case NUMBER -> CodeBlock.of("new $T($S)", BigDecimal.class, value);
+            case STRING -> throw new IllegalStateException("String enum values are handled separately");
+        };
+    }
+
+    private static com.palantir.javapoet.TypeName enumValueTypeName(EnumValueType enumValueType) {
+        return switch (enumValueType) {
+            case INTEGER -> ClassName.get(Integer.class);
+            case NUMBER -> ClassName.get(BigDecimal.class);
+            case BOOLEAN -> ClassName.get(Boolean.class);
+            case STRING -> ClassName.get(String.class);
+        };
+    }
+
     private static String toEnumConstantName(String value) {
         if (value == null || value.isBlank()) {
             return "EMPTY";
         }
+        boolean negative = value.startsWith("-");
+        String normalized = negative ? value.substring(1) : value;
         StringBuilder result = new StringBuilder();
         boolean previousUnderscore = false;
-        for (int i = 0; i < value.length(); i++) {
-            char c = value.charAt(i);
+        for (int i = 0; i < normalized.length(); i++) {
+            char c = normalized.charAt(i);
             if (Character.isLetterOrDigit(c)) {
                 result.append(Character.toUpperCase(c));
                 previousUnderscore = false;
@@ -117,7 +184,7 @@ public class ModelWriter {
         if (Character.isDigit(sanitized.charAt(0))) {
             sanitized = "_" + sanitized;
         }
-        return sanitized;
+        return negative ? "NEGATIVE" + sanitized : sanitized;
     }
 
     private static String uniqueName(String baseName, Map<String, Integer> usedNames) {
