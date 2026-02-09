@@ -22,5 +22,6 @@
 
     <modules>
         <module>petstore-validation</module>
+        <module>realworld-validation</module>
     </modules>
 </project>
