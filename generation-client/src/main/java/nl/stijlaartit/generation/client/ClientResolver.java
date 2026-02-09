@@ -159,6 +159,10 @@ public class ClientResolver {
             }
         }
 
+        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
+            return TypeDescriptor.simple("java.lang.Object");
+        }
+
         if (schema.get$ref() != null) {
             String refName = extractRefName(schema.get$ref());
             Schema<?> refSchema = componentSchemas.get(refName);
@@ -206,6 +210,14 @@ public class ClientResolver {
             if (schema.getAllOf().size() == 1) {
                 return resolveSchemaTypeForOperation(operationId, suffix, schema.getAllOf().get(0));
             }
+        }
+
+        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
+            String baseName = toPascalCase(operationId);
+            if (baseName == null || baseName.isBlank()) {
+                baseName = "Operation";
+            }
+            return TypeDescriptor.complex(baseName + suffix);
         }
 
         if (schema.get$ref() != null) {

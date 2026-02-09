@@ -6,17 +6,20 @@ import java.util.Objects;
 public record EnumDescriptor(
         String name,
         List<String> enumValues,
-        EnumValueType enumValueType
+        EnumValueType enumValueType,
+        List<String> implementsTypes
 ) implements ModelDescriptor {
     public EnumDescriptor {
         Objects.requireNonNull(name);
         Objects.requireNonNull(enumValues);
         Objects.requireNonNull(enumValueType);
+        Objects.requireNonNull(implementsTypes);
         enumValues = List.copyOf(enumValues);
+        implementsTypes = List.copyOf(implementsTypes);
     }
 
     @Override
     public List<String> dependencies() {
-        return List.of();
+        return implementsTypes;
     }
 }

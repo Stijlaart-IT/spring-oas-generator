@@ -10,6 +10,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,7 @@ public class ModelResolver {
     /** Names that originated from component schemas (not anonymous inline objects) */
     private final Set<String> componentNames = new HashSet<>();
     private Map<String, Schema> componentSchemas = Map.of();
+    private final Map<String, Set<String>> pendingImplements = new LinkedHashMap<>();
 
     public List<ModelDescriptor> resolve(OpenAPI openAPI) {
         signatureToName.clear();
@@ -47,6 +49,7 @@ public class ModelResolver {
         models.clear();
         componentNames.clear();
         componentSchemas = Map.of();
+        pendingImplements.clear();
 
         // First pass: component schemas (named schemas take priority)
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
@@ -124,6 +127,12 @@ public class ModelResolver {
             }
         }
 
+        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
+            if (resolveOneOfSchema(name, schema, false) != null) {
+                return;
+            }
+        }
+
         if (schema.get$ref() != null) {
             return;
         }
@@ -154,7 +163,7 @@ public class ModelResolver {
             return;
         }
         List<FieldDescriptor> fields = resolveFields(name, schema);
-        ModelDescriptor model = ModelDescriptor.record(name, fields);
+        ModelDescriptor model = ModelDescriptor.record(name, fields, consumePendingImplements(name));
         models.put(name, model);
     }
 
@@ -163,7 +172,8 @@ public class ModelResolver {
             return;
         }
         List<String> values = extractEnumValues(schema);
-        ModelDescriptor model = ModelDescriptor.enumModel(name, values, enumValueType(schema));
+        ModelDescriptor model = ModelDescriptor.enumModel(name, values, enumValueType(schema),
+                consumePendingImplements(name));
         models.put(name, model);
     }
 
@@ -174,6 +184,13 @@ public class ModelResolver {
     private String resolveSchema(String name, Schema<?> schema, boolean isComponent) {
         if (schema.get$ref() != null) {
             return extractRefName(schema.get$ref());
+        }
+
+        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
+            String resolved = resolveOneOfSchema(name, schema, isComponent);
+            if (resolved != null) {
+                return resolved;
+            }
         }
 
         if (isEnumSchema(schema)) {
@@ -210,7 +227,7 @@ public class ModelResolver {
         // Build field descriptors (this may recursively resolve nested anonymous schemas)
         List<FieldDescriptor> fields = resolveFields(name, schema);
 
-        ModelDescriptor model = ModelDescriptor.record(name, fields);
+        ModelDescriptor model = ModelDescriptor.record(name, fields, consumePendingImplements(name));
         models.put(name, model);
         signatureToName.put(signature, name);
         if (isComponent) {
@@ -244,6 +261,14 @@ public class ModelResolver {
         if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
             if (schema.getAllOf().size() == 1) {
                 return resolveType(parentName, propertyName, schema.getAllOf().get(0));
+            }
+        }
+
+        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
+            String oneOfName = parentName + toPascalCase(propertyName);
+            String resolvedName = resolveOneOfSchema(oneOfName, schema, false);
+            if (resolvedName != null) {
+                return TypeDescriptor.complex(resolvedName);
             }
         }
 
@@ -299,7 +324,11 @@ public class ModelResolver {
                 ModelDescriptor existing = models.remove(existingName);
                 if (existing instanceof EnumDescriptor enumDescriptor) {
                     ModelDescriptor renamed = ModelDescriptor.enumModel(
-                            name, enumDescriptor.enumValues(), enumDescriptor.enumValueType());
+                            name,
+                            enumDescriptor.enumValues(),
+                            enumDescriptor.enumValueType(),
+                            enumDescriptor.implementsTypes()
+                    );
                     models.put(name, renamed);
                     enumSignatureToName.put(signature, name);
                     componentNames.add(name);
@@ -309,13 +338,109 @@ public class ModelResolver {
         }
 
         List<String> values = extractEnumValues(schema);
-        ModelDescriptor model = ModelDescriptor.enumModel(name, values, enumValueType(schema));
+        ModelDescriptor model = ModelDescriptor.enumModel(name, values, enumValueType(schema),
+                consumePendingImplements(name));
         models.put(name, model);
         enumSignatureToName.put(signature, name);
         if (isComponent) {
             componentNames.add(name);
         }
         return name;
+    }
+
+    private String resolveOneOfSchema(String name, Schema<?> schema, boolean isComponent) {
+        List<Schema> variants = schema.getOneOf();
+        if (variants == null || variants.isEmpty()) {
+            return null;
+        }
+
+        if (models.containsKey(name)) {
+            return name;
+        }
+
+        List<String> variantModels = new ArrayList<>();
+        int index = 1;
+        for (Schema variant : variants) {
+            String variantName = resolveOneOfVariant(name, index++, (Schema<?>) variant);
+            if (variantName == null) {
+                return null;
+            }
+            variantModels.add(variantName);
+        }
+
+        ModelDescriptor model = ModelDescriptor.oneOf(name, variantModels,
+                schema.getDiscriminator() != null ? schema.getDiscriminator().getPropertyName() : null);
+        models.put(name, model);
+        if (isComponent) {
+            componentNames.add(name);
+        }
+        for (String variantName : variantModels) {
+            addInterfaceImplementation(variantName, name);
+        }
+        return name;
+    }
+
+    private String resolveOneOfVariant(String baseName, int index, Schema<?> variant) {
+        if (variant.getAllOf() != null && !variant.getAllOf().isEmpty()) {
+            if (variant.getAllOf().size() == 1) {
+                return resolveOneOfVariant(baseName, index, variant.getAllOf().get(0));
+            }
+        }
+        if (variant.get$ref() != null) {
+            return extractRefName(variant.get$ref());
+        }
+        if (isEnumSchema(variant)) {
+            String enumName = baseName + "Option" + index;
+            resolveEnumSchema(enumName, variant, false);
+            return enumName;
+        }
+        if (isObjectSchema(variant)) {
+            String recordName = baseName + "Option" + index;
+            resolveSchema(recordName, variant, false);
+            return recordName;
+        }
+        return null;
+    }
+
+    private void addInterfaceImplementation(String modelName, String interfaceName) {
+        if (modelName == null || interfaceName == null) {
+            return;
+        }
+        ModelDescriptor existing = models.get(modelName);
+        if (existing instanceof RecordDescriptor record) {
+            models.put(modelName, new RecordDescriptor(
+                    record.name(),
+                    record.fields(),
+                    mergeInterfaces(record.implementsTypes(), interfaceName)
+            ));
+            return;
+        }
+        if (existing instanceof EnumDescriptor enumDescriptor) {
+            models.put(modelName, new EnumDescriptor(
+                    enumDescriptor.name(),
+                    enumDescriptor.enumValues(),
+                    enumDescriptor.enumValueType(),
+                    mergeInterfaces(enumDescriptor.implementsTypes(), interfaceName)
+            ));
+            return;
+        }
+        pendingImplements
+                .computeIfAbsent(modelName, key -> new LinkedHashSet<>())
+                .add(interfaceName);
+    }
+
+    private List<String> consumePendingImplements(String modelName) {
+        Set<String> pending = pendingImplements.remove(modelName);
+        if (pending == null || pending.isEmpty()) {
+            return List.of();
+        }
+        return List.copyOf(pending);
+    }
+
+    private static List<String> mergeInterfaces(List<String> existing, String additional) {
+        LinkedHashSet<String> merged = new LinkedHashSet<>(existing);
+        merged.add(additional);
+        return List.copyOf(merged);
     }
 
     static TypeDescriptor mapSimpleType(String type, String format) {

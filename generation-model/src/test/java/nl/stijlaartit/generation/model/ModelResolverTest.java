@@ -532,4 +532,50 @@ class ModelResolverTest {
             assertEquals(primary.type(), secondary.type());
         }
     }
+
+    @Nested
+    class OneOf {
+
+        @Test
+        void resolvesOneOfAsInterfaceWithImplementations() {
+            Schema<?> trackSchema = new ObjectSchema()
+                    .addProperty("name", new StringSchema());
+            Schema<?> episodeSchema = new ObjectSchema()
+                    .addProperty("title", new StringSchema());
+
+            Schema<?> oneOfSchema = new Schema<>();
+            oneOfSchema.setOneOf(List.of(
+                    new Schema<>().$ref("#/components/schemas/TrackObject"),
+                    new Schema<>().$ref("#/components/schemas/EpisodeObject")
+            ));
+
+            Schema<?> queueSchema = new ObjectSchema()
+                    .addProperty("currently_playing", oneOfSchema);
+
+            Map<String, Schema> schemas = new LinkedHashMap<>();
+            schemas.put("TrackObject", trackSchema);
+            schemas.put("EpisodeObject", episodeSchema);
+            schemas.put("QueueObject", queueSchema);
+
+            List<ModelDescriptor> models = resolver.resolve(openAPIWith(schemas));
+
+            RecordDescriptor queue = (RecordDescriptor) models.stream()
+                    .filter(m -> m.name().equals("QueueObject")).findFirst().orElseThrow();
+            FieldDescriptor currentlyPlaying = queue.fields().stream()
+                    .filter(f -> f.name().equals("currentlyPlaying")).findFirst().orElseThrow();
+            assertEquals(TypeDescriptor.complex("QueueObjectCurrentlyPlaying"), currentlyPlaying.type());
+
+            OneOfDescriptor oneOf = (OneOfDescriptor) models.stream()
+                    .filter(m -> m.name().equals("QueueObjectCurrentlyPlaying")).findFirst().orElseThrow();
+            assertEquals(List.of("TrackObject", "EpisodeObject"), oneOf.variantModels());
+
+            RecordDescriptor track = (RecordDescriptor) models.stream()
+                    .filter(m -> m.name().equals("TrackObject")).findFirst().orElseThrow();
+            RecordDescriptor episode = (RecordDescriptor) models.stream()
+                    .filter(m -> m.name().equals("EpisodeObject")).findFirst().orElseThrow();
+
+            assertEquals(List.of("QueueObjectCurrentlyPlaying"), track.implementsTypes());
+            assertEquals(List.of("QueueObjectCurrentlyPlaying"), episode.implementsTypes());
+        }
+    }
 }

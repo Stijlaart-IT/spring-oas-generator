@@ -46,6 +46,7 @@ public class ModelWriter {
         return switch (model) {
             case EnumDescriptor enumDescriptor -> toEnumJavaFile(enumDescriptor);
             case RecordDescriptor recordDescriptor -> toRecordJavaFile(recordDescriptor);
+            case OneOfDescriptor oneOfDescriptor -> toOneOfJavaFile(oneOfDescriptor);
         };
     }
 
@@ -69,10 +70,15 @@ public class ModelWriter {
             constructorBuilder.addParameter(paramBuilder.build());
         }
 
-        TypeSpec recordSpec = TypeSpec.recordBuilder(model.name())
+        TypeSpec.Builder recordBuilder = TypeSpec.recordBuilder(model.name())
                 .addModifiers(Modifier.PUBLIC)
-                .recordConstructor(constructorBuilder.build())
-                .build();
+                .recordConstructor(constructorBuilder.build());
+
+        for (String interfaceName : model.implementsTypes()) {
+            recordBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName));
+        }
+
+        TypeSpec recordSpec = recordBuilder.build();
 
         return JavaFile.builder(modelsPackage, recordSpec)
                 .indent("    ")
@@ -82,6 +88,10 @@ public class ModelWriter {
     private JavaFile toEnumJavaFile(EnumDescriptor model) {
         TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(model.name())
                 .addModifiers(Modifier.PUBLIC);
+
+        for (String interfaceName : model.implementsTypes()) {
+            enumBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName));
+        }
 
         Map<String, Integer> usedNames = new HashMap<>();
         for (String value : model.enumValues()) {
@@ -137,6 +147,15 @@ public class ModelWriter {
         }
 
         return JavaFile.builder(modelsPackage, enumBuilder.build())
+                .indent("    ")
+                .build();
+    }
+
+    private JavaFile toOneOfJavaFile(OneOfDescriptor model) {
+        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(model.name())
+                .addModifiers(Modifier.PUBLIC);
+
+        return JavaFile.builder(modelsPackage, interfaceBuilder.build())
                 .indent("    ")
                 .build();
     }
