@@ -14,20 +14,22 @@ class JsonSerializationTest {
 
     private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
+    private <T> void assertSerializesSymmetrical(T original, Class<T> type) throws Exception {
+        var json = objectMapper.writeValueAsString(original);
+        var deserialized = objectMapper.readValue(json, type);
+        assertThat(deserialized).isEqualTo(original);
+    }
+
     @Test
     void apiResponse() throws Exception {
         var original = new ApiResponse(200, "unknown", "An error occurred");
-        var json = objectMapper.writeValueAsString(original);
-        var deserialized = objectMapper.readValue(json, ApiResponse.class);
-        assertThat(deserialized).isEqualTo(original);
+        assertSerializesSymmetrical(original, ApiResponse.class);
     }
 
     @Test
     void category() throws Exception {
         var original = new Category(1L, "Dogs");
-        var json = objectMapper.writeValueAsString(original);
-        var deserialized = objectMapper.readValue(json, Category.class);
-        assertThat(deserialized).isEqualTo(original);
+        assertSerializesSymmetrical(original, Category.class);
     }
 
     @Test
@@ -35,9 +37,7 @@ class JsonSerializationTest {
         var original = new Order(10L, 198772L, 7,
                 OffsetDateTime.of(2024, 1, 15, 10, 30, 0, 0, ZoneOffset.UTC),
                 OrderStatus.APPROVED, true);
-        var json = objectMapper.writeValueAsString(original);
-        var deserialized = objectMapper.readValue(json, Order.class);
-        assertThat(deserialized).isEqualTo(original);
+        assertSerializesSymmetrical(original, Order.class);
     }
 
     @Test
@@ -46,25 +46,31 @@ class JsonSerializationTest {
         var tags = List.of(new Tag(0L, "friendly"), new Tag(1L, "large"));
         var original = new Pet(10L, "Doggo", category,
                 List.of("http://example.com/photo1.jpg"), tags, PetStatus.AVAILABLE);
-        var json = objectMapper.writeValueAsString(original);
-        var deserialized = objectMapper.readValue(json, Pet.class);
-        assertThat(deserialized).isEqualTo(original);
+        assertSerializesSymmetrical(original, Pet.class);
     }
 
     @Test
     void tag() throws Exception {
         var original = new Tag(0L, "friendly");
-        var json = objectMapper.writeValueAsString(original);
-        var deserialized = objectMapper.readValue(json, Tag.class);
-        assertThat(deserialized).isEqualTo(original);
+        assertSerializesSymmetrical(original, Tag.class);
     }
 
     @Test
     void user() throws Exception {
         var original = new User(10L, "theUser", "John", "James",
                 "john@email.com", "12345", "12345", 1);
-        var json = objectMapper.writeValueAsString(original);
-        var deserialized = objectMapper.readValue(json, User.class);
-        assertThat(deserialized).isEqualTo(original);
+        assertSerializesSymmetrical(original, User.class);
+    }
+
+    @Test
+    void orderStatus() throws Exception {
+        var original = OrderStatus.values()[0];
+        assertSerializesSymmetrical(original, OrderStatus.class);
+    }
+
+    @Test
+    void petStatus() throws Exception {
+        var original = PetStatus.values()[0];
+        assertSerializesSymmetrical(original, PetStatus.class);
     }
 }
