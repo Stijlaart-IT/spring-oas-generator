@@ -80,8 +80,9 @@ public class ClientResolver {
         TypeDescriptor requestBody = resolveRequestBody(operationId, operation.getRequestBody());
         TypeDescriptor responseType = resolveResponseType(operationId, operation.getResponses());
 
+        boolean deprecated = operation.getDeprecated() != null && operation.getDeprecated();
         OperationDescriptor descriptor = new OperationDescriptor(
-                operation.getOperationId(), method, path, parameters, requestBody, responseType
+                operation.getOperationId(), method, path, parameters, requestBody, responseType, deprecated
         );
 
         operationsByTag.computeIfAbsent(tag, k -> new ArrayList<>()).add(descriptor);

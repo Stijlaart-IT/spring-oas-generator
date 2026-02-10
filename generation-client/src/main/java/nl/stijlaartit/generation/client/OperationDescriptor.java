@@ -11,7 +11,8 @@ public record OperationDescriptor(
         String path,
         List<ParameterDescriptor> parameters,
         TypeDescriptor requestBody,
-        TypeDescriptor responseType
+        TypeDescriptor responseType,
+        boolean deprecated
 ) {
     public OperationDescriptor {
         Objects.requireNonNull(name);

@@ -78,6 +78,10 @@ public class ClientWriter {
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .addAnnotation(exchangeAnnotation(operation.method(), operation.path()));
 
+        if (operation.deprecated()) {
+            methodBuilder.addAnnotation(Deprecated.class);
+        }
+
         if (operation.responseType() != null) {
             methodBuilder.returns(typeNameResolver.resolve(operation.responseType()));
         }

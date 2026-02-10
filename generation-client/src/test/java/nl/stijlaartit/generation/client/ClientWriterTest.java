@@ -21,7 +21,8 @@ class ClientWriterTest {
                                 ParameterDescriptor.ParameterLocation.PATH,
                                 TypeDescriptor.simple("java.lang.Long"), true)),
                         null,
-                        TypeDescriptor.complex("Pet"))
+                        TypeDescriptor.complex("Pet"),
+                        false)
         ));
 
         String source = writer.toJavaFile(client).toString();
@@ -39,7 +40,8 @@ class ClientWriterTest {
                 new OperationDescriptor("addPet", OperationDescriptor.HttpMethod.POST,
                         "/pet", List.of(),
                         TypeDescriptor.complex("Pet"),
-                        TypeDescriptor.complex("Pet"))
+                        TypeDescriptor.complex("Pet"),
+                        false)
         ));
 
         String source = writer.toJavaFile(client).toString();
@@ -57,7 +59,8 @@ class ClientWriterTest {
                         List.of(new ParameterDescriptor("petId",
                                 ParameterDescriptor.ParameterLocation.PATH,
                                 TypeDescriptor.simple("java.lang.Long"), true)),
-                        null, null)
+                        null, null,
+                        false)
         ));
 
         String source = writer.toJavaFile(client).toString();
@@ -75,7 +78,8 @@ class ClientWriterTest {
                                 ParameterDescriptor.ParameterLocation.QUERY,
                                 TypeDescriptor.simple("java.lang.String"), true)),
                         null,
-                        TypeDescriptor.list(TypeDescriptor.complex("Pet")))
+                        TypeDescriptor.list(TypeDescriptor.complex("Pet")),
+                        false)
         ));
 
         String source = writer.toJavaFile(client).toString();
@@ -98,7 +102,8 @@ class ClientWriterTest {
                                         ParameterDescriptor.ParameterLocation.PATH,
                                         TypeDescriptor.simple("java.lang.Long"), true)
                         ),
-                        null, null)
+                        null, null,
+                        false)
         ));
 
         String source = writer.toJavaFile(client).toString();
@@ -116,7 +121,8 @@ class ClientWriterTest {
                                 ParameterDescriptor.ParameterLocation.QUERY,
                                 TypeDescriptor.simple("java.lang.Boolean"), false)),
                         null,
-                        TypeDescriptor.simple("java.lang.String"))
+                        TypeDescriptor.simple("java.lang.String"),
+                        false)
         ));
 
         String source = writer.toJavaFile(client).toString();
@@ -134,7 +140,8 @@ class ClientWriterTest {
                                 ParameterDescriptor.ParameterLocation.PATH,
                                 TypeDescriptor.simple("java.lang.String"), true)),
                         null,
-                        TypeDescriptor.simple("java.lang.String"))
+                        TypeDescriptor.simple("java.lang.String"),
+                        false)
         ));
 
         String source = writer.toJavaFile(client).toString();
@@ -147,11 +154,13 @@ class ClientWriterTest {
         ClientDescriptor client = new ClientDescriptor("StoreApi", List.of(
                 new OperationDescriptor("getInventory", OperationDescriptor.HttpMethod.GET,
                         "/store/inventory", List.of(), null,
-                        TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer"))),
+                        TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")),
+                        false),
                 new OperationDescriptor("placeOrder", OperationDescriptor.HttpMethod.POST,
                         "/store/order", List.of(),
                         TypeDescriptor.complex("Order"),
-                        TypeDescriptor.complex("Order"))
+                        TypeDescriptor.complex("Order"),
+                        false)
         ));
 
         String source = writer.toJavaFile(client).toString();
@@ -166,7 +175,8 @@ class ClientWriterTest {
                 new OperationDescriptor("updatePet", OperationDescriptor.HttpMethod.PUT,
                         "/pet", List.of(),
                         TypeDescriptor.complex("Pet"),
-                        TypeDescriptor.complex("Pet"))
+                        TypeDescriptor.complex("Pet"),
+                        false)
         ));
 
         String source = writer.toJavaFile(client).toString();
@@ -183,7 +193,8 @@ class ClientWriterTest {
                                 ParameterDescriptor.ParameterLocation.QUERY,
                                 TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), true)),
                         null,
-                        TypeDescriptor.list(TypeDescriptor.complex("Pet")))
+                        TypeDescriptor.list(TypeDescriptor.complex("Pet")),
+                        false)
         ));
 
         String source = writer.toJavaFile(client).toString();
@@ -201,11 +212,30 @@ class ClientWriterTest {
                                 ParameterDescriptor.ParameterLocation.PATH,
                                 TypeDescriptor.simple("java.lang.Long"), true)),
                         TypeDescriptor.complex("Pet"),
-                        TypeDescriptor.complex("Pet"))
+                        TypeDescriptor.complex("Pet"),
+                        false)
         ));
 
         String source = writer.toJavaFile(client).toString();
 
         assertTrue(source.contains("@PatchExchange(\"/pet/{petId}\")"));
+    }
+
+    @Test
+    void marksDeprecatedOperation() {
+        ClientDescriptor client = new ClientDescriptor("PetApi", List.of(
+                new OperationDescriptor("deletePet", OperationDescriptor.HttpMethod.DELETE,
+                        "/pet/{petId}",
+                        List.of(new ParameterDescriptor("petId",
+                                ParameterDescriptor.ParameterLocation.PATH,
+                                TypeDescriptor.simple("java.lang.Long"), true)),
+                        null, null,
+                        true)
+        ));
+
+        String source = writer.toJavaFile(client).toString();
+
+        assertTrue(source.contains("@Deprecated"));
+        assertTrue(source.contains("void deletePet("));
     }
 }
