@@ -23,6 +23,12 @@ public class ModelWriter {
 
     private static final ClassName JSON_PROPERTY =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonProperty");
+    private static final ClassName JSON_TYPE_INFO =
+            ClassName.get("com.fasterxml.jackson.annotation", "JsonTypeInfo");
+    private static final ClassName JSON_SUB_TYPES =
+            ClassName.get("com.fasterxml.jackson.annotation", "JsonSubTypes");
+    private static final ClassName JSON_SUB_TYPES_TYPE =
+            ClassName.get("com.fasterxml.jackson.annotation", "JsonSubTypes", "Type");
 
     private final TypeNameResolver typeNameResolver;
     private final String modelsPackage;
@@ -154,6 +160,38 @@ public class ModelWriter {
     private JavaFile toOneOfJavaFile(OneOfDescriptor model) {
         TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(model.name())
                 .addModifiers(Modifier.PUBLIC);
+
+        if (model.discriminatorProperty() != null && !model.discriminatorProperty().isBlank()) {
+            interfaceBuilder.addAnnotation(AnnotationSpec.builder(JSON_TYPE_INFO)
+                    .addMember("use", "$T.Id.NAME", JSON_TYPE_INFO)
+                    .addMember("include", "$T.As.PROPERTY", JSON_TYPE_INFO)
+                    .addMember("property", "$S", model.discriminatorProperty())
+                    .addMember("visible", "$L", true)
+                    .build());
+
+            CodeBlock.Builder subTypes = CodeBlock.builder().add("{\n");
+            var variants = model.variants();
+            for (int i = 0; i < variants.size(); i++) {
+                var variant = variants.get(i);
+                AnnotationSpec.Builder typeBuilder = AnnotationSpec.builder(JSON_SUB_TYPES_TYPE)
+                        .addMember("value", "$T.class", ClassName.get(modelsPackage, variant.modelName()));
+                String discriminatorValue = variant.discriminatorValue();
+                if (discriminatorValue != null && !discriminatorValue.isBlank()) {
+                    typeBuilder.addMember("name", "$S", discriminatorValue);
+                }
+                subTypes.add("    $L", typeBuilder.build());
+                if (i < variants.size() - 1) {
+                    subTypes.add(",\n");
+                } else {
+                    subTypes.add("\n");
+                }
+            }
+            subTypes.add("}");
+
+            interfaceBuilder.addAnnotation(AnnotationSpec.builder(JSON_SUB_TYPES)
+                    .addMember("value", "$L", subTypes.build())
+                    .build());
+        }
 
         return JavaFile.builder(modelsPackage, interfaceBuilder.build())
                 .indent("    ")

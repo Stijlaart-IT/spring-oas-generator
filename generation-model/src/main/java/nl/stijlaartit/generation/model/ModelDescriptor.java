@@ -25,7 +25,8 @@ public sealed interface ModelDescriptor permits RecordDescriptor, EnumDescriptor
         return new EnumDescriptor(name, enumValues, enumValueType, implementsTypes);
     }
 
-    static OneOfDescriptor oneOf(String name, List<String> variantModels, String discriminatorProperty) {
-        return new OneOfDescriptor(name, variantModels, discriminatorProperty);
+    static OneOfDescriptor oneOf(String name, List<OneOfDescriptor.OneOfVariant> variants,
+                                 String discriminatorProperty) {
+        return new OneOfDescriptor(name, variants, discriminatorProperty);
     }
 }

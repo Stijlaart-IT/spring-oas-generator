@@ -146,4 +146,24 @@ class ModelWriterTest {
         assertTrue(source.contains("new BigDecimal(\"0\")"));
         assertTrue(source.contains("new BigDecimal(\"1\")"));
     }
+
+    @Test
+    void generatesOneOfInterfaceWithDiscriminator() {
+        ModelDescriptor model = ModelDescriptor.oneOf(
+                "QueueObjectCurrentlyPlaying",
+                List.of(
+                        new OneOfDescriptor.OneOfVariant("TrackObject", "track"),
+                        new OneOfDescriptor.OneOfVariant("EpisodeObject", "episode")
+                ),
+                "type"
+        );
+
+        String source = writer.toJavaFile(model).toString();
+
+        assertTrue(source.contains("@JsonTypeInfo("));
+        assertTrue(source.contains("property = \"type\""));
+        assertTrue(source.contains("@JsonSubTypes("));
+        assertTrue(source.contains("JsonSubTypes.Type(value = TrackObject.class, name = \"track\")"));
+        assertTrue(source.contains("JsonSubTypes.Type(value = EpisodeObject.class, name = \"episode\")"));
+    }
 }

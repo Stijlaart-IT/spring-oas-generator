@@ -358,24 +358,28 @@ public class ModelResolver {
             return name;
         }
 
-        List<String> variantModels = new ArrayList<>();
+        String discriminatorProperty = schema.getDiscriminator() != null
+                ? schema.getDiscriminator().getPropertyName()
+                : null;
+
+        List<OneOfDescriptor.OneOfVariant> variantModels = new ArrayList<>();
         int index = 1;
         for (Schema variant : variants) {
             String variantName = resolveOneOfVariant(name, index++, (Schema<?>) variant);
             if (variantName == null) {
                 return null;
             }
-            variantModels.add(variantName);
+            String discriminatorValue = resolveDiscriminatorValue(variant, discriminatorProperty);
+            variantModels.add(new OneOfDescriptor.OneOfVariant(variantName, discriminatorValue));
         }
 
-        ModelDescriptor model = ModelDescriptor.oneOf(name, variantModels,
-                schema.getDiscriminator() != null ? schema.getDiscriminator().getPropertyName() : null);
+        ModelDescriptor model = ModelDescriptor.oneOf(name, variantModels, discriminatorProperty);
         models.put(name, model);
         if (isComponent) {
             componentNames.add(name);
         }
-        for (String variantName : variantModels) {
-            addInterfaceImplementation(variantName, name);
+        for (OneOfDescriptor.OneOfVariant variant : variantModels) {
+            addInterfaceImplementation(variant.modelName(), name);
         }
         return name;
     }
@@ -441,6 +445,23 @@ public class ModelResolver {
         LinkedHashSet<String> merged = new LinkedHashSet<>(existing);
         merged.add(additional);
         return List.copyOf(merged);
+    }
+
+    private String resolveDiscriminatorValue(Schema<?> variant, String discriminatorProperty) {
+        if (discriminatorProperty == null || discriminatorProperty.isBlank()) {
+            return null;
+        }
+        Schema<?> resolvedVariant = resolveRefSchema(variant);
+        Map<String, Schema> properties = collectProperties(resolvedVariant);
+        Schema<?> discriminatorSchema = properties.get(discriminatorProperty);
+        if (discriminatorSchema == null) {
+            return null;
+        }
+        Schema<?> resolvedProperty = resolveRefSchema(discriminatorSchema);
+        if (resolvedProperty.getEnum() != null && resolvedProperty.getEnum().size() == 1) {
+            return String.valueOf(resolvedProperty.getEnum().get(0));
+        }
+        return null;
     }
 
     static TypeDescriptor mapSimpleType(String type, String format) {

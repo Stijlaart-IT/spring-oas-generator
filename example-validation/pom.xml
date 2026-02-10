@@ -21,8 +21,8 @@
     </properties>
 
     <modules>
+        <module>spotify-validation-restclient</module>
         <module>petstore-validation-restclient</module>
         <module>realworld-validation-restclient</module>
-        <module>spotify-validation-restclient</module>
     </modules>
 </project>

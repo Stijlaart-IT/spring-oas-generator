@@ -38,4 +38,59 @@ class JsonSerializationTest {
         var deserialized = objectMapper.readValue(json, ArtistObject.class);
         assertThat(deserialized).isEqualTo(original);
     }
+
+    @Test
+    void queueObjectOneOfs() throws Exception {
+        var track = new TrackObject(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "Test Track",
+                null,
+                null,
+                null,
+                TrackObjectType.TRACK,
+                "spotify:track:1",
+                null
+        );
+
+        var episode = new EpisodeObject(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "Test Episode",
+                null,
+                null,
+                null,
+                EpisodeObjectType.EPISODE,
+                "spotify:episode:1",
+                null,
+                null
+        );
+
+        var original = new QueueObject(track, List.of(episode));
+        var json = objectMapper.writeValueAsString(original);
+        var deserialized = objectMapper.readValue(json, QueueObject.class);
+        assertThat(deserialized).isEqualTo(original);
+    }
 }

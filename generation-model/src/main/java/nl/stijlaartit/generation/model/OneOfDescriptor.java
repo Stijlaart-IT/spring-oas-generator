@@ -5,17 +5,25 @@ import java.util.Objects;
 
 public record OneOfDescriptor(
         String name,
-        List<String> variantModels,
+        List<OneOfVariant> variants,
         String discriminatorProperty
 ) implements ModelDescriptor {
     public OneOfDescriptor {
         Objects.requireNonNull(name);
-        Objects.requireNonNull(variantModels);
-        variantModels = List.copyOf(variantModels);
+        Objects.requireNonNull(variants);
+        variants = List.copyOf(variants);
     }
 
     @Override
     public List<String> dependencies() {
-        return variantModels;
+        return variants.stream()
+                .map(OneOfVariant::modelName)
+                .toList();
+    }
+
+    public record OneOfVariant(String modelName, String discriminatorValue) {
+        public OneOfVariant {
+            Objects.requireNonNull(modelName);
+        }
     }
 }

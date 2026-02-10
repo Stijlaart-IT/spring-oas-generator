@@ -540,8 +540,14 @@ class ModelResolverTest {
         void resolvesOneOfAsInterfaceWithImplementations() {
             Schema<?> trackSchema = new ObjectSchema()
                     .addProperty("name", new StringSchema());
+            StringSchema trackType = new StringSchema();
+            trackType.setEnum(List.of("track"));
+            trackSchema.addProperty("type", trackType);
             Schema<?> episodeSchema = new ObjectSchema()
                     .addProperty("title", new StringSchema());
+            StringSchema episodeType = new StringSchema();
+            episodeType.setEnum(List.of("episode"));
+            episodeSchema.addProperty("type", episodeType);
 
             Schema<?> oneOfSchema = new Schema<>();
             oneOfSchema.setOneOf(List.of(
@@ -567,7 +573,14 @@ class ModelResolverTest {
 
             OneOfDescriptor oneOf = (OneOfDescriptor) models.stream()
                     .filter(m -> m.name().equals("QueueObjectCurrentlyPlaying")).findFirst().orElseThrow();
-            assertEquals(List.of("TrackObject", "EpisodeObject"), oneOf.variantModels());
+            assertEquals(
+                    List.of("TrackObject", "EpisodeObject"),
+                    oneOf.variants().stream().map(OneOfDescriptor.OneOfVariant::modelName).toList()
+            );
+            assertEquals(
+                    List.of("track", "episode"),
+                    oneOf.variants().stream().map(OneOfDescriptor.OneOfVariant::discriminatorValue).toList()
+            );
 
             RecordDescriptor track = (RecordDescriptor) models.stream()
                     .filter(m -> m.name().equals("TrackObject")).findFirst().orElseThrow();
