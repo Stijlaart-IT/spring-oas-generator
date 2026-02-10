@@ -76,7 +76,10 @@ public class IntegrationTest {
 
     @Test
     void shouldMakeACall() {
-        ResourceAccessException failure = assertThrows(ResourceAccessException.class, albumsApi::getNewReleases);
+        ResourceAccessException failure = assertThrows(
+                ResourceAccessException.class,
+                () -> albumsApi.getNewReleases(20, 0)
+        );
         assertThat(failure.getMessage())
                 .startsWith("I/O error on GET request for \"http://localhost:7777/browse/new-releases\":");
     }

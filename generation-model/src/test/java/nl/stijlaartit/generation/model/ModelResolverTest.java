@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -344,6 +345,13 @@ class ModelResolverTest {
         }
 
         @Test
+        void mapsTypeFromTypesSet() {
+            Schema<?> schema = new Schema<>().types(Set.of("string"));
+            TypeDescriptor type = resolver.resolveType("Parent", "name", schema);
+            assertEquals(TypeDescriptor.simple("java.lang.String"), type);
+        }
+
+        @Test
         void mapsArrayType() {
             ArraySchema arraySchema = new ArraySchema();
             arraySchema.setItems(new StringSchema());
@@ -359,6 +367,15 @@ class ModelResolverTest {
 
             TypeDescriptor type = resolver.resolveType("Parent", "metadata", mapSchema);
             assertEquals(TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")), type);
+        }
+
+        @Test
+        void mapsMapTypeWithAdditionalPropertiesTrue() {
+            ObjectSchema mapSchema = new ObjectSchema();
+            mapSchema.setAdditionalProperties(true);
+
+            TypeDescriptor type = resolver.resolveType("Parent", "metadata", mapSchema);
+            assertEquals(TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object")), type);
         }
 
         @Test

@@ -5,6 +5,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.Paths;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.IntegerSchema;
@@ -163,6 +164,38 @@ class ClientResolverTest {
         }
 
         @Test
+        void resolvesRefParametersFromComponents() {
+            Parameter refParam = new Parameter().$ref("#/components/parameters/offsetParam");
+            Parameter limitRefParam = new Parameter().$ref("#/components/parameters/limitParam");
+            OpenAPI openAPI = openApiWithOperation(
+                    "/articles", "get", "getArticles", "articles",
+                    List.of(queryParam("tag", "string", null), refParam, limitRefParam),
+                    null, null
+            );
+            openAPI.setComponents(new Components()
+                    .addParameters("offsetParam", new Parameter()
+                            .name("offset")
+                            .in("query")
+                            .required(false)
+                            .schema(new IntegerSchema().format("int32")))
+                    .addParameters("limitParam", new Parameter()
+                            .name("limit")
+                            .in("query")
+                            .required(false)
+                            .schema(new IntegerSchema().format("int32"))));
+
+            List<ClientDescriptor> clients = resolver.resolve(openAPI);
+            List<ParameterDescriptor> params = clients.get(0).operations().get(0).parameters();
+
+            assertEquals(3, params.size());
+            assertEquals("tag", params.get(0).name());
+            assertEquals("offset", params.get(1).name());
+            assertEquals(TypeDescriptor.simple("java.lang.Integer"), params.get(1).type());
+            assertEquals("limit", params.get(2).name());
+            assertEquals(TypeDescriptor.simple("java.lang.Integer"), params.get(2).type());
+        }
+
+        @Test
         void skipsUnresolvedRefParameters() {
             Parameter refParam = new Parameter().$ref("#/components/parameters/offsetParam");
             OpenAPI openAPI = openApiWithOperation(
@@ -195,6 +228,45 @@ class ClientResolverTest {
             ParameterDescriptor param = clients.get(0).operations().get(0).parameters().get(0);
 
             assertEquals(TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), param.type());
+        }
+
+        @Test
+        void resolvesStringSchemaWithoutExplicitType() {
+            Parameter tagParam = new Parameter()
+                    .name("tag")
+                    .in("query")
+                    .required(false)
+                    .schema(new StringSchema().type(null));
+
+            OpenAPI openAPI = openApiWithOperation(
+                    "/articles", "get", "getArticles", "articles",
+                    List.of(tagParam), null, null
+            );
+
+            List<ClientDescriptor> clients = resolver.resolve(openAPI);
+            ParameterDescriptor param = clients.get(0).operations().get(0).parameters().get(0);
+
+            assertEquals(TypeDescriptor.simple("java.lang.String"), param.type());
+        }
+
+        @Test
+        void resolvesSchemaTypeFromTypesSet() {
+            Schema<?> schema = new Schema<>().types(java.util.Set.of("string"));
+            Parameter tagParam = new Parameter()
+                    .name("tag")
+                    .in("query")
+                    .required(false)
+                    .schema(schema);
+
+            OpenAPI openAPI = openApiWithOperation(
+                    "/articles", "get", "getArticles", "articles",
+                    List.of(tagParam), null, null
+            );
+
+            List<ClientDescriptor> clients = resolver.resolve(openAPI);
+            ParameterDescriptor param = clients.get(0).operations().get(0).parameters().get(0);
+
+            assertEquals(TypeDescriptor.simple("java.lang.String"), param.type());
         }
     }
 
@@ -307,6 +379,21 @@ class ClientResolverTest {
             TypeDescriptor response = clients.get(0).operations().get(0).responseType();
 
             assertEquals(TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")), response);
+        }
+
+        @Test
+        void resolvesMapResponseTypeWithAdditionalPropertiesTrue() {
+            ObjectSchema mapSchema = new ObjectSchema();
+            mapSchema.setAdditionalProperties(true);
+            OpenAPI openAPI = openApiWithOperation(
+                    "/store/inventory", "get", "getInventory", "store",
+                    List.of(), null, jsonResponse(mapSchema)
+            );
+
+            List<ClientDescriptor> clients = resolver.resolve(openAPI);
+            TypeDescriptor response = clients.get(0).operations().get(0).responseType();
+
+            assertEquals(TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object")), response);
         }
 
         @Test

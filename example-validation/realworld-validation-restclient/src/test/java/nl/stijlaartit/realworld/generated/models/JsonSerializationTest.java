@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,7 +25,8 @@ class JsonSerializationTest {
         var original = new Article("how-to-train-your-dragon", "How to train your dragon",
                 "Ever wonder how?", "It takes a Lifetime of training",
                 List.of("reactjs", "angularjs", "dragons"),
-                "2016-02-18T03:22:56.637Z", "2016-02-18T03:48:35.824Z",
+                OffsetDateTime.parse("2016-02-18T03:22:56.637Z"),
+                OffsetDateTime.parse("2016-02-18T03:48:35.824Z"),
                 false, 0, profile);
         assertSerializesSymmetrical(original, Article.class);
     }
@@ -32,7 +34,9 @@ class JsonSerializationTest {
     @Test
     void comment() throws Exception {
         var profile = new Profile("jake", "I work at State Farm", "https://i.stack.imgur.com/xHWG8.jpg", false);
-        var original = new Comment(1, "2016-02-18T03:22:56.637Z", "2016-02-18T03:22:56.637Z",
+        var original = new Comment(1,
+                OffsetDateTime.parse("2016-02-18T03:22:56.637Z"),
+                OffsetDateTime.parse("2016-02-18T03:22:56.637Z"),
                 "It takes a Lifetime of training.", profile);
         assertSerializesSymmetrical(original, Comment.class);
     }

@@ -5,7 +5,13 @@ import nl.stijlaartit.generation.model.ModelDescriptor;
 import nl.stijlaartit.generator.model.JavaIdentifierUtils;
 import nl.stijlaartit.generator.model.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.BooleanSchema;
+import io.swagger.v3.oas.models.media.IntegerSchema;
+import io.swagger.v3.oas.models.media.NumberSchema;
+import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -147,7 +153,7 @@ public class ModelResolver {
             return;
         }
 
-        String type = schema.getType();
+        String type = resolveSchemaTypeName(schema);
         if ("array".equals(type) && schema.getItems() != null) {
             resolveInlineSchema(name + "Item", schema.getItems());
             return;
@@ -290,7 +296,7 @@ public class ModelResolver {
             return TypeDescriptor.complex(resolvedName);
         }
 
-        String type = schema.getType();
+        String type = resolveSchemaTypeName(schema);
 
         if ("array".equals(type) && schema.getItems() != null) {
             TypeDescriptor elementType = resolveType(parentName, propertyName, schema.getItems());
@@ -300,6 +306,9 @@ public class ModelResolver {
         if (schema.getAdditionalProperties() instanceof Schema<?> additional) {
             TypeDescriptor valueType = resolveType(parentName, propertyName, additional);
             return TypeDescriptor.map(valueType);
+        }
+        if (Boolean.TRUE.equals(schema.getAdditionalProperties())) {
+            return TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object"));
         }
 
         if (isObjectSchema(schema)) {
@@ -497,7 +506,8 @@ public class ModelResolver {
     }
 
     private boolean isObjectSchema(Schema<?> schema) {
-        if (!("object".equals(schema.getType()) || schema.getType() == null)) {
+        String type = resolveSchemaTypeName(schema);
+        if (!("object".equals(type) || type == null)) {
             return false;
         }
         if (schema.getProperties() != null && !schema.getProperties().isEmpty()) {
@@ -520,7 +530,7 @@ public class ModelResolver {
     }
 
     private static EnumValueType enumValueType(Schema<?> schema) {
-        String type = schema.getType();
+        String type = resolveSchemaTypeName(schema);
         if ("integer".equals(type)) {
             return EnumValueType.INTEGER;
         }
@@ -531,6 +541,53 @@ public class ModelResolver {
             return EnumValueType.BOOLEAN;
         }
         return EnumValueType.STRING;
+    }
+
+    private static String resolveSchemaTypeName(Schema<?> schema) {
+        String type = schema.getType();
+        if (type != null) {
+            return type;
+        }
+        if (schema.getTypes() != null && !schema.getTypes().isEmpty()) {
+            if (schema.getTypes().contains("string")) {
+                return "string";
+            }
+            if (schema.getTypes().contains("integer")) {
+                return "integer";
+            }
+            if (schema.getTypes().contains("number")) {
+                return "number";
+            }
+            if (schema.getTypes().contains("boolean")) {
+                return "boolean";
+            }
+            if (schema.getTypes().contains("array")) {
+                return "array";
+            }
+            if (schema.getTypes().contains("object")) {
+                return "object";
+            }
+            return schema.getTypes().iterator().next();
+        }
+        if (schema instanceof StringSchema) {
+            return "string";
+        }
+        if (schema instanceof IntegerSchema) {
+            return "integer";
+        }
+        if (schema instanceof NumberSchema) {
+            return "number";
+        }
+        if (schema instanceof BooleanSchema) {
+            return "boolean";
+        }
+        if (schema instanceof ArraySchema) {
+            return "array";
+        }
+        if (schema instanceof ObjectSchema) {
+            return "object";
+        }
+        return null;
     }
 
     private Map<String, Schema> collectProperties(Schema<?> schema) {

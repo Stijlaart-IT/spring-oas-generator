@@ -4,9 +4,15 @@ import nl.stijlaartit.generator.model.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.NumberSchema;
+import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
@@ -20,11 +26,16 @@ import java.util.Map;
 public class ClientResolver {
 
     private Map<String, Schema> componentSchemas = Map.of();
+    private Map<String, Parameter> componentParameters = Map.of();
 
     public List<ClientDescriptor> resolve(OpenAPI openAPI) {
         componentSchemas = Map.of();
+        componentParameters = Map.of();
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
             componentSchemas = openAPI.getComponents().getSchemas();
+        }
+        if (openAPI.getComponents() != null && openAPI.getComponents().getParameters() != null) {
+            componentParameters = openAPI.getComponents().getParameters();
         }
         Map<String, List<OperationDescriptor>> operationsByTag = new LinkedHashMap<>();
 
@@ -83,23 +94,42 @@ public class ClientResolver {
 
         List<ParameterDescriptor> result = new ArrayList<>();
         for (Parameter param : parameters) {
-            if (param.getIn() == null) {
+            Parameter resolved = resolveParameter(param);
+            if (resolved == null || resolved.getIn() == null) {
                 continue;
             }
-            ParameterDescriptor.ParameterLocation location = switch (param.getIn()) {
+            ParameterDescriptor.ParameterLocation location = switch (resolved.getIn()) {
                 case "path" -> ParameterDescriptor.ParameterLocation.PATH;
                 case "query" -> ParameterDescriptor.ParameterLocation.QUERY;
                 case "header" -> ParameterDescriptor.ParameterLocation.HEADER;
                 default -> throw new IllegalArgumentException(
-                        "Unsupported parameter location: " + param.getIn());
+                        "Unsupported parameter location: " + resolved.getIn());
             };
 
-            TypeDescriptor type = resolveSchemaType(param.getSchema());
-            boolean required = param.getRequired() != null && param.getRequired();
+            TypeDescriptor type = resolved.getSchema() != null
+                    ? resolveSchemaType(resolved.getSchema())
+                    : TypeDescriptor.simple("java.lang.Object");
+            boolean required = resolved.getRequired() != null && resolved.getRequired();
 
-            result.add(new ParameterDescriptor(param.getName(), location, type, required));
+            result.add(new ParameterDescriptor(resolved.getName(), location, type, required));
         }
         return result;
+    }
+
+    private Parameter resolveParameter(Parameter parameter) {
+        if (parameter == null || parameter.get$ref() == null) {
+            return parameter;
+        }
+        Parameter current = parameter;
+        java.util.Set<String> visitedRefs = new java.util.HashSet<>();
+        while (current != null && current.get$ref() != null) {
+            String refName = extractRefName(current.get$ref());
+            if (!visitedRefs.add(refName)) {
+                return null;
+            }
+            current = componentParameters.get(refName);
+        }
+        return current;
     }
 
     private TypeDescriptor resolveRequestBody(String operationId, RequestBody requestBody) {
@@ -182,7 +212,7 @@ public class ClientResolver {
             return TypeDescriptor.simple("java.lang.String");
         }
 
-        String type = schema.getType();
+        String type = resolveSchemaTypeName(schema);
 
         if ("array".equals(type) && schema.getItems() != null) {
             TypeDescriptor elementType = resolveSchemaType(schema.getItems());
@@ -192,6 +222,9 @@ public class ClientResolver {
         if (schema.getAdditionalProperties() instanceof Schema<?> additional) {
             TypeDescriptor valueType = resolveSchemaType(additional);
             return TypeDescriptor.map(valueType);
+        }
+        if (Boolean.TRUE.equals(schema.getAdditionalProperties())) {
+            return TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object"));
         }
 
         if ("string".equals(type) && "binary".equals(schema.getFormat())) {
@@ -238,7 +271,7 @@ public class ClientResolver {
             return TypeDescriptor.complex(typeName);
         }
 
-        String type = schema.getType();
+        String type = resolveSchemaTypeName(schema);
         if ("array".equals(type) && schema.getItems() != null) {
             TypeDescriptor elementType = resolveSchemaTypeForOperation(
                     operationId, suffix + "Item", schema.getItems());
@@ -272,6 +305,53 @@ public class ClientResolver {
             }
         }
         return false;
+    }
+
+    private static String resolveSchemaTypeName(Schema<?> schema) {
+        String type = schema.getType();
+        if (type != null) {
+            return type;
+        }
+        if (schema.getTypes() != null && !schema.getTypes().isEmpty()) {
+            if (schema.getTypes().contains("string")) {
+                return "string";
+            }
+            if (schema.getTypes().contains("integer")) {
+                return "integer";
+            }
+            if (schema.getTypes().contains("number")) {
+                return "number";
+            }
+            if (schema.getTypes().contains("boolean")) {
+                return "boolean";
+            }
+            if (schema.getTypes().contains("array")) {
+                return "array";
+            }
+            if (schema.getTypes().contains("object")) {
+                return "object";
+            }
+            return schema.getTypes().iterator().next();
+        }
+        if (schema instanceof StringSchema) {
+            return "string";
+        }
+        if (schema instanceof IntegerSchema) {
+            return "integer";
+        }
+        if (schema instanceof NumberSchema) {
+            return "number";
+        }
+        if (schema instanceof BooleanSchema) {
+            return "boolean";
+        }
+        if (schema instanceof ArraySchema) {
+            return "array";
+        }
+        if (schema instanceof ObjectSchema) {
+            return "object";
+        }
+        return null;
     }
 
     static TypeDescriptor mapSimpleType(String type, String format) {
