@@ -13,6 +13,7 @@ import nl.stijlaartit.generator.model.TypeNameResolver;
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +30,8 @@ public class ModelWriter {
             ClassName.get("com.fasterxml.jackson.annotation", "JsonSubTypes");
     private static final ClassName JSON_SUB_TYPES_TYPE =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonSubTypes", "Type");
+    private static final ClassName NULLABLE =
+            ClassName.get("org.jspecify.annotations", "Nullable");
 
     private final TypeNameResolver typeNameResolver;
     private final String modelsPackage;
@@ -39,6 +42,7 @@ public class ModelWriter {
     }
 
     public void writeAll(List<ModelDescriptor> models, Path outputDirectory) throws IOException {
+        writePackageInfo(outputDirectory);
         for (ModelDescriptor model : models) {
             write(model, outputDirectory);
         }
@@ -64,6 +68,10 @@ public class ModelWriter {
                     typeNameResolver.resolve(field.type()),
                     field.name()
             );
+
+            if (!field.required()) {
+                paramBuilder.addAnnotation(AnnotationSpec.builder(NULLABLE).build());
+            }
 
             if (!field.name().equals(field.jsonName())) {
                 paramBuilder.addAnnotation(
@@ -260,5 +268,18 @@ public class ModelWriter {
             end--;
         }
         return value.substring(start, end);
+    }
+
+    private void writePackageInfo(Path outputDirectory) throws IOException {
+        Path packageDir = outputDirectory.resolve(modelsPackage.replace('.', '/'));
+        Files.createDirectories(packageDir);
+        Path packageInfo = packageDir.resolve("package-info.java");
+        Files.writeString(packageInfo, packageInfoSource(modelsPackage));
+    }
+
+    private static String packageInfoSource(String packageName) {
+        return "@NullMarked\n"
+                + "package " + packageName + ";\n\n"
+                + "import org.jspecify.annotations.NullMarked;\n";
     }
 }

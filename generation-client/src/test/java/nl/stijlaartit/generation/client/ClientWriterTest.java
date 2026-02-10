@@ -82,7 +82,7 @@ class ClientWriterTest {
 
         assertTrue(source.contains("@GetExchange(\"/pet/findByStatus\")"));
         assertTrue(source.contains("List<Pet> findPetsByStatus("));
-        assertTrue(source.contains("@RequestParam String status"));
+        assertTrue(source.contains("@RequestParam(required = true) String status"));
     }
 
     @Test
@@ -121,7 +121,8 @@ class ClientWriterTest {
 
         String source = writer.toJavaFile(client).toString();
 
-        assertTrue(source.contains("@RequestParam(\"public\") Boolean public_"));
+        assertTrue(source.contains("@Nullable @RequestParam(value = \"public\", required = false) Boolean public_"));
+        assertTrue(source.contains("import org.jspecify.annotations.Nullable;"));
     }
 
     @Test

@@ -11,6 +11,7 @@ import nl.stijlaartit.generator.model.TypeNameResolver;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -35,6 +36,8 @@ public class ClientWriter {
             "org.springframework.web.bind.annotation", "RequestHeader");
     private static final ClassName REQUEST_BODY = ClassName.get(
             "org.springframework.web.bind.annotation", "RequestBody");
+    private static final ClassName NULLABLE =
+            ClassName.get("org.jspecify.annotations", "Nullable");
 
     private final TypeNameResolver typeNameResolver;
     private final String clientPackage;
@@ -45,6 +48,7 @@ public class ClientWriter {
     }
 
     public void writeAll(List<ClientDescriptor> clients, Path outputDirectory) throws IOException {
+        writePackageInfo(outputDirectory);
         for (ClientDescriptor client : clients) {
             write(client, outputDirectory);
         }
@@ -119,11 +123,20 @@ public class ClientWriter {
         if (!javaName.equals(param.name())) {
             annotationBuilder.addMember("value", "$S", param.name());
         }
+        if (param.location() == ParameterDescriptor.ParameterLocation.QUERY) {
+            annotationBuilder.addMember("required", "$L", param.required());
+        }
 
-        return ParameterSpec.builder(
+        ParameterSpec.Builder paramBuilder = ParameterSpec.builder(
                 typeNameResolver.resolve(param.type()),
                 javaName
-        ).addAnnotation(annotationBuilder.build()).build();
+        );
+
+        if (param.location() == ParameterDescriptor.ParameterLocation.QUERY && !param.required()) {
+            paramBuilder.addAnnotation(AnnotationSpec.builder(NULLABLE).build());
+        }
+
+        return paramBuilder.addAnnotation(annotationBuilder.build()).build();
     }
 
     private static String toCamelCase(String input) {
@@ -146,5 +159,18 @@ public class ClientWriter {
             }
         }
         return result.toString();
+    }
+
+    private void writePackageInfo(Path outputDirectory) throws IOException {
+        Path packageDir = outputDirectory.resolve(clientPackage.replace('.', '/'));
+        Files.createDirectories(packageDir);
+        Path packageInfo = packageDir.resolve("package-info.java");
+        Files.writeString(packageInfo, packageInfoSource(clientPackage));
+    }
+
+    private static String packageInfoSource(String packageName) {
+        return "@NullMarked\n"
+                + "package " + packageName + ";\n\n"
+                + "import org.jspecify.annotations.NullMarked;\n";
     }
 }

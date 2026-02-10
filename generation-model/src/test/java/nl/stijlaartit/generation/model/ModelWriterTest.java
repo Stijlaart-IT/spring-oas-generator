@@ -38,7 +38,8 @@ class ModelWriterTest {
         String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("String name"));
-        assertTrue(source.contains("Integer age"));
+        assertTrue(source.contains("@Nullable Integer age"));
+        assertTrue(source.contains("import org.jspecify.annotations.Nullable;"));
     }
 
     @Test

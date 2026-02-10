@@ -14,26 +14,26 @@ class JsonSerializationTest {
 
     private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
-    private <T> void assertSerializesSymmetrical(T original, Class<T> type) throws Exception {
+    private <T> void assertSerializesSymmetrical(T original, Class<T> type) {
         var json = objectMapper.writeValueAsString(original);
         var deserialized = objectMapper.readValue(json, type);
         assertThat(deserialized).isEqualTo(original);
     }
 
     @Test
-    void apiResponse() throws Exception {
+    void apiResponse() {
         var original = new ApiResponse(200, "unknown", "An error occurred");
         assertSerializesSymmetrical(original, ApiResponse.class);
     }
 
     @Test
-    void category() throws Exception {
+    void category() {
         var original = new Category(1L, "Dogs");
         assertSerializesSymmetrical(original, Category.class);
     }
 
     @Test
-    void order() throws Exception {
+    void order() {
         var original = new Order(10L, 198772L, 7,
                 OffsetDateTime.of(2024, 1, 15, 10, 30, 0, 0, ZoneOffset.UTC),
                 OrderStatus.APPROVED, true);
@@ -41,7 +41,7 @@ class JsonSerializationTest {
     }
 
     @Test
-    void pet() throws Exception {
+    void pet() {
         var category = new Category(1L, "Dogs");
         var tags = List.of(new Tag(0L, "friendly"), new Tag(1L, "large"));
         var original = new Pet(10L, "Doggo", category,
@@ -50,26 +50,26 @@ class JsonSerializationTest {
     }
 
     @Test
-    void tag() throws Exception {
+    void tag() {
         var original = new Tag(0L, "friendly");
         assertSerializesSymmetrical(original, Tag.class);
     }
 
     @Test
-    void user() throws Exception {
+    void user() {
         var original = new User(10L, "theUser", "John", "James",
                 "john@email.com", "12345", "12345", 1);
         assertSerializesSymmetrical(original, User.class);
     }
 
     @Test
-    void orderStatus() throws Exception {
+    void orderStatus() {
         var original = OrderStatus.values()[0];
         assertSerializesSymmetrical(original, OrderStatus.class);
     }
 
     @Test
-    void petStatus() throws Exception {
+    void petStatus() {
         var original = PetStatus.values()[0];
         assertSerializesSymmetrical(original, PetStatus.class);
     }

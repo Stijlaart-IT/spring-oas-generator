@@ -13,14 +13,14 @@ class JsonSerializationTest {
 
     private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
-    private <T> void assertSerializesSymmetrical(T original, Class<T> type) throws Exception {
+    private <T> void assertSerializesSymmetrical(T original, Class<T> type) {
         var json = objectMapper.writeValueAsString(original);
         var deserialized = objectMapper.readValue(json, type);
         assertThat(deserialized).isEqualTo(original);
     }
 
     @Test
-    void article() throws Exception {
+    void article() {
         var profile = new Profile("jake", "I work at State Farm", "https://i.stack.imgur.com/xHWG8.jpg", false);
         var original = new Article("how-to-train-your-dragon", "How to train your dragon",
                 "Ever wonder how?", "It takes a Lifetime of training",
@@ -32,7 +32,7 @@ class JsonSerializationTest {
     }
 
     @Test
-    void comment() throws Exception {
+    void comment() {
         var profile = new Profile("jake", "I work at State Farm", "https://i.stack.imgur.com/xHWG8.jpg", false);
         var original = new Comment(1,
                 OffsetDateTime.parse("2016-02-18T03:22:56.637Z"),
@@ -42,19 +42,19 @@ class JsonSerializationTest {
     }
 
     @Test
-    void genericErrorModel() throws Exception {
+    void genericErrorModel() {
         var original = new GenericErrorModel(new NewComment("can't be empty"));
         assertSerializesSymmetrical(original, GenericErrorModel.class);
     }
 
     @Test
-    void loginUser() throws Exception {
+    void loginUser() {
         var original = new LoginUser("jake@jake.jake", "jakejake");
         assertSerializesSymmetrical(original, LoginUser.class);
     }
 
     @Test
-    void newArticle() throws Exception {
+    void newArticle() {
         var original = new NewArticle("How to train your dragon",
                 "Ever wonder how?", "You have to believe",
                 List.of("reactjs", "angularjs", "dragons"));
@@ -62,37 +62,37 @@ class JsonSerializationTest {
     }
 
     @Test
-    void newComment() throws Exception {
+    void newComment() {
         var original = new NewComment("His name was my name too.");
         assertSerializesSymmetrical(original, NewComment.class);
     }
 
     @Test
-    void newUser() throws Exception {
+    void newUser() {
         var original = new NewUser("Jacob", "jake@jake.jake", "jakejake");
         assertSerializesSymmetrical(original, NewUser.class);
     }
 
     @Test
-    void profile() throws Exception {
+    void profile() {
         var original = new Profile("jake", "I work at State Farm", "https://i.stack.imgur.com/xHWG8.jpg", false);
         assertSerializesSymmetrical(original, Profile.class);
     }
 
     @Test
-    void updateArticle() throws Exception {
+    void updateArticle() {
         var original = new UpdateArticle("Did you train your dragon?", "Ever wonder how?", "Updated body");
         assertSerializesSymmetrical(original, UpdateArticle.class);
     }
 
     @Test
-    void updateUser() throws Exception {
+    void updateUser() {
         var original = new UpdateUser("jake@jake.jake", "newpassword", "jacob", "I like to skateboard", "https://i.stack.imgur.com/xHWG8.jpg");
         assertSerializesSymmetrical(original, UpdateUser.class);
     }
 
     @Test
-    void user() throws Exception {
+    void user() {
         var original = new User("jake@jake.jake", "jwt.token.here", "jake", "I work at State Farm", "https://i.stack.imgur.com/xHWG8.jpg");
         assertSerializesSymmetrical(original, User.class);
     }
