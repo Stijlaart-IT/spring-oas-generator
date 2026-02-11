@@ -4,23 +4,12 @@ This project is a Maven multi-module build for OpenAPI-related source generation
 
 ## Modules
 
-- **spring-boot-openapi-generator-generation-base**
-  - Depends on `com.squareup:javapoet`.
-  - Responsible for generating Java source files.
-  - No source implementation is added yet.
+- **generator-engine**
+  - Depends on `com.palantir.javapoet:javapoet` and `io.swagger.parser.v3:swagger-parser`.
+  - Contains the generation engine, aspects, resolvers, and writers.
 
-- **spring-boot-openapi-generator-model-generation**
-  - Depends on `io.swagger.parser.v3:swagger-parser`.
-  - Responsible for generating a set of source files based on a set of JSON Schema definitions.
-  - No source implementation is added yet.
-
-- **spring-boot-openapi-generator-client-generation**
-  - Depends on `io.swagger.parser.v3:swagger-parser`.
-  - Responsible for generating a set of source files for a client based on schema/API definitions.
-  - No source implementation is added yet.
-
-- **spring-boot-openapi-generator-generator-client**
-  - Placeholder module for client generation/runtime support.
+- **spring-boot-openapi-generator-cli**
+  - CLI wrapper that maps command-line arguments to the generator engine.
 
 - **spring-boot-openapi-generator-client-webclient**
   - Placeholder module for WebClient-focused client generation/runtime support.
