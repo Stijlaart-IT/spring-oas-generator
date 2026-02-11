@@ -9,6 +9,7 @@ public class FieldModel {
     private String jsonName;
     private TypeDescriptor type;
     private boolean required;
+    private boolean jsonValue;
 
     public FieldModel() {
     }
@@ -18,6 +19,15 @@ public class FieldModel {
         this.jsonName = Objects.requireNonNull(jsonName);
         this.type = Objects.requireNonNull(type);
         this.required = required;
+        this.jsonValue = false;
+    }
+
+    public FieldModel(String name, String jsonName, TypeDescriptor type, boolean required, boolean jsonValue) {
+        this.name = Objects.requireNonNull(name);
+        this.jsonName = Objects.requireNonNull(jsonName);
+        this.type = Objects.requireNonNull(type);
+        this.required = required;
+        this.jsonValue = jsonValue;
     }
 
     public String getName() {
@@ -50,5 +60,13 @@ public class FieldModel {
 
     public void setRequired(boolean required) {
         this.required = required;
+    }
+
+    public boolean isJsonValue() {
+        return jsonValue;
+    }
+
+    public void setJsonValue(boolean jsonValue) {
+        this.jsonValue = jsonValue;
     }
 }

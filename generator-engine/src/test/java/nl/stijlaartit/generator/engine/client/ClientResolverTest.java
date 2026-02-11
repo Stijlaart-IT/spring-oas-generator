@@ -509,7 +509,7 @@ class ClientResolverTest {
             List<ApiFile> clients = context.getFiles(ApiFile.class);
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
-            assertEquals(TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")), response);
+            assertEquals(TypeDescriptor.complex("GetInventoryResponse"), response);
         }
 
         @Test
@@ -527,7 +527,7 @@ class ClientResolverTest {
             List<ApiFile> clients = context.getFiles(ApiFile.class);
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
-            assertEquals(TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object")), response);
+            assertEquals(TypeDescriptor.complex("GetInventoryResponse"), response);
         }
 
         @Test

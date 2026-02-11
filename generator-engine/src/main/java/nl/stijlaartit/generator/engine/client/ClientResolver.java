@@ -334,6 +334,9 @@ public class ClientResolver implements Resolver<OpenAPI> {
         if (schema.getProperties() != null && !schema.getProperties().isEmpty()) {
             return true;
         }
+        if (schema.getAdditionalProperties() instanceof Schema<?> || Boolean.TRUE.equals(schema.getAdditionalProperties())) {
+            return true;
+        }
         if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
             for (Schema<?> part : schema.getAllOf()) {
                 Schema<?> resolved = part.get$ref() != null

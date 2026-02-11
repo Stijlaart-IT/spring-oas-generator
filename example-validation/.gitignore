@@ -1,4 +1,5 @@
 spotify-validation/src/main/java/nl/stijlaartit/spotify/generated
 realworld-validation/src/main/java/nl/stijlaartit/realworld/generated
 petstore-validation/src/main/java/nl/stijlaartit/petstore/generated
+session-validation/src/main/java/nl/stijlaartit/session/generated
 petstore-validation-maven-plugin/target/generated-sources

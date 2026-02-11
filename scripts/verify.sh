@@ -19,6 +19,12 @@ java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0
   "$PROJECT_DIR/example-validation/realworld-validation/src/main/java" \
   "nl.stijlaartit.realworld.generated"
 
+echo "Generating session sources..."
+java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0.0.1-SNAPSHOT.jar" \
+  "$PROJECT_DIR/examples/session.json" \
+  "$PROJECT_DIR/example-validation/session-validation/src/main/java" \
+  "nl.stijlaartit.session.generated"
+
 echo "Generating spotify sources..."
 java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0.0.1-SNAPSHOT.jar" \
   "$PROJECT_DIR/examples/spotify.yml" \

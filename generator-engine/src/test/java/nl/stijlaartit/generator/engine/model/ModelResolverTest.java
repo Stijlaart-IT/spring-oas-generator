@@ -129,6 +129,29 @@ class ModelResolverTest {
             assertEquals("User", models.get(0).getName());
             assertEquals("Pet", models.get(1).getName());
         }
+
+        @Test
+        void resolvesAdditionalPropertiesOnlyObjectSchema() {
+            Schema<?> sessionSchema = new ObjectSchema()
+                    .additionalProperties(new Schema<>());
+
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("SessionResponse", sessionSchema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
+
+            assertEquals(1, models.size());
+            RecordModel session = (RecordModel) models.get(0);
+            assertEquals("SessionResponse", session.getName());
+            assertEquals(1, session.getFields().size());
+
+            FieldModel valueField = session.getFields().get(0);
+            assertEquals("value", valueField.getName());
+            assertEquals("value", valueField.getJsonName());
+            assertEquals(TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object")), valueField.getType());
+            assertTrue(valueField.isRequired());
+            assertTrue(valueField.isJsonValue());
+        }
     }
 
     @Nested

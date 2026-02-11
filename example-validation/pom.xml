@@ -25,5 +25,6 @@
         <module>petstore-validation</module>
         <module>petstore-validation-maven-plugin</module>
         <module>realworld-validation</module>
+        <module>session-validation</module>
     </modules>
 </project>

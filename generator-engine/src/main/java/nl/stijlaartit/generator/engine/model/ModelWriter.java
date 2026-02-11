@@ -33,6 +33,8 @@ public class ModelWriter implements GenerationFileWriter<ModelFile> {
 
     private static final ClassName JSON_PROPERTY =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonProperty");
+    private static final ClassName JSON_VALUE =
+            ClassName.get("com.fasterxml.jackson.annotation", "JsonValue");
     private static final ClassName JSON_TYPE_INFO =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonTypeInfo");
     private static final ClassName JSON_SUB_TYPES =
@@ -93,6 +95,9 @@ public class ModelWriter implements GenerationFileWriter<ModelFile> {
                                 .addMember("value", "$S", field.getJsonName())
                                 .build()
                 );
+            }
+            if (field.isJsonValue()) {
+                paramBuilder.addAnnotation(AnnotationSpec.builder(JSON_VALUE).build());
             }
 
             constructorBuilder.addParameter(paramBuilder.build());

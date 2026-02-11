@@ -153,6 +153,27 @@ class ModelWriterTest {
     }
 
     @Test
+    void generatesJsonValueRecordComponent() {
+        RecordModel model = new RecordModel(
+                "SessionResponse",
+                List.of(new FieldModel(
+                        "value",
+                        "value",
+                        TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object")),
+                        true,
+                        true
+                )),
+                List.of()
+        );
+
+        String source = writer.toJavaFile(model).toString();
+
+        assertTrue(source.contains("record SessionResponse"));
+        assertTrue(source.contains("@JsonValue"));
+        assertTrue(source.contains("Map<String, Object> value"));
+    }
+
+    @Test
     void generatesOneOfInterfaceWithDiscriminator() {
         OneOfModel model = new OneOfModel(
                 "QueueObjectCurrentlyPlaying",

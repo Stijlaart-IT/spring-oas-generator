@@ -249,6 +249,10 @@ public class ModelResolver implements Resolver<OpenAPI> {
 
     private List<FieldModel> resolveFields(String parentName, Schema<?> schema) {
         Map<String, Schema> properties = collectProperties(schema);
+        if (properties.isEmpty() && hasAdditionalProperties(schema)) {
+            TypeDescriptor valueType = resolveAdditionalPropertiesType(parentName, schema);
+            return List.of(new FieldModel("value", "value", valueType, true, true));
+        }
         if (properties.isEmpty()) {
             return List.of();
         }
@@ -550,10 +554,37 @@ public class ModelResolver implements Resolver<OpenAPI> {
         if (schema.getProperties() != null && !schema.getProperties().isEmpty()) {
             return true;
         }
+        if (hasAdditionalProperties(schema)) {
+            return true;
+        }
         if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
             return !collectProperties(schema).isEmpty();
         }
         return false;
+    }
+
+    private static boolean hasAdditionalProperties(Schema<?> schema) {
+        return schema.getAdditionalProperties() instanceof Schema<?>
+                || Boolean.TRUE.equals(schema.getAdditionalProperties());
+    }
+
+    private boolean isAdditionalPropertiesObject(Schema<?> schema) {
+        if (!hasAdditionalProperties(schema)) {
+            return false;
+        }
+        String type = resolveSchemaTypeName(schema);
+        if (!("object".equals(type) || type == null)) {
+            return false;
+        }
+        return collectProperties(schema).isEmpty();
+    }
+
+    private TypeDescriptor resolveAdditionalPropertiesType(String parentName, Schema<?> schema) {
+        if (schema.getAdditionalProperties() instanceof Schema<?> additional) {
+            TypeDescriptor valueType = resolveType(parentName, "value", additional);
+            return TypeDescriptor.map(valueType);
+        }
+        return TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object"));
     }
 
     private static boolean isEnumSchema(Schema<?> schema) {

@@ -10,5 +10,5 @@ mvn -f "$PROJECT_DIR/pom.xml" -pl generator-cli -am package -q -DskipTests
 echo "Running generator-cli with realworld spec..."
 java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0.0.1-SNAPSHOT.jar" \
   "$PROJECT_DIR/examples/realworld.yml" \
-  "$PROJECT_DIR/example-validation/realworld-validation-restclient/src/main/java" \
+  "$PROJECT_DIR/example-validation/realworld-validation/src/main/java" \
   "nl.stijlaartit.realworld.generated"
