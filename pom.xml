@@ -45,5 +45,6 @@
     <modules>
         <module>generator-engine</module>
         <module>generator-cli</module>
+        <module>generator-maven-plugin</module>
     </modules>
 </project>

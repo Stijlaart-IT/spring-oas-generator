@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "Building project..."
-mvn -f "$PROJECT_DIR/pom.xml" package -q -DskipTests
+mvn -f "$PROJECT_DIR/pom.xml" verify -q
 
 echo "Generating petstore sources..."
 java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0.0.1-SNAPSHOT.jar" \

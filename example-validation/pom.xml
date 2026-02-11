@@ -23,6 +23,7 @@
     <modules>
         <module>spotify-validation-restclient</module>
         <module>petstore-validation-restclient</module>
+        <module>petstore-validation-restclient-maven-plugin</module>
         <module>realworld-validation-restclient</module>
     </modules>
 </project>

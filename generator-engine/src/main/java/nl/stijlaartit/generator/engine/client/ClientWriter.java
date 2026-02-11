@@ -139,7 +139,11 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
             annotationBuilder.addMember("value", "$S", param.getName());
         }
         if (param.getLocation() == ParameterLocation.QUERY) {
-            annotationBuilder.addMember("required", "$L", param.isRequired());
+            if (!param.isRequired()) {
+                annotationBuilder.addMember("required", "$L", false);
+            } else if (!(param.getType() instanceof nl.stijlaartit.generator.engine.model.TypeDescriptor.ListType)) {
+                annotationBuilder.addMember("required", "$L", true);
+            }
         }
 
         ParameterSpec.Builder paramBuilder = ParameterSpec.builder(

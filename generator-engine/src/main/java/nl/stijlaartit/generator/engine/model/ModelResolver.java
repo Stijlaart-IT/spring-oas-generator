@@ -374,6 +374,9 @@ public class ModelResolver implements Resolver<OpenAPI> {
         String discriminatorProperty = schema.getDiscriminator() != null
                 ? schema.getDiscriminator().getPropertyName()
                 : null;
+        if (discriminatorProperty == null || discriminatorProperty.isBlank()) {
+            discriminatorProperty = inferDiscriminatorProperty(variants);
+        }
 
         List<OneOfVariant> variantModels = new ArrayList<>();
         int index = 1;
@@ -475,6 +478,36 @@ public class ModelResolver implements Resolver<OpenAPI> {
             return String.valueOf(resolvedProperty.getEnum().get(0));
         }
         return null;
+    }
+
+    private String inferDiscriminatorProperty(List<Schema> variants) {
+        if (variants == null || variants.isEmpty()) {
+            return null;
+        }
+        Set<String> candidates = null;
+        for (Schema<?> variant : variants) {
+            Schema<?> resolved = resolveRefSchema(variant);
+            Map<String, Schema> properties = collectProperties(resolved);
+            Set<String> localCandidates = new LinkedHashSet<>();
+            for (Map.Entry<String, Schema> entry : properties.entrySet()) {
+                Schema<?> property = resolveRefSchema(entry.getValue());
+                if (property.getEnum() != null && property.getEnum().size() == 1) {
+                    localCandidates.add(entry.getKey());
+                }
+            }
+            if (candidates == null) {
+                candidates = new LinkedHashSet<>(localCandidates);
+            } else {
+                candidates.retainAll(localCandidates);
+            }
+            if (candidates.isEmpty()) {
+                return null;
+            }
+        }
+        if (candidates.contains("type")) {
+            return "type";
+        }
+        return candidates.stream().sorted().findFirst().orElse(null);
     }
 
     static TypeDescriptor mapSimpleType(String type, String format) {
