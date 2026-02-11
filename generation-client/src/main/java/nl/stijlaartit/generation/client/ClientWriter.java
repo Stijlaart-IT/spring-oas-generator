@@ -12,6 +12,7 @@ import nl.stijlaartit.generator.domain.HttpMethod;
 import nl.stijlaartit.generator.domain.OperationModel;
 import nl.stijlaartit.generator.domain.ParameterLocation;
 import nl.stijlaartit.generator.domain.ParameterModel;
+import nl.stijlaartit.generator.domain.WriteReport;
 import nl.stijlaartit.generator.model.JavaIdentifierUtils;
 import nl.stijlaartit.generator.model.TypeNameResolver;
 
@@ -54,11 +55,14 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
     }
 
     @Override
-    public void writeAll(List<ApiFile> clients, Path outputDirectory) throws IOException {
-        writePackageInfo(outputDirectory);
+    public WriteReport writeAll(List<ApiFile> clients, Path outputDirectory) throws IOException {
+        WriteReport report = new WriteReport();
+        report.recordFile(writePackageInfo(outputDirectory));
         for (ApiFile client : clients) {
             write(client, outputDirectory);
+            report.recordFile(clientPath(outputDirectory, client.getName()));
         }
+        return report;
     }
 
     public void write(ApiFile client, Path outputDirectory) throws IOException {
@@ -172,11 +176,17 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
         return result.toString();
     }
 
-    private void writePackageInfo(Path outputDirectory) throws IOException {
+    private Path writePackageInfo(Path outputDirectory) throws IOException {
         Path packageDir = outputDirectory.resolve(clientPackage.replace('.', '/'));
         Files.createDirectories(packageDir);
         Path packageInfo = packageDir.resolve("package-info.java");
         Files.writeString(packageInfo, packageInfoSource(clientPackage));
+        return packageInfo;
+    }
+
+    private Path clientPath(Path outputDirectory, String clientName) {
+        return outputDirectory.resolve(clientPackage.replace('.', '/'))
+                .resolve(clientName + ".java");
     }
 
     private static String packageInfoSource(String packageName) {

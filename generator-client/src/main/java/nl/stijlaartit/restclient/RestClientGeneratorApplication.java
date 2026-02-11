@@ -6,7 +6,7 @@ import nl.stijlaartit.generator.domain.GenerationAspect;
 import nl.stijlaartit.generator.domain.GenerationContext;
 import nl.stijlaartit.generator.domain.GenerationFile;
 import nl.stijlaartit.generator.domain.GenerationFileWriter;
-import nl.stijlaartit.generator.domain.ModelFile;
+import nl.stijlaartit.generator.domain.WriteReport;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
@@ -15,6 +15,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -22,6 +23,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 
@@ -62,17 +64,16 @@ public class RestClientGeneratorApplication implements CommandLineRunner {
                 new ModelGenerationAspect(modelsPackage),
                 new ClientGenerationAspect(clientPackage, modelsPackage)
         );
-        Map<String, String> packageByAspectId = Map.of(
-                "model", modelsPackage,
-                "client", clientPackage
-        );
-
         GenerationContext context = new GenerationContext();
-        for (GenerationAspect aspect : orderAspects(aspects)) {
+        List<GenerationAspect> orderedAspects = orderAspects(aspects);
+        for (GenerationAspect aspect : orderedAspects) {
             @SuppressWarnings("unchecked")
             var resolver = (nl.stijlaartit.generator.domain.Resolver<OpenAPI>) aspect.getResolver();
             resolver.resolve(openAPI, context);
-            writeAspect(aspect, context, output, packageByAspectId.get(aspect.getId()));
+        }
+        ensureAllFilesHaveWriters(orderedAspects, context);
+        for (GenerationAspect aspect : orderedAspects) {
+            writeAspect(aspect, context, output);
         }
     }
 
@@ -127,28 +128,41 @@ public class RestClientGeneratorApplication implements CommandLineRunner {
         return ordered;
     }
 
-    private static void writeAspect(GenerationAspect aspect, GenerationContext context, Path output, String packageName)
+    private static void writeAspect(GenerationAspect aspect, GenerationContext context, Path output)
             throws java.io.IOException {
+        Optional<? extends GenerationFileWriter<? extends GenerationFile>> writerOptional = aspect.getWriter();
+        if (writerOptional.isEmpty()) {
+            return;
+        }
         List<? extends GenerationFile> files = context.getFiles(aspect.getFileType());
         if (files.isEmpty()) {
             return;
         }
         @SuppressWarnings("unchecked")
-        GenerationFileWriter<GenerationFile> writer = (GenerationFileWriter<GenerationFile>) aspect.getWriter();
-        writer.writeAll((List<GenerationFile>) files, output);
+        GenerationFileWriter<GenerationFile> writer = (GenerationFileWriter<GenerationFile>) writerOptional.get();
+        WriteReport report = writer.writeAll((List<GenerationFile>) files, output);
+        for (Path filePath : report.getFiles()) {
+            if (!Files.exists(filePath)) {
+                throw new java.io.IOException("Expected generated file to exist: " + filePath);
+            }
+        }
+        String prefix = "[" + aspect.getId() + "] ";
+        System.out.println(prefix + "Wrote " + report.getTotalFiles() + " file(s).");
+        report.getCountsByDirectory().forEach((directory, count) ->
+                System.out.println(prefix + "Wrote " + count + " file(s) to " + directory));
+    }
 
-        String label = "file(s)";
-        if (aspect.getFileType() == ModelFile.class) {
-            label = "model(s)";
-        } else if ("client".equals(aspect.getId())) {
-            label = "client interface(s)";
+    private static void ensureAllFilesHaveWriters(List<GenerationAspect> aspects, GenerationContext context) {
+        List<GenerationAspect> writerAspects = aspects.stream()
+                .filter(aspect -> aspect.getWriter().isPresent())
+                .toList();
+        for (GenerationFile file : context.getFiles()) {
+            boolean supported = writerAspects.stream()
+                    .anyMatch(aspect -> aspect.getFileType().isInstance(file));
+            if (!supported) {
+                throw new IllegalStateException("No writer available for generated file '"
+                        + file.getName() + "' (" + file.getClass().getSimpleName() + ")");
+            }
         }
-        String packagePath = packageName != null ? packageName.replace('.', '/') : "";
-        if (!packagePath.isBlank()) {
-            System.out.println("Generated " + files.size() + " " + label + " to "
-                    + output.resolve(packagePath));
-            return;
-        }
-        System.out.println("Generated " + files.size() + " " + label);
     }
 }

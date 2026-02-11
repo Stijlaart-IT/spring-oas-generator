@@ -16,6 +16,7 @@ import nl.stijlaartit.generator.domain.ModelFile;
 import nl.stijlaartit.generator.domain.OneOfModel;
 import nl.stijlaartit.generator.domain.OneOfVariant;
 import nl.stijlaartit.generator.domain.RecordModel;
+import nl.stijlaartit.generator.domain.WriteReport;
 import nl.stijlaartit.generator.model.TypeNameResolver;
 
 import javax.lang.model.element.Modifier;
@@ -50,11 +51,14 @@ public class ModelWriter implements GenerationFileWriter<ModelFile> {
     }
 
     @Override
-    public void writeAll(List<ModelFile> models, Path outputDirectory) throws IOException {
-        writePackageInfo(outputDirectory);
+    public WriteReport writeAll(List<ModelFile> models, Path outputDirectory) throws IOException {
+        WriteReport report = new WriteReport();
+        report.recordFile(writePackageInfo(outputDirectory));
         for (ModelFile model : models) {
             write(model, outputDirectory);
+            report.recordFile(modelPath(outputDirectory, model.getName()));
         }
+        return report;
     }
 
     public void write(ModelFile model, Path outputDirectory) throws IOException {
@@ -280,11 +284,17 @@ public class ModelWriter implements GenerationFileWriter<ModelFile> {
         return value.substring(start, end);
     }
 
-    private void writePackageInfo(Path outputDirectory) throws IOException {
+    private Path writePackageInfo(Path outputDirectory) throws IOException {
         Path packageDir = outputDirectory.resolve(modelsPackage.replace('.', '/'));
         Files.createDirectories(packageDir);
         Path packageInfo = packageDir.resolve("package-info.java");
         Files.writeString(packageInfo, packageInfoSource(modelsPackage));
+        return packageInfo;
+    }
+
+    private Path modelPath(Path outputDirectory, String modelName) {
+        return outputDirectory.resolve(modelsPackage.replace('.', '/'))
+                .resolve(modelName + ".java");
     }
 
     private static String packageInfoSource(String packageName) {

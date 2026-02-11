@@ -6,6 +6,7 @@ import nl.stijlaartit.generator.domain.GenerationFileWriter;
 import nl.stijlaartit.generator.domain.ModelFile;
 import nl.stijlaartit.generator.domain.Resolver;
 
+import java.util.Optional;
 import java.util.Set;
 
 public class ModelGenerationAspect implements GenerationAspect {
@@ -32,8 +33,8 @@ public class ModelGenerationAspect implements GenerationAspect {
     }
 
     @Override
-    public GenerationFileWriter<? extends GenerationFile> getWriter() {
-        return writer;
+    public Optional<GenerationFileWriter<? extends GenerationFile>> getWriter() {
+        return Optional.of(writer);
     }
 
     @Override

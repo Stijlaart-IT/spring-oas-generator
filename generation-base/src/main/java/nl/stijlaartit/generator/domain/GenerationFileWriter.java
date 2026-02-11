@@ -5,5 +5,5 @@ import java.nio.file.Path;
 import java.util.List;
 
 public interface GenerationFileWriter<T extends GenerationFile> {
-    void writeAll(List<T> files, Path outputDirectory) throws IOException;
+    WriteReport writeAll(List<T> files, Path outputDirectory) throws IOException;
 }

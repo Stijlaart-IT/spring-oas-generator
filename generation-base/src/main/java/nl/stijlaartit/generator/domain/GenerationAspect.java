@@ -1,5 +1,6 @@
 package nl.stijlaartit.generator.domain;
 
+import java.util.Optional;
 import java.util.Set;
 
 public interface GenerationAspect {
@@ -9,7 +10,7 @@ public interface GenerationAspect {
 
     Resolver<?> getResolver();
 
-    GenerationFileWriter<? extends GenerationFile> getWriter();
+    Optional<GenerationFileWriter<? extends GenerationFile>> getWriter();
 
     Class<? extends GenerationFile> getFileType();
 }
