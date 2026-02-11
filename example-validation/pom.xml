@@ -21,9 +21,9 @@
     </properties>
 
     <modules>
-        <module>spotify-validation-restclient</module>
-        <module>petstore-validation-restclient</module>
-        <module>petstore-validation-restclient-maven-plugin</module>
-        <module>realworld-validation-restclient</module>
+        <module>spotify-validation</module>
+        <module>petstore-validation</module>
+        <module>petstore-validation-maven-plugin</module>
+        <module>realworld-validation</module>
     </modules>
 </project>

@@ -1,3 +1,4 @@
-spotify-validation-restclient/src/main/java/nl/stijlaartit/spotify/generated
-realworld-validation-restclient/src/main/java/nl/stijlaartit/realworld/generated
-petstore-validation-restclient/src/main/java/nl/stijlaartit/petstore/generated
+spotify-validation/src/main/java/nl/stijlaartit/spotify/generated
+realworld-validation/src/main/java/nl/stijlaartit/realworld/generated
+petstore-validation/src/main/java/nl/stijlaartit/petstore/generated
+petstore-validation-maven-plugin/target/generated-sources
