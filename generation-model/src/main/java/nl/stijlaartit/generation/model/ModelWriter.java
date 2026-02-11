@@ -8,6 +8,13 @@ import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.TypeSpec;
+import nl.stijlaartit.generator.domain.EnumModel;
+import nl.stijlaartit.generator.domain.EnumValueType;
+import nl.stijlaartit.generator.domain.FieldModel;
+import nl.stijlaartit.generator.domain.ModelFile;
+import nl.stijlaartit.generator.domain.OneOfModel;
+import nl.stijlaartit.generator.domain.OneOfVariant;
+import nl.stijlaartit.generator.domain.RecordModel;
 import nl.stijlaartit.generator.model.TypeNameResolver;
 
 import javax.lang.model.element.Modifier;
@@ -41,42 +48,43 @@ public class ModelWriter {
         this.typeNameResolver = new TypeNameResolver(modelsPackage);
     }
 
-    public void writeAll(List<ModelDescriptor> models, Path outputDirectory) throws IOException {
+    public void writeAll(List<ModelFile> models, Path outputDirectory) throws IOException {
         writePackageInfo(outputDirectory);
-        for (ModelDescriptor model : models) {
+        for (ModelFile model : models) {
             write(model, outputDirectory);
         }
     }
 
-    public void write(ModelDescriptor model, Path outputDirectory) throws IOException {
+    public void write(ModelFile model, Path outputDirectory) throws IOException {
         toJavaFile(model).writeTo(outputDirectory);
     }
 
-    JavaFile toJavaFile(ModelDescriptor model) {
+    JavaFile toJavaFile(ModelFile model) {
         return switch (model) {
-            case EnumDescriptor enumDescriptor -> toEnumJavaFile(enumDescriptor);
-            case RecordDescriptor recordDescriptor -> toRecordJavaFile(recordDescriptor);
-            case OneOfDescriptor oneOfDescriptor -> toOneOfJavaFile(oneOfDescriptor);
+            case EnumModel enumDescriptor -> toEnumJavaFile(enumDescriptor);
+            case RecordModel recordDescriptor -> toRecordJavaFile(recordDescriptor);
+            case OneOfModel oneOfDescriptor -> toOneOfJavaFile(oneOfDescriptor);
+            default -> throw new IllegalArgumentException("Unsupported model type: " + model.getClass());
         };
     }
 
-    private JavaFile toRecordJavaFile(RecordDescriptor model) {
+    private JavaFile toRecordJavaFile(RecordModel model) {
         MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder();
 
-        for (FieldDescriptor field : model.fields()) {
+        for (FieldModel field : model.getFields()) {
             ParameterSpec.Builder paramBuilder = ParameterSpec.builder(
-                    typeNameResolver.resolve(field.type()),
-                    field.name()
+                    typeNameResolver.resolve(field.getType()),
+                    field.getName()
             );
 
-            if (!field.required()) {
+            if (!field.isRequired()) {
                 paramBuilder.addAnnotation(AnnotationSpec.builder(NULLABLE).build());
             }
 
-            if (!field.name().equals(field.jsonName())) {
+            if (!field.getName().equals(field.getJsonName())) {
                 paramBuilder.addAnnotation(
                         AnnotationSpec.builder(JSON_PROPERTY)
-                                .addMember("value", "$S", field.jsonName())
+                                .addMember("value", "$S", field.getJsonName())
                                 .build()
                 );
             }
@@ -84,11 +92,11 @@ public class ModelWriter {
             constructorBuilder.addParameter(paramBuilder.build());
         }
 
-        TypeSpec.Builder recordBuilder = TypeSpec.recordBuilder(model.name())
+        TypeSpec.Builder recordBuilder = TypeSpec.recordBuilder(model.getName())
                 .addModifiers(Modifier.PUBLIC)
                 .recordConstructor(constructorBuilder.build());
 
-        for (String interfaceName : model.implementsTypes()) {
+        for (String interfaceName : model.getImplementsTypes()) {
             recordBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName));
         }
 
@@ -99,19 +107,19 @@ public class ModelWriter {
                 .build();
     }
 
-    private JavaFile toEnumJavaFile(EnumDescriptor model) {
-        TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(model.name())
+    private JavaFile toEnumJavaFile(EnumModel model) {
+        TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(model.getName())
                 .addModifiers(Modifier.PUBLIC);
 
-        for (String interfaceName : model.implementsTypes()) {
+        for (String interfaceName : model.getImplementsTypes()) {
             enumBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName));
         }
 
         Map<String, Integer> usedNames = new HashMap<>();
-        for (String value : model.enumValues()) {
+        for (String value : model.getEnumValues()) {
             String baseName = toEnumConstantName(value);
             String name = uniqueName(baseName, usedNames);
-            if (model.enumValueType() == EnumValueType.STRING) {
+            if (model.getEnumValueType() == EnumValueType.STRING) {
                 TypeSpec constantSpec = TypeSpec.anonymousClassBuilder("")
                         .addAnnotation(AnnotationSpec.builder(JSON_PROPERTY)
                                 .addMember("value", "$S", value)
@@ -120,15 +128,15 @@ public class ModelWriter {
                 enumBuilder.addEnumConstant(name, constantSpec);
             } else {
                 enumBuilder.addEnumConstant(name,
-                        TypeSpec.anonymousClassBuilder(enumValueCode(model.enumValueType(), value))
+                        TypeSpec.anonymousClassBuilder(enumValueCode(model.getEnumValueType(), value))
                                 .build());
             }
         }
 
-        if (model.enumValueType() != EnumValueType.STRING) {
+        if (model.getEnumValueType() != EnumValueType.STRING) {
             ClassName jsonValue = ClassName.get("com.fasterxml.jackson.annotation", "JsonValue");
             ClassName jsonCreator = ClassName.get("com.fasterxml.jackson.annotation", "JsonCreator");
-            var valueType = enumValueTypeName(model.enumValueType());
+            var valueType = enumValueTypeName(model.getEnumValueType());
 
             enumBuilder.addField(FieldSpec.builder(valueType, "value", Modifier.PRIVATE, Modifier.FINAL)
                     .build());
@@ -148,9 +156,9 @@ public class ModelWriter {
             enumBuilder.addMethod(MethodSpec.methodBuilder("fromValue")
                     .addAnnotation(jsonCreator)
                     .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                    .returns(ClassName.get(modelsPackage, model.name()))
+                    .returns(ClassName.get(modelsPackage, model.getName()))
                     .addParameter(valueType, "value")
-                    .beginControlFlow("for ($T candidate : values())", ClassName.get(modelsPackage, model.name()))
+                    .beginControlFlow("for ($T candidate : values())", ClassName.get(modelsPackage, model.getName()))
                     .beginControlFlow("if ($T.equals(candidate.value, value))", Objects.class)
                     .addStatement("return candidate")
                     .endControlFlow()
@@ -165,25 +173,25 @@ public class ModelWriter {
                 .build();
     }
 
-    private JavaFile toOneOfJavaFile(OneOfDescriptor model) {
-        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(model.name())
+    private JavaFile toOneOfJavaFile(OneOfModel model) {
+        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(model.getName())
                 .addModifiers(Modifier.PUBLIC);
 
-        if (model.discriminatorProperty() != null && !model.discriminatorProperty().isBlank()) {
+        if (model.getDiscriminatorProperty() != null && !model.getDiscriminatorProperty().isBlank()) {
             interfaceBuilder.addAnnotation(AnnotationSpec.builder(JSON_TYPE_INFO)
                     .addMember("use", "$T.Id.NAME", JSON_TYPE_INFO)
                     .addMember("include", "$T.As.PROPERTY", JSON_TYPE_INFO)
-                    .addMember("property", "$S", model.discriminatorProperty())
+                    .addMember("property", "$S", model.getDiscriminatorProperty())
                     .addMember("visible", "$L", true)
                     .build());
 
             CodeBlock.Builder subTypes = CodeBlock.builder().add("{\n");
-            var variants = model.variants();
+            var variants = model.getVariants();
             for (int i = 0; i < variants.size(); i++) {
-                var variant = variants.get(i);
+                OneOfVariant variant = variants.get(i);
                 AnnotationSpec.Builder typeBuilder = AnnotationSpec.builder(JSON_SUB_TYPES_TYPE)
-                        .addMember("value", "$T.class", ClassName.get(modelsPackage, variant.modelName()));
-                String discriminatorValue = variant.discriminatorValue();
+                        .addMember("value", "$T.class", ClassName.get(modelsPackage, variant.getModelName()));
+                String discriminatorValue = variant.getDiscriminatorValue();
                 if (discriminatorValue != null && !discriminatorValue.isBlank()) {
                     typeBuilder.addMember("name", "$S", discriminatorValue);
                 }

@@ -1,5 +1,10 @@
 package nl.stijlaartit.generation.client;
 
+import nl.stijlaartit.generator.domain.ApiFile;
+import nl.stijlaartit.generator.domain.HttpMethod;
+import nl.stijlaartit.generator.domain.OperationModel;
+import nl.stijlaartit.generator.domain.ParameterLocation;
+import nl.stijlaartit.generator.domain.ParameterModel;
 import nl.stijlaartit.generator.model.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -60,13 +65,13 @@ class ClientResolverTest {
 
             openAPI.setPaths(paths);
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
+            List<ApiFile> clients = resolver.resolve(openAPI);
 
             assertEquals(2, clients.size());
-            assertEquals("PetApi", clients.get(0).name());
-            assertEquals("StoreApi", clients.get(1).name());
-            assertEquals(1, clients.get(0).operations().size());
-            assertEquals("getPetById", clients.get(0).operations().get(0).name());
+            assertEquals("PetApi", clients.get(0).getName());
+            assertEquals("StoreApi", clients.get(1).getName());
+            assertEquals(1, clients.get(0).getOperations().size());
+            assertEquals("getPetById", clients.get(0).getOperations().get(0).getName());
         }
 
         @Test
@@ -83,10 +88,10 @@ class ClientResolverTest {
             paths.addPathItem("/users/login", pathItem);
             openAPI.setPaths(paths);
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
+            List<ApiFile> clients = resolver.resolve(openAPI);
 
             assertEquals(1, clients.size());
-            assertEquals("UserAndAuthenticationApi", clients.get(0).name());
+            assertEquals("UserAndAuthenticationApi", clients.get(0).getName());
         }
 
         @Test
@@ -103,10 +108,10 @@ class ClientResolverTest {
 
             openAPI.setPaths(paths);
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
+            List<ApiFile> clients = resolver.resolve(openAPI);
 
             assertEquals(1, clients.size());
-            assertEquals("DefaultApi", clients.get(0).name());
+            assertEquals("DefaultApi", clients.get(0).getName());
         }
     }
 
@@ -121,15 +126,15 @@ class ClientResolverTest {
                     null, null
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            OperationDescriptor op = clients.get(0).operations().get(0);
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            OperationModel op = clients.get(0).getOperations().get(0);
 
-            assertEquals(1, op.parameters().size());
-            ParameterDescriptor param = op.parameters().get(0);
-            assertEquals("petId", param.name());
-            assertEquals(ParameterDescriptor.ParameterLocation.PATH, param.location());
-            assertEquals(TypeDescriptor.simple("java.lang.Long"), param.type());
-            assertTrue(param.required());
+            assertEquals(1, op.getParameters().size());
+            ParameterModel param = op.getParameters().get(0);
+            assertEquals("petId", param.getName());
+            assertEquals(ParameterLocation.PATH, param.getLocation());
+            assertEquals(TypeDescriptor.simple("java.lang.Long"), param.getType());
+            assertTrue(param.isRequired());
         }
 
         @Test
@@ -140,12 +145,12 @@ class ClientResolverTest {
                     null, null
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            ParameterDescriptor param = clients.get(0).operations().get(0).parameters().get(0);
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            ParameterModel param = clients.get(0).getOperations().get(0).getParameters().get(0);
 
-            assertEquals("status", param.name());
-            assertEquals(ParameterDescriptor.ParameterLocation.QUERY, param.location());
-            assertEquals(TypeDescriptor.simple("java.lang.String"), param.type());
+            assertEquals("status", param.getName());
+            assertEquals(ParameterLocation.QUERY, param.getLocation());
+            assertEquals(TypeDescriptor.simple("java.lang.String"), param.getType());
         }
 
         @Test
@@ -156,11 +161,11 @@ class ClientResolverTest {
                     null, null
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            ParameterDescriptor param = clients.get(0).operations().get(0).parameters().get(0);
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            ParameterModel param = clients.get(0).getOperations().get(0).getParameters().get(0);
 
-            assertEquals("api_key", param.name());
-            assertEquals(ParameterDescriptor.ParameterLocation.HEADER, param.location());
+            assertEquals("api_key", param.getName());
+            assertEquals(ParameterLocation.HEADER, param.getLocation());
         }
 
         @Test
@@ -184,15 +189,15 @@ class ClientResolverTest {
                             .required(false)
                             .schema(new IntegerSchema().format("int32"))));
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            List<ParameterDescriptor> params = clients.get(0).operations().get(0).parameters();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            List<ParameterModel> params = clients.get(0).getOperations().get(0).getParameters();
 
             assertEquals(3, params.size());
-            assertEquals("tag", params.get(0).name());
-            assertEquals("offset", params.get(1).name());
-            assertEquals(TypeDescriptor.simple("java.lang.Integer"), params.get(1).type());
-            assertEquals("limit", params.get(2).name());
-            assertEquals(TypeDescriptor.simple("java.lang.Integer"), params.get(2).type());
+            assertEquals("tag", params.get(0).getName());
+            assertEquals("offset", params.get(1).getName());
+            assertEquals(TypeDescriptor.simple("java.lang.Integer"), params.get(1).getType());
+            assertEquals("limit", params.get(2).getName());
+            assertEquals(TypeDescriptor.simple("java.lang.Integer"), params.get(2).getType());
         }
 
         @Test
@@ -204,11 +209,11 @@ class ClientResolverTest {
                     null, null
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            List<ParameterDescriptor> params = clients.get(0).operations().get(0).parameters();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            List<ParameterModel> params = clients.get(0).getOperations().get(0).getParameters();
 
             assertEquals(1, params.size());
-            assertEquals("tag", params.get(0).name());
+            assertEquals("tag", params.get(0).getName());
         }
 
         @Test
@@ -224,10 +229,10 @@ class ClientResolverTest {
                     List.of(tagsParam), null, null
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            ParameterDescriptor param = clients.get(0).operations().get(0).parameters().get(0);
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            ParameterModel param = clients.get(0).getOperations().get(0).getParameters().get(0);
 
-            assertEquals(TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), param.type());
+            assertEquals(TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), param.getType());
         }
 
         @Test
@@ -243,10 +248,10 @@ class ClientResolverTest {
                     List.of(tagParam), null, null
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            ParameterDescriptor param = clients.get(0).operations().get(0).parameters().get(0);
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            ParameterModel param = clients.get(0).getOperations().get(0).getParameters().get(0);
 
-            assertEquals(TypeDescriptor.simple("java.lang.String"), param.type());
+            assertEquals(TypeDescriptor.simple("java.lang.String"), param.getType());
         }
 
         @Test
@@ -263,10 +268,10 @@ class ClientResolverTest {
                     List.of(tagParam), null, null
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            ParameterDescriptor param = clients.get(0).operations().get(0).parameters().get(0);
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            ParameterModel param = clients.get(0).getOperations().get(0).getParameters().get(0);
 
-            assertEquals(TypeDescriptor.simple("java.lang.String"), param.type());
+            assertEquals(TypeDescriptor.simple("java.lang.String"), param.getType());
         }
     }
 
@@ -281,8 +286,8 @@ class ClientResolverTest {
                     List.of(), jsonBody(petRef), null
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            TypeDescriptor body = clients.get(0).operations().get(0).requestBody();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            TypeDescriptor body = clients.get(0).getOperations().get(0).getRequestBody();
 
             assertEquals(TypeDescriptor.complex("Pet"), body);
         }
@@ -294,8 +299,8 @@ class ClientResolverTest {
                     List.of(), null, null
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            assertNull(clients.get(0).operations().get(0).requestBody());
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            assertNull(clients.get(0).getOperations().get(0).getRequestBody());
         }
 
         @Test
@@ -311,8 +316,8 @@ class ClientResolverTest {
                     List.of(), requestBody, null
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            TypeDescriptor body = clients.get(0).operations().get(0).requestBody();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            TypeDescriptor body = clients.get(0).getOperations().get(0).getRequestBody();
 
             assertEquals(TypeDescriptor.simple("org.springframework.core.io.Resource"), body);
         }
@@ -327,8 +332,8 @@ class ClientResolverTest {
                     List.of(), jsonBody(bodySchema), null
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            TypeDescriptor body = clients.get(0).operations().get(0).requestBody();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            TypeDescriptor body = clients.get(0).getOperations().get(0).getRequestBody();
 
             assertEquals(TypeDescriptor.complex("SaveAlbumsUserRequest"), body);
         }
@@ -345,8 +350,8 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(petRef)
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            TypeDescriptor response = clients.get(0).operations().get(0).responseType();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.complex("Pet"), response);
         }
@@ -360,8 +365,8 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(arraySchema)
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            TypeDescriptor response = clients.get(0).operations().get(0).responseType();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.list(TypeDescriptor.complex("Pet")), response);
         }
@@ -375,8 +380,8 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(mapSchema)
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            TypeDescriptor response = clients.get(0).operations().get(0).responseType();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")), response);
         }
@@ -390,8 +395,8 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(mapSchema)
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            TypeDescriptor response = clients.get(0).operations().get(0).responseType();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object")), response);
         }
@@ -405,8 +410,8 @@ class ClientResolverTest {
                     List.of(), null, responses
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            assertNull(clients.get(0).operations().get(0).responseType());
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            assertNull(clients.get(0).getOperations().get(0).getResponseType());
         }
 
         @Test
@@ -416,8 +421,8 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(new StringSchema())
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            TypeDescriptor response = clients.get(0).operations().get(0).responseType();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.simple("java.lang.String"), response);
         }
@@ -432,8 +437,8 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(responseSchema)
             );
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            TypeDescriptor response = clients.get(0).operations().get(0).responseType();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.complex("GetUserStatusResponse"), response);
         }
@@ -457,15 +462,15 @@ class ClientResolverTest {
 
             openAPI.setPaths(paths);
 
-            List<ClientDescriptor> clients = resolver.resolve(openAPI);
-            List<OperationDescriptor> ops = clients.get(0).operations();
+            List<ApiFile> clients = resolver.resolve(openAPI);
+            List<OperationModel> ops = clients.get(0).getOperations();
 
             assertEquals(5, ops.size());
-            assertEquals(OperationDescriptor.HttpMethod.GET, ops.get(0).method());
-            assertEquals(OperationDescriptor.HttpMethod.POST, ops.get(1).method());
-            assertEquals(OperationDescriptor.HttpMethod.PUT, ops.get(2).method());
-            assertEquals(OperationDescriptor.HttpMethod.DELETE, ops.get(3).method());
-            assertEquals(OperationDescriptor.HttpMethod.PATCH, ops.get(4).method());
+            assertEquals(HttpMethod.GET, ops.get(0).getMethod());
+            assertEquals(HttpMethod.POST, ops.get(1).getMethod());
+            assertEquals(HttpMethod.PUT, ops.get(2).getMethod());
+            assertEquals(HttpMethod.DELETE, ops.get(3).getMethod());
+            assertEquals(HttpMethod.PATCH, ops.get(4).getMethod());
         }
     }
 

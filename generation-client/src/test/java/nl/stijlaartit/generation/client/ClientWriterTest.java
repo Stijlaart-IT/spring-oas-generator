@@ -1,5 +1,10 @@
 package nl.stijlaartit.generation.client;
 
+import nl.stijlaartit.generator.domain.ApiFile;
+import nl.stijlaartit.generator.domain.HttpMethod;
+import nl.stijlaartit.generator.domain.OperationModel;
+import nl.stijlaartit.generator.domain.ParameterLocation;
+import nl.stijlaartit.generator.domain.ParameterModel;
 import nl.stijlaartit.generator.model.TypeDescriptor;
 import org.junit.jupiter.api.Test;
 
@@ -14,11 +19,11 @@ class ClientWriterTest {
 
     @Test
     void generatesInterfaceWithGetOperation() {
-        ClientDescriptor client = new ClientDescriptor("PetApi", List.of(
-                new OperationDescriptor("getPetById", OperationDescriptor.HttpMethod.GET,
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel("getPetById", HttpMethod.GET,
                         "/pet/{petId}",
-                        List.of(new ParameterDescriptor("petId",
-                                ParameterDescriptor.ParameterLocation.PATH,
+                        List.of(new ParameterModel("petId",
+                                ParameterLocation.PATH,
                                 TypeDescriptor.simple("java.lang.Long"), true)),
                         null,
                         TypeDescriptor.complex("Pet"),
@@ -36,8 +41,8 @@ class ClientWriterTest {
 
     @Test
     void generatesPostOperationWithRequestBody() {
-        ClientDescriptor client = new ClientDescriptor("PetApi", List.of(
-                new OperationDescriptor("addPet", OperationDescriptor.HttpMethod.POST,
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel("addPet", HttpMethod.POST,
                         "/pet", List.of(),
                         TypeDescriptor.complex("Pet"),
                         TypeDescriptor.complex("Pet"),
@@ -53,11 +58,11 @@ class ClientWriterTest {
 
     @Test
     void generatesVoidReturnForNoResponseBody() {
-        ClientDescriptor client = new ClientDescriptor("PetApi", List.of(
-                new OperationDescriptor("deletePet", OperationDescriptor.HttpMethod.DELETE,
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel("deletePet", HttpMethod.DELETE,
                         "/pet/{petId}",
-                        List.of(new ParameterDescriptor("petId",
-                                ParameterDescriptor.ParameterLocation.PATH,
+                        List.of(new ParameterModel("petId",
+                                ParameterLocation.PATH,
                                 TypeDescriptor.simple("java.lang.Long"), true)),
                         null, null,
                         false)
@@ -71,11 +76,11 @@ class ClientWriterTest {
 
     @Test
     void generatesQueryParameterAnnotation() {
-        ClientDescriptor client = new ClientDescriptor("PetApi", List.of(
-                new OperationDescriptor("findPetsByStatus", OperationDescriptor.HttpMethod.GET,
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel("findPetsByStatus", HttpMethod.GET,
                         "/pet/findByStatus",
-                        List.of(new ParameterDescriptor("status",
-                                ParameterDescriptor.ParameterLocation.QUERY,
+                        List.of(new ParameterModel("status",
+                                ParameterLocation.QUERY,
                                 TypeDescriptor.simple("java.lang.String"), true)),
                         null,
                         TypeDescriptor.list(TypeDescriptor.complex("Pet")),
@@ -91,15 +96,15 @@ class ClientWriterTest {
 
     @Test
     void generatesHeaderParameterWithOriginalName() {
-        ClientDescriptor client = new ClientDescriptor("PetApi", List.of(
-                new OperationDescriptor("deletePet", OperationDescriptor.HttpMethod.DELETE,
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel("deletePet", HttpMethod.DELETE,
                         "/pet/{petId}",
                         List.of(
-                                new ParameterDescriptor("api_key",
-                                        ParameterDescriptor.ParameterLocation.HEADER,
+                                new ParameterModel("api_key",
+                                        ParameterLocation.HEADER,
                                         TypeDescriptor.simple("java.lang.String"), false),
-                                new ParameterDescriptor("petId",
-                                        ParameterDescriptor.ParameterLocation.PATH,
+                                new ParameterModel("petId",
+                                        ParameterLocation.PATH,
                                         TypeDescriptor.simple("java.lang.Long"), true)
                         ),
                         null, null,
@@ -114,11 +119,11 @@ class ClientWriterTest {
 
     @Test
     void sanitizesKeywordParameterName() {
-        ClientDescriptor client = new ClientDescriptor("PlaylistApi", List.of(
-                new OperationDescriptor("getPlaylist", OperationDescriptor.HttpMethod.GET,
+        ApiFile client = new ApiFile("PlaylistApi", List.of(
+                new OperationModel("getPlaylist", HttpMethod.GET,
                         "/playlists/{id}",
-                        List.of(new ParameterDescriptor("public",
-                                ParameterDescriptor.ParameterLocation.QUERY,
+                        List.of(new ParameterModel("public",
+                                ParameterLocation.QUERY,
                                 TypeDescriptor.simple("java.lang.Boolean"), false)),
                         null,
                         TypeDescriptor.simple("java.lang.String"),
@@ -133,11 +138,11 @@ class ClientWriterTest {
 
     @Test
     void sanitizesOperationIdToValidMethodName() {
-        ClientDescriptor client = new ClientDescriptor("AlbumApi", List.of(
-                new OperationDescriptor("get-an-album", OperationDescriptor.HttpMethod.GET,
+        ApiFile client = new ApiFile("AlbumApi", List.of(
+                new OperationModel("get-an-album", HttpMethod.GET,
                         "/albums/{id}",
-                        List.of(new ParameterDescriptor("id",
-                                ParameterDescriptor.ParameterLocation.PATH,
+                        List.of(new ParameterModel("id",
+                                ParameterLocation.PATH,
                                 TypeDescriptor.simple("java.lang.String"), true)),
                         null,
                         TypeDescriptor.simple("java.lang.String"),
@@ -151,12 +156,12 @@ class ClientWriterTest {
 
     @Test
     void generatesMultipleOperationsInOneInterface() {
-        ClientDescriptor client = new ClientDescriptor("StoreApi", List.of(
-                new OperationDescriptor("getInventory", OperationDescriptor.HttpMethod.GET,
+        ApiFile client = new ApiFile("StoreApi", List.of(
+                new OperationModel("getInventory", HttpMethod.GET,
                         "/store/inventory", List.of(), null,
                         TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")),
                         false),
-                new OperationDescriptor("placeOrder", OperationDescriptor.HttpMethod.POST,
+                new OperationModel("placeOrder", HttpMethod.POST,
                         "/store/order", List.of(),
                         TypeDescriptor.complex("Order"),
                         TypeDescriptor.complex("Order"),
@@ -171,8 +176,8 @@ class ClientWriterTest {
 
     @Test
     void generatesPutExchange() {
-        ClientDescriptor client = new ClientDescriptor("PetApi", List.of(
-                new OperationDescriptor("updatePet", OperationDescriptor.HttpMethod.PUT,
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel("updatePet", HttpMethod.PUT,
                         "/pet", List.of(),
                         TypeDescriptor.complex("Pet"),
                         TypeDescriptor.complex("Pet"),
@@ -186,11 +191,11 @@ class ClientWriterTest {
 
     @Test
     void generatesListReturnType() {
-        ClientDescriptor client = new ClientDescriptor("PetApi", List.of(
-                new OperationDescriptor("findPetsByTags", OperationDescriptor.HttpMethod.GET,
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel("findPetsByTags", HttpMethod.GET,
                         "/pet/findByTags",
-                        List.of(new ParameterDescriptor("tags",
-                                ParameterDescriptor.ParameterLocation.QUERY,
+                        List.of(new ParameterModel("tags",
+                                ParameterLocation.QUERY,
                                 TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), true)),
                         null,
                         TypeDescriptor.list(TypeDescriptor.complex("Pet")),
@@ -205,11 +210,11 @@ class ClientWriterTest {
 
     @Test
     void generatesPatchExchange() {
-        ClientDescriptor client = new ClientDescriptor("PetApi", List.of(
-                new OperationDescriptor("patchPet", OperationDescriptor.HttpMethod.PATCH,
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel("patchPet", HttpMethod.PATCH,
                         "/pet/{petId}",
-                        List.of(new ParameterDescriptor("petId",
-                                ParameterDescriptor.ParameterLocation.PATH,
+                        List.of(new ParameterModel("petId",
+                                ParameterLocation.PATH,
                                 TypeDescriptor.simple("java.lang.Long"), true)),
                         TypeDescriptor.complex("Pet"),
                         TypeDescriptor.complex("Pet"),
@@ -223,11 +228,11 @@ class ClientWriterTest {
 
     @Test
     void marksDeprecatedOperation() {
-        ClientDescriptor client = new ClientDescriptor("PetApi", List.of(
-                new OperationDescriptor("deletePet", OperationDescriptor.HttpMethod.DELETE,
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel("deletePet", HttpMethod.DELETE,
                         "/pet/{petId}",
-                        List.of(new ParameterDescriptor("petId",
-                                ParameterDescriptor.ParameterLocation.PATH,
+                        List.of(new ParameterModel("petId",
+                                ParameterLocation.PATH,
                                 TypeDescriptor.simple("java.lang.Long"), true)),
                         null, null,
                         true)

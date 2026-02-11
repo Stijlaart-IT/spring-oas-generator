@@ -1,7 +1,12 @@
 package nl.stijlaartit.generation.model;
 
-import nl.stijlaartit.generation.model.FieldDescriptor;
-import nl.stijlaartit.generation.model.ModelDescriptor;
+import nl.stijlaartit.generator.domain.EnumModel;
+import nl.stijlaartit.generator.domain.EnumValueType;
+import nl.stijlaartit.generator.domain.FieldModel;
+import nl.stijlaartit.generator.domain.ModelFile;
+import nl.stijlaartit.generator.domain.OneOfModel;
+import nl.stijlaartit.generator.domain.OneOfVariant;
+import nl.stijlaartit.generator.domain.RecordModel;
 import nl.stijlaartit.generator.model.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Components;
@@ -82,24 +87,24 @@ class ModelResolverTest {
                     .addProperty("age", new IntegerSchema())
                     .addRequiredItem("name");
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
 
             assertEquals(1, models.size());
-            RecordDescriptor user = (RecordDescriptor) models.get(0);
-            assertEquals("User", user.name());
-            assertEquals(2, user.fields().size());
+            RecordModel user = (RecordModel) models.get(0);
+            assertEquals("User", user.getName());
+            assertEquals(2, user.getFields().size());
 
-            FieldDescriptor nameField = user.fields().stream()
-                    .filter(f -> f.name().equals("name")).findFirst().orElseThrow();
-            assertEquals("name", nameField.jsonName());
-            assertEquals(TypeDescriptor.simple("java.lang.String"), nameField.type());
-            assertTrue(nameField.required());
+            FieldModel nameField = user.getFields().stream()
+                    .filter(f -> f.getName().equals("name")).findFirst().orElseThrow();
+            assertEquals("name", nameField.getJsonName());
+            assertEquals(TypeDescriptor.simple("java.lang.String"), nameField.getType());
+            assertTrue(nameField.isRequired());
 
-            FieldDescriptor ageField = user.fields().stream()
-                    .filter(f -> f.name().equals("age")).findFirst().orElseThrow();
-            assertEquals("age", ageField.jsonName());
-            assertEquals(TypeDescriptor.simple("java.lang.Integer"), ageField.type());
-            assertFalse(ageField.required());
+            FieldModel ageField = user.getFields().stream()
+                    .filter(f -> f.getName().equals("age")).findFirst().orElseThrow();
+            assertEquals("age", ageField.getJsonName());
+            assertEquals(TypeDescriptor.simple("java.lang.Integer"), ageField.getType());
+            assertFalse(ageField.isRequired());
         }
 
         @Test
@@ -113,11 +118,11 @@ class ModelResolverTest {
             schemas.put("User", userSchema);
             schemas.put("Pet", petSchema);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(schemas));
+            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
 
             assertEquals(2, models.size());
-            assertEquals("User", models.get(0).name());
-            assertEquals("Pet", models.get(1).name());
+            assertEquals("User", models.get(0).getName());
+            assertEquals("Pet", models.get(1).getName());
         }
     }
 
@@ -134,24 +139,24 @@ class ModelResolverTest {
                     .addProperty("name", new StringSchema())
                     .addProperty("address", addressSchema);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
 
             assertEquals(2, models.size());
 
-            RecordDescriptor user = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
-            RecordDescriptor userAddress = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("UserAddress")).findFirst().orElseThrow();
+            RecordModel user = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("User")).findFirst().orElseThrow();
+            RecordModel userAddress = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("UserAddress")).findFirst().orElseThrow();
 
             // User.address should reference UserAddress
-            FieldDescriptor addressField = user.fields().stream()
-                    .filter(f -> f.name().equals("address")).findFirst().orElseThrow();
-            assertEquals(TypeDescriptor.complex("UserAddress"), addressField.type());
+            FieldModel addressField = user.getFields().stream()
+                    .filter(f -> f.getName().equals("address")).findFirst().orElseThrow();
+            assertEquals(TypeDescriptor.complex("UserAddress"), addressField.getType());
 
             // UserAddress should have street and city
-            assertEquals(2, userAddress.fields().size());
-            assertTrue(userAddress.fields().stream().anyMatch(f -> f.name().equals("street")));
-            assertTrue(userAddress.fields().stream().anyMatch(f -> f.name().equals("city")));
+            assertEquals(2, userAddress.getFields().size());
+            assertTrue(userAddress.getFields().stream().anyMatch(f -> f.getName().equals("street")));
+            assertTrue(userAddress.getFields().stream().anyMatch(f -> f.getName().equals("city")));
         }
 
         @Test
@@ -168,12 +173,12 @@ class ModelResolverTest {
                     .addProperty("name", new StringSchema())
                     .addProperty("address", addressSchema);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
 
             assertEquals(3, models.size());
-            assertTrue(models.stream().anyMatch(m -> m.name().equals("User")));
-            assertTrue(models.stream().anyMatch(m -> m.name().equals("UserAddress")));
-            assertTrue(models.stream().anyMatch(m -> m.name().equals("UserAddressCoordinates")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("User")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("UserAddress")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("UserAddressCoordinates")));
         }
     }
 
@@ -195,23 +200,23 @@ class ModelResolverTest {
                     .addProperty("homeAddress", address1)
                     .addProperty("workAddress", address2);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
 
             // Should be 2 models: User and UserHomeAddress (workAddress reuses UserHomeAddress)
             assertEquals(2, models.size());
-            assertTrue(models.stream().anyMatch(m -> m.name().equals("User")));
-            assertTrue(models.stream().anyMatch(m -> m.name().equals("UserHomeAddress")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("User")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("UserHomeAddress")));
 
             // Both address fields should reference the same model
-            RecordDescriptor user = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
+            RecordModel user = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("User")).findFirst().orElseThrow();
 
-            FieldDescriptor homeAddr = user.fields().stream()
-                    .filter(f -> f.name().equals("homeAddress")).findFirst().orElseThrow();
-            FieldDescriptor workAddr = user.fields().stream()
-                    .filter(f -> f.name().equals("workAddress")).findFirst().orElseThrow();
+            FieldModel homeAddr = user.getFields().stream()
+                    .filter(f -> f.getName().equals("homeAddress")).findFirst().orElseThrow();
+            FieldModel workAddr = user.getFields().stream()
+                    .filter(f -> f.getName().equals("workAddress")).findFirst().orElseThrow();
 
-            assertEquals(homeAddr.type(), workAddr.type());
+            assertEquals(homeAddr.getType(), workAddr.getType());
         }
 
         @Test
@@ -234,19 +239,19 @@ class ModelResolverTest {
             schemas.put("Address", componentAddress);
             schemas.put("User", userSchema);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(schemas));
+            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
 
             // Should have Address and User (no UserAddress because Address has same shape)
             assertEquals(2, models.size());
-            assertTrue(models.stream().anyMatch(m -> m.name().equals("Address")));
-            assertTrue(models.stream().anyMatch(m -> m.name().equals("User")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("Address")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("User")));
 
             // User.address should reference Address (the component name)
-            RecordDescriptor user = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
-            FieldDescriptor addressField = user.fields().stream()
-                    .filter(f -> f.name().equals("address")).findFirst().orElseThrow();
-            assertEquals(TypeDescriptor.complex("Address"), addressField.type());
+            RecordModel user = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("User")).findFirst().orElseThrow();
+            FieldModel addressField = user.getFields().stream()
+                    .filter(f -> f.getName().equals("address")).findFirst().orElseThrow();
+            assertEquals(TypeDescriptor.complex("Address"), addressField.getType());
         }
 
         @Test
@@ -263,11 +268,11 @@ class ModelResolverTest {
             schemas.put("Category", categorySchema);
             schemas.put("Tag", tagSchema);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(schemas));
+            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
 
             assertEquals(2, models.size());
-            assertTrue(models.stream().anyMatch(m -> m.name().equals("Category")));
-            assertTrue(models.stream().anyMatch(m -> m.name().equals("Tag")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("Category")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("Tag")));
         }
     }
 
@@ -296,10 +301,10 @@ class ModelResolverTest {
                     requestBody, responses
             );
 
-            List<ModelDescriptor> models = resolver.resolve(openAPI);
+            List<ModelFile> models = resolver.resolve(openAPI);
 
-            assertTrue(models.stream().anyMatch(m -> m.name().equals("SaveAlbumsUserRequest")));
-            assertTrue(models.stream().anyMatch(m -> m.name().equals("SaveAlbumsUserResponse")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("SaveAlbumsUserRequest")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("SaveAlbumsUserResponse")));
         }
     }
 
@@ -410,11 +415,11 @@ class ModelResolverTest {
             Schema<?> schema = new ObjectSchema()
                     .addProperty("first_name", new StringSchema());
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", schema)));
+            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", schema)));
 
-            FieldDescriptor field = ((RecordDescriptor) models.get(0)).fields().get(0);
-            assertEquals("firstName", field.name());
-            assertEquals("first_name", field.jsonName());
+            FieldModel field = ((RecordModel) models.get(0)).getFields().get(0);
+            assertEquals("firstName", field.getName());
+            assertEquals("first_name", field.getJsonName());
         }
 
         @Test
@@ -422,11 +427,11 @@ class ModelResolverTest {
             Schema<?> schema = new ObjectSchema()
                     .addProperty("public", new BooleanSchema());
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("Playlist", schema)));
+            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("Playlist", schema)));
 
-            FieldDescriptor field = ((RecordDescriptor) models.get(0)).fields().get(0);
-            assertEquals("public_", field.name());
-            assertEquals("public", field.jsonName());
+            FieldModel field = ((RecordModel) models.get(0)).getFields().get(0);
+            assertEquals("public_", field.getName());
+            assertEquals("public", field.getJsonName());
         }
     }
 
@@ -442,12 +447,12 @@ class ModelResolverTest {
                     .addProperty("name", new StringSchema())
                     .addProperty("address", addressSchema);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
 
-            RecordDescriptor user = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
+            RecordModel user = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("User")).findFirst().orElseThrow();
 
-            assertEquals(List.of("UserAddress"), user.dependencies());
+            assertEquals(List.of("UserAddress"), user.getDependencies());
         }
 
         @Test
@@ -466,12 +471,12 @@ class ModelResolverTest {
             schemas.put("Pet", petSchema);
             schemas.put("Owner", ownerSchema);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(schemas));
+            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
 
-            RecordDescriptor owner = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("Owner")).findFirst().orElseThrow();
+            RecordModel owner = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("Owner")).findFirst().orElseThrow();
 
-            assertEquals(List.of("Pet"), owner.dependencies());
+            assertEquals(List.of("Pet"), owner.getDependencies());
         }
     }
 
@@ -490,18 +495,18 @@ class ModelResolverTest {
             schemas.put("Status", statusSchema);
             schemas.put("Order", orderSchema);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(schemas));
+            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
 
-            EnumDescriptor status = (EnumDescriptor) models.stream()
-                    .filter(m -> m.name().equals("Status")).findFirst().orElseThrow();
-            RecordDescriptor order = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("Order")).findFirst().orElseThrow();
+            EnumModel status = (EnumModel) models.stream()
+                    .filter(m -> m.getName().equals("Status")).findFirst().orElseThrow();
+            RecordModel order = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("Order")).findFirst().orElseThrow();
 
-            assertEquals(List.of("available", "pending", "sold"), status.enumValues());
+            assertEquals(List.of("available", "pending", "sold"), status.getEnumValues());
 
-            FieldDescriptor statusField = order.fields().stream()
-                    .filter(f -> f.name().equals("status")).findFirst().orElseThrow();
-            assertEquals(TypeDescriptor.complex("Status"), statusField.type());
+            FieldModel statusField = order.getFields().stream()
+                    .filter(f -> f.getName().equals("status")).findFirst().orElseThrow();
+            assertEquals(TypeDescriptor.complex("Status"), statusField.getType());
         }
 
         @Test
@@ -512,17 +517,17 @@ class ModelResolverTest {
             Schema<?> userSchema = new ObjectSchema()
                     .addProperty("status", statusSchema);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
 
-            RecordDescriptor user = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
-            EnumDescriptor userStatus = (EnumDescriptor) models.stream()
-                    .filter(m -> m.name().equals("UserStatus")).findFirst().orElseThrow();
+            RecordModel user = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("User")).findFirst().orElseThrow();
+            EnumModel userStatus = (EnumModel) models.stream()
+                    .filter(m -> m.getName().equals("UserStatus")).findFirst().orElseThrow();
 
-            FieldDescriptor statusField = user.fields().stream()
-                    .filter(f -> f.name().equals("status")).findFirst().orElseThrow();
-            assertEquals(TypeDescriptor.complex("UserStatus"), statusField.type());
-            assertEquals(List.of("active", "inactive"), userStatus.enumValues());
+            FieldModel statusField = user.getFields().stream()
+                    .filter(f -> f.getName().equals("status")).findFirst().orElseThrow();
+            assertEquals(TypeDescriptor.complex("UserStatus"), statusField.getType());
+            assertEquals(List.of("active", "inactive"), userStatus.getEnumValues());
         }
 
         @Test
@@ -536,17 +541,17 @@ class ModelResolverTest {
                     .addProperty("primaryStatus", primarySchema)
                     .addProperty("secondaryStatus", secondarySchema);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
 
-            RecordDescriptor user = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("User")).findFirst().orElseThrow();
+            RecordModel user = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("User")).findFirst().orElseThrow();
 
-            FieldDescriptor primary = user.fields().stream()
-                    .filter(f -> f.name().equals("primaryStatus")).findFirst().orElseThrow();
-            FieldDescriptor secondary = user.fields().stream()
-                    .filter(f -> f.name().equals("secondaryStatus")).findFirst().orElseThrow();
+            FieldModel primary = user.getFields().stream()
+                    .filter(f -> f.getName().equals("primaryStatus")).findFirst().orElseThrow();
+            FieldModel secondary = user.getFields().stream()
+                    .filter(f -> f.getName().equals("secondaryStatus")).findFirst().orElseThrow();
 
-            assertEquals(primary.type(), secondary.type());
+            assertEquals(primary.getType(), secondary.getType());
         }
     }
 
@@ -580,32 +585,32 @@ class ModelResolverTest {
             schemas.put("EpisodeObject", episodeSchema);
             schemas.put("QueueObject", queueSchema);
 
-            List<ModelDescriptor> models = resolver.resolve(openAPIWith(schemas));
+            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
 
-            RecordDescriptor queue = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("QueueObject")).findFirst().orElseThrow();
-            FieldDescriptor currentlyPlaying = queue.fields().stream()
-                    .filter(f -> f.name().equals("currentlyPlaying")).findFirst().orElseThrow();
-            assertEquals(TypeDescriptor.complex("QueueObjectCurrentlyPlaying"), currentlyPlaying.type());
+            RecordModel queue = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("QueueObject")).findFirst().orElseThrow();
+            FieldModel currentlyPlaying = queue.getFields().stream()
+                    .filter(f -> f.getName().equals("currentlyPlaying")).findFirst().orElseThrow();
+            assertEquals(TypeDescriptor.complex("QueueObjectCurrentlyPlaying"), currentlyPlaying.getType());
 
-            OneOfDescriptor oneOf = (OneOfDescriptor) models.stream()
-                    .filter(m -> m.name().equals("QueueObjectCurrentlyPlaying")).findFirst().orElseThrow();
+            OneOfModel oneOf = (OneOfModel) models.stream()
+                    .filter(m -> m.getName().equals("QueueObjectCurrentlyPlaying")).findFirst().orElseThrow();
             assertEquals(
                     List.of("TrackObject", "EpisodeObject"),
-                    oneOf.variants().stream().map(OneOfDescriptor.OneOfVariant::modelName).toList()
+                    oneOf.getVariants().stream().map(OneOfVariant::getModelName).toList()
             );
             assertEquals(
                     List.of("track", "episode"),
-                    oneOf.variants().stream().map(OneOfDescriptor.OneOfVariant::discriminatorValue).toList()
+                    oneOf.getVariants().stream().map(OneOfVariant::getDiscriminatorValue).toList()
             );
 
-            RecordDescriptor track = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("TrackObject")).findFirst().orElseThrow();
-            RecordDescriptor episode = (RecordDescriptor) models.stream()
-                    .filter(m -> m.name().equals("EpisodeObject")).findFirst().orElseThrow();
+            RecordModel track = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("TrackObject")).findFirst().orElseThrow();
+            RecordModel episode = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("EpisodeObject")).findFirst().orElseThrow();
 
-            assertEquals(List.of("QueueObjectCurrentlyPlaying"), track.implementsTypes());
-            assertEquals(List.of("QueueObjectCurrentlyPlaying"), episode.implementsTypes());
+            assertEquals(List.of("QueueObjectCurrentlyPlaying"), track.getImplementsTypes());
+            assertEquals(List.of("QueueObjectCurrentlyPlaying"), episode.getImplementsTypes());
         }
     }
 }

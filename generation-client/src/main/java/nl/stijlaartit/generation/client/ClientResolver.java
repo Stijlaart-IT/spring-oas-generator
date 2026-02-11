@@ -1,5 +1,10 @@
 package nl.stijlaartit.generation.client;
 
+import nl.stijlaartit.generator.domain.ApiFile;
+import nl.stijlaartit.generator.domain.HttpMethod;
+import nl.stijlaartit.generator.domain.OperationModel;
+import nl.stijlaartit.generator.domain.ParameterLocation;
+import nl.stijlaartit.generator.domain.ParameterModel;
 import nl.stijlaartit.generator.model.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -28,7 +33,7 @@ public class ClientResolver {
     private Map<String, Schema> componentSchemas = Map.of();
     private Map<String, Parameter> componentParameters = Map.of();
 
-    public List<ClientDescriptor> resolve(OpenAPI openAPI) {
+    public List<ApiFile> resolve(OpenAPI openAPI) {
         componentSchemas = Map.of();
         componentParameters = Map.of();
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
@@ -37,7 +42,7 @@ public class ClientResolver {
         if (openAPI.getComponents() != null && openAPI.getComponents().getParameters() != null) {
             componentParameters = openAPI.getComponents().getParameters();
         }
-        Map<String, List<OperationDescriptor>> operationsByTag = new LinkedHashMap<>();
+        Map<String, List<OperationModel>> operationsByTag = new LinkedHashMap<>();
 
         if (openAPI.getPaths() != null) {
             for (var pathEntry : openAPI.getPaths().entrySet()) {
@@ -47,26 +52,26 @@ public class ClientResolver {
             }
         }
 
-        List<ClientDescriptor> clients = new ArrayList<>();
+        List<ApiFile> clients = new ArrayList<>();
         for (var entry : operationsByTag.entrySet()) {
             String interfaceName = toPascalCase(entry.getKey()) + "Api";
-            clients.add(new ClientDescriptor(interfaceName, entry.getValue()));
+            clients.add(new ApiFile(interfaceName, entry.getValue()));
         }
         return clients;
     }
 
     private void resolvePathItem(String path, PathItem pathItem,
-                                  Map<String, List<OperationDescriptor>> operationsByTag) {
-        addOperation(path, OperationDescriptor.HttpMethod.GET, pathItem.getGet(), operationsByTag);
-        addOperation(path, OperationDescriptor.HttpMethod.POST, pathItem.getPost(), operationsByTag);
-        addOperation(path, OperationDescriptor.HttpMethod.PUT, pathItem.getPut(), operationsByTag);
-        addOperation(path, OperationDescriptor.HttpMethod.DELETE, pathItem.getDelete(), operationsByTag);
-        addOperation(path, OperationDescriptor.HttpMethod.PATCH, pathItem.getPatch(), operationsByTag);
+                                  Map<String, List<OperationModel>> operationsByTag) {
+        addOperation(path, HttpMethod.GET, pathItem.getGet(), operationsByTag);
+        addOperation(path, HttpMethod.POST, pathItem.getPost(), operationsByTag);
+        addOperation(path, HttpMethod.PUT, pathItem.getPut(), operationsByTag);
+        addOperation(path, HttpMethod.DELETE, pathItem.getDelete(), operationsByTag);
+        addOperation(path, HttpMethod.PATCH, pathItem.getPatch(), operationsByTag);
     }
 
-    private void addOperation(String path, OperationDescriptor.HttpMethod method,
+    private void addOperation(String path, HttpMethod method,
                                Operation operation,
-                               Map<String, List<OperationDescriptor>> operationsByTag) {
+                               Map<String, List<OperationModel>> operationsByTag) {
         if (operation == null) {
             return;
         }
@@ -75,34 +80,34 @@ public class ClientResolver {
                 ? operation.getTags().get(0)
                 : "default";
 
-        List<ParameterDescriptor> parameters = resolveParameters(operation.getParameters());
+        List<ParameterModel> parameters = resolveParameters(operation.getParameters());
         String operationId = operation.getOperationId();
         TypeDescriptor requestBody = resolveRequestBody(operationId, operation.getRequestBody());
         TypeDescriptor responseType = resolveResponseType(operationId, operation.getResponses());
 
         boolean deprecated = operation.getDeprecated() != null && operation.getDeprecated();
-        OperationDescriptor descriptor = new OperationDescriptor(
+        OperationModel descriptor = new OperationModel(
                 operation.getOperationId(), method, path, parameters, requestBody, responseType, deprecated
         );
 
         operationsByTag.computeIfAbsent(tag, k -> new ArrayList<>()).add(descriptor);
     }
 
-    private List<ParameterDescriptor> resolveParameters(List<Parameter> parameters) {
+    private List<ParameterModel> resolveParameters(List<Parameter> parameters) {
         if (parameters == null) {
             return List.of();
         }
 
-        List<ParameterDescriptor> result = new ArrayList<>();
+        List<ParameterModel> result = new ArrayList<>();
         for (Parameter param : parameters) {
             Parameter resolved = resolveParameter(param);
             if (resolved == null || resolved.getIn() == null) {
                 continue;
             }
-            ParameterDescriptor.ParameterLocation location = switch (resolved.getIn()) {
-                case "path" -> ParameterDescriptor.ParameterLocation.PATH;
-                case "query" -> ParameterDescriptor.ParameterLocation.QUERY;
-                case "header" -> ParameterDescriptor.ParameterLocation.HEADER;
+            ParameterLocation location = switch (resolved.getIn()) {
+                case "path" -> ParameterLocation.PATH;
+                case "query" -> ParameterLocation.QUERY;
+                case "header" -> ParameterLocation.HEADER;
                 default -> throw new IllegalArgumentException(
                         "Unsupported parameter location: " + resolved.getIn());
             };
@@ -112,7 +117,7 @@ public class ClientResolver {
                     : TypeDescriptor.simple("java.lang.Object");
             boolean required = resolved.getRequired() != null && resolved.getRequired();
 
-            result.add(new ParameterDescriptor(resolved.getName(), location, type, required));
+            result.add(new ParameterModel(resolved.getName(), location, type, required));
         }
         return result;
     }

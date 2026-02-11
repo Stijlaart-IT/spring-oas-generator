@@ -1,6 +1,12 @@
 package nl.stijlaartit.generation.model;
 
 import com.palantir.javapoet.JavaFile;
+import nl.stijlaartit.generator.domain.EnumModel;
+import nl.stijlaartit.generator.domain.EnumValueType;
+import nl.stijlaartit.generator.domain.FieldModel;
+import nl.stijlaartit.generator.domain.OneOfModel;
+import nl.stijlaartit.generator.domain.OneOfVariant;
+import nl.stijlaartit.generator.domain.RecordModel;
 import nl.stijlaartit.generator.model.TypeDescriptor;
 import org.junit.jupiter.api.Test;
 
@@ -14,10 +20,10 @@ class ModelWriterTest {
 
     @Test
     void generatesRecordWithSingleField() {
-        ModelDescriptor model = ModelDescriptor.record("User", List.of(
-                new FieldDescriptor("name", "name",
+        RecordModel model = new RecordModel("User", List.of(
+                new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true)
-        ));
+        ), List.of());
 
         String source = writer.toJavaFile(model).toString();
 
@@ -28,12 +34,12 @@ class ModelWriterTest {
 
     @Test
     void generatesRecordWithMultipleFields() {
-        ModelDescriptor model = ModelDescriptor.record("User", List.of(
-                new FieldDescriptor("name", "name",
+        RecordModel model = new RecordModel("User", List.of(
+                new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true),
-                new FieldDescriptor("age", "age",
+                new FieldModel("age", "age",
                         TypeDescriptor.simple("java.lang.Integer"), false)
-        ));
+        ), List.of());
 
         String source = writer.toJavaFile(model).toString();
 
@@ -44,10 +50,10 @@ class ModelWriterTest {
 
     @Test
     void addsJsonPropertyWhenNamesDisagree() {
-        ModelDescriptor model = ModelDescriptor.record("User", List.of(
-                new FieldDescriptor("firstName", "first_name",
+        RecordModel model = new RecordModel("User", List.of(
+                new FieldModel("firstName", "first_name",
                         TypeDescriptor.simple("java.lang.String"), true)
-        ));
+        ), List.of());
 
         String source = writer.toJavaFile(model).toString();
 
@@ -57,10 +63,10 @@ class ModelWriterTest {
 
     @Test
     void omitsJsonPropertyWhenNamesMatch() {
-        ModelDescriptor model = ModelDescriptor.record("User", List.of(
-                new FieldDescriptor("name", "name",
+        RecordModel model = new RecordModel("User", List.of(
+                new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true)
-        ));
+        ), List.of());
 
         String source = writer.toJavaFile(model).toString();
 
@@ -70,10 +76,10 @@ class ModelWriterTest {
 
     @Test
     void resolvesComplexTypeFromModelsPackage() {
-        ModelDescriptor model = ModelDescriptor.record("Owner", List.of(
-                new FieldDescriptor("pet", "pet",
+        RecordModel model = new RecordModel("Owner", List.of(
+                new FieldModel("pet", "pet",
                         TypeDescriptor.complex("Pet"), true)
-        ));
+        ), List.of());
 
         String source = writer.toJavaFile(model).toString();
 
@@ -82,10 +88,10 @@ class ModelWriterTest {
 
     @Test
     void resolvesListType() {
-        ModelDescriptor model = ModelDescriptor.record("Pet", List.of(
-                new FieldDescriptor("tags", "tags",
+        RecordModel model = new RecordModel("Pet", List.of(
+                new FieldModel("tags", "tags",
                         TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), false)
-        ));
+        ), List.of());
 
         String source = writer.toJavaFile(model).toString();
 
@@ -94,10 +100,10 @@ class ModelWriterTest {
 
     @Test
     void resolvesMapType() {
-        ModelDescriptor model = ModelDescriptor.record("Config", List.of(
-                new FieldDescriptor("metadata", "metadata",
+        RecordModel model = new RecordModel("Config", List.of(
+                new FieldModel("metadata", "metadata",
                         TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")), false)
-        ));
+        ), List.of());
 
         String source = writer.toJavaFile(model).toString();
 
@@ -106,10 +112,10 @@ class ModelWriterTest {
 
     @Test
     void resolvesListOfComplexType() {
-        ModelDescriptor model = ModelDescriptor.record("Pet", List.of(
-                new FieldDescriptor("tags", "tags",
+        RecordModel model = new RecordModel("Pet", List.of(
+                new FieldModel("tags", "tags",
                         TypeDescriptor.list(TypeDescriptor.complex("Tag")), false)
-        ));
+        ), List.of());
 
         String source = writer.toJavaFile(model).toString();
 
@@ -118,11 +124,11 @@ class ModelWriterTest {
 
     @Test
     void generatesEnumWithJsonPropertyValues() {
-        ModelDescriptor model = ModelDescriptor.enumModel("PetStatus", List.of(
+        EnumModel model = new EnumModel("PetStatus", List.of(
                 "available",
                 "pending",
                 "sold"
-        ), EnumValueType.STRING);
+        ), EnumValueType.STRING, List.of());
 
         String source = writer.toJavaFile(model).toString();
 
@@ -134,11 +140,11 @@ class ModelWriterTest {
 
     @Test
     void generatesNumericEnumWithLiteralJsonProperty() {
-        ModelDescriptor model = ModelDescriptor.enumModel("Mode", List.of(
+        EnumModel model = new EnumModel("Mode", List.of(
                 "-1",
                 "0",
                 "1"
-        ), EnumValueType.NUMBER);
+        ), EnumValueType.NUMBER, List.of());
 
         String source = writer.toJavaFile(model).toString();
 
@@ -150,11 +156,11 @@ class ModelWriterTest {
 
     @Test
     void generatesOneOfInterfaceWithDiscriminator() {
-        ModelDescriptor model = ModelDescriptor.oneOf(
+        OneOfModel model = new OneOfModel(
                 "QueueObjectCurrentlyPlaying",
                 List.of(
-                        new OneOfDescriptor.OneOfVariant("TrackObject", "track"),
-                        new OneOfDescriptor.OneOfVariant("EpisodeObject", "episode")
+                        new OneOfVariant("TrackObject", "track"),
+                        new OneOfVariant("EpisodeObject", "episode")
                 ),
                 "type"
         );

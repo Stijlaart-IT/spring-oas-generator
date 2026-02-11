@@ -6,6 +6,11 @@ import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.TypeSpec;
+import nl.stijlaartit.generator.domain.ApiFile;
+import nl.stijlaartit.generator.domain.HttpMethod;
+import nl.stijlaartit.generator.domain.OperationModel;
+import nl.stijlaartit.generator.domain.ParameterLocation;
+import nl.stijlaartit.generator.domain.ParameterModel;
 import nl.stijlaartit.generator.model.JavaIdentifierUtils;
 import nl.stijlaartit.generator.model.TypeNameResolver;
 
@@ -47,22 +52,22 @@ public class ClientWriter {
         this.typeNameResolver = new TypeNameResolver(modelsPackage);
     }
 
-    public void writeAll(List<ClientDescriptor> clients, Path outputDirectory) throws IOException {
+    public void writeAll(List<ApiFile> clients, Path outputDirectory) throws IOException {
         writePackageInfo(outputDirectory);
-        for (ClientDescriptor client : clients) {
+        for (ApiFile client : clients) {
             write(client, outputDirectory);
         }
     }
 
-    public void write(ClientDescriptor client, Path outputDirectory) throws IOException {
+    public void write(ApiFile client, Path outputDirectory) throws IOException {
         toJavaFile(client).writeTo(outputDirectory);
     }
 
-    JavaFile toJavaFile(ClientDescriptor client) {
-        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(client.name())
+    JavaFile toJavaFile(ApiFile client) {
+        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(client.getName())
                 .addModifiers(Modifier.PUBLIC);
 
-        for (OperationDescriptor operation : client.operations()) {
+        for (OperationModel operation : client.getOperations()) {
             interfaceBuilder.addMethod(toMethodSpec(operation));
         }
 
@@ -71,29 +76,29 @@ public class ClientWriter {
                 .build();
     }
 
-    private MethodSpec toMethodSpec(OperationDescriptor operation) {
-        String methodName = JavaIdentifierUtils.sanitize(toCamelCase(operation.name()));
+    private MethodSpec toMethodSpec(OperationModel operation) {
+        String methodName = JavaIdentifierUtils.sanitize(toCamelCase(operation.getName()));
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addAnnotation(exchangeAnnotation(operation.method(), operation.path()));
+                .addAnnotation(exchangeAnnotation(operation.getMethod(), operation.getPath()));
 
-        if (operation.deprecated()) {
+        if (operation.isDeprecated()) {
             methodBuilder.addAnnotation(Deprecated.class);
         }
 
-        if (operation.responseType() != null) {
-            methodBuilder.returns(typeNameResolver.resolve(operation.responseType()));
+        if (operation.getResponseType() != null) {
+            methodBuilder.returns(typeNameResolver.resolve(operation.getResponseType()));
         }
 
-        for (ParameterDescriptor param : operation.parameters()) {
+        for (ParameterModel param : operation.getParameters()) {
             methodBuilder.addParameter(toParameterSpec(param));
         }
 
-        if (operation.requestBody() != null) {
+        if (operation.getRequestBody() != null) {
             methodBuilder.addParameter(
                     ParameterSpec.builder(
-                            typeNameResolver.resolve(operation.requestBody()), "body"
+                            typeNameResolver.resolve(operation.getRequestBody()), "body"
                     ).addAnnotation(REQUEST_BODY).build()
             );
         }
@@ -101,7 +106,7 @@ public class ClientWriter {
         return methodBuilder.build();
     }
 
-    private AnnotationSpec exchangeAnnotation(OperationDescriptor.HttpMethod method, String path) {
+    private AnnotationSpec exchangeAnnotation(HttpMethod method, String path) {
         ClassName annotationType = switch (method) {
             case GET -> GET_EXCHANGE;
             case POST -> POST_EXCHANGE;
@@ -114,29 +119,29 @@ public class ClientWriter {
                 .build();
     }
 
-    private ParameterSpec toParameterSpec(ParameterDescriptor param) {
-        ClassName annotation = switch (param.location()) {
+    private ParameterSpec toParameterSpec(ParameterModel param) {
+        ClassName annotation = switch (param.getLocation()) {
             case PATH -> PATH_VARIABLE;
             case QUERY -> REQUEST_PARAM;
             case HEADER -> REQUEST_HEADER;
         };
 
-        String javaName = JavaIdentifierUtils.sanitize(toCamelCase(param.name()));
+        String javaName = JavaIdentifierUtils.sanitize(toCamelCase(param.getName()));
 
         AnnotationSpec.Builder annotationBuilder = AnnotationSpec.builder(annotation);
-        if (!javaName.equals(param.name())) {
-            annotationBuilder.addMember("value", "$S", param.name());
+        if (!javaName.equals(param.getName())) {
+            annotationBuilder.addMember("value", "$S", param.getName());
         }
-        if (param.location() == ParameterDescriptor.ParameterLocation.QUERY) {
-            annotationBuilder.addMember("required", "$L", param.required());
+        if (param.getLocation() == ParameterLocation.QUERY) {
+            annotationBuilder.addMember("required", "$L", param.isRequired());
         }
 
         ParameterSpec.Builder paramBuilder = ParameterSpec.builder(
-                typeNameResolver.resolve(param.type()),
+                typeNameResolver.resolve(param.getType()),
                 javaName
         );
 
-        if (param.location() == ParameterDescriptor.ParameterLocation.QUERY && !param.required()) {
+        if (param.getLocation() == ParameterLocation.QUERY && !param.isRequired()) {
             paramBuilder.addAnnotation(AnnotationSpec.builder(NULLABLE).build());
         }
 

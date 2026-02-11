@@ -1,11 +1,11 @@
 package nl.stijlaartit.restclient;
 
-import nl.stijlaartit.generation.client.ClientDescriptor;
 import nl.stijlaartit.generation.client.ClientResolver;
 import nl.stijlaartit.generation.client.ClientWriter;
 import nl.stijlaartit.generation.model.ModelResolver;
-import nl.stijlaartit.generation.model.ModelDescriptor;
 import nl.stijlaartit.generation.model.ModelWriter;
+import nl.stijlaartit.generator.domain.ApiFile;
+import nl.stijlaartit.generator.domain.ModelFile;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
@@ -50,14 +50,14 @@ public class RestClientGeneratorApplication implements CommandLineRunner {
         Path output = Path.of(outputPath);
 
         ModelResolver modelResolver = new ModelResolver();
-        List<ModelDescriptor> models = modelResolver.resolve(openAPI);
+        List<ModelFile> models = modelResolver.resolve(openAPI);
         ModelWriter modelWriter = new ModelWriter(modelsPackage);
         modelWriter.writeAll(models, output);
         System.out.println("Generated " + models.size() + " model(s) to "
                 + output.resolve(modelsPackage.replace('.', '/')));
 
         ClientResolver clientResolver = new ClientResolver();
-        List<ClientDescriptor> clients = clientResolver.resolve(openAPI);
+        List<ApiFile> clients = clientResolver.resolve(openAPI);
         ClientWriter clientWriter = new ClientWriter(clientPackage, modelsPackage);
         clientWriter.writeAll(clients, output);
         System.out.println("Generated " + clients.size() + " client interface(s) to "
