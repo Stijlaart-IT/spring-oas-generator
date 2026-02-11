@@ -67,7 +67,8 @@ public class ModelResolver implements Resolver<OpenAPI> {
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
             componentSchemas = openAPI.getComponents().getSchemas();
             for (var entry : openAPI.getComponents().getSchemas().entrySet()) {
-                resolveSchema(entry.getKey(), entry.getValue(), true);
+                String modelName = normalizeModelName(entry.getKey());
+                resolveSchema(modelName, entry.getValue(), true);
             }
         }
 
@@ -194,7 +195,7 @@ public class ModelResolver implements Resolver<OpenAPI> {
      */
     private String resolveSchema(String name, Schema<?> schema, boolean isComponent) {
         if (schema.get$ref() != null) {
-            return extractRefName(schema.get$ref());
+            return normalizeModelName(extractRefName(schema.get$ref()));
         }
 
         if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
@@ -292,11 +293,11 @@ public class ModelResolver implements Resolver<OpenAPI> {
             Schema<?> refSchema = componentSchemas.get(refName);
             if (refSchema != null) {
                 if (isEnumSchema(refSchema) || isObjectSchema(refSchema)) {
-                    return TypeDescriptor.complex(refName);
+                    return TypeDescriptor.complex(normalizeModelName(refName));
                 }
                 return resolveType(parentName, propertyName, refSchema);
             }
-            return TypeDescriptor.complex(refName);
+            return TypeDescriptor.complex(normalizeModelName(refName));
         }
 
         if (isEnumSchema(schema)) {
@@ -411,7 +412,7 @@ public class ModelResolver implements Resolver<OpenAPI> {
             }
         }
         if (variant.get$ref() != null) {
-            return extractRefName(variant.get$ref());
+            return normalizeModelName(extractRefName(variant.get$ref()));
         }
         if (isEnumSchema(variant)) {
             String enumName = baseName + "Option" + index;
@@ -692,6 +693,18 @@ public class ModelResolver implements Resolver<OpenAPI> {
         }
         String refName = extractRefName(schema.get$ref());
         return componentSchemas.getOrDefault(refName, schema);
+    }
+
+    private static String normalizeModelName(String name) {
+        String pascal = toPascalCase(name);
+        String sanitized = JavaIdentifierUtils.sanitize(pascal);
+        if (sanitized.isEmpty()) {
+            return "Model";
+        }
+        if (Character.isLowerCase(sanitized.charAt(0))) {
+            sanitized = Character.toUpperCase(sanitized.charAt(0)) + sanitized.substring(1);
+        }
+        return sanitized;
     }
 
     static String extractRefName(String ref) {

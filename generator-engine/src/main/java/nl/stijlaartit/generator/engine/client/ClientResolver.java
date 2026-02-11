@@ -8,6 +8,7 @@ import nl.stijlaartit.generator.engine.domain.ParameterLocation;
 import nl.stijlaartit.generator.engine.domain.ParameterModel;
 import nl.stijlaartit.generator.engine.domain.Resolver;
 import nl.stijlaartit.generator.engine.model.TypeDescriptor;
+import nl.stijlaartit.generator.engine.model.JavaIdentifierUtils;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
@@ -85,12 +86,15 @@ public class ClientResolver implements Resolver<OpenAPI> {
 
         List<ParameterModel> parameters = resolveParameters(operation.getParameters());
         String operationId = operation.getOperationId();
+        if (operationId == null || operationId.isBlank()) {
+            operationId = fallbackOperationId(method, path);
+        }
         TypeDescriptor requestBody = resolveRequestBody(operationId, operation.getRequestBody());
         TypeDescriptor responseType = resolveResponseType(operationId, operation.getResponses());
 
         boolean deprecated = operation.getDeprecated() != null && operation.getDeprecated();
         OperationModel descriptor = new OperationModel(
-                operation.getOperationId(), method, path, parameters, requestBody, responseType, deprecated
+                operationId, method, path, parameters, requestBody, responseType, deprecated
         );
 
         operationsByTag.computeIfAbsent(tag, k -> new ArrayList<>()).add(descriptor);
@@ -238,14 +242,14 @@ public class ClientResolver implements Resolver<OpenAPI> {
             Schema<?> refSchema = componentSchemas.get(refName);
             if (refSchema != null) {
                 if (refSchema.getEnum() != null && !refSchema.getEnum().isEmpty()) {
-                    return TypeDescriptor.complex(refName);
+                    return TypeDescriptor.complex(normalizeModelName(refName));
                 }
                 if ("object".equals(refSchema.getType()) || refSchema.getType() == null) {
-                    return TypeDescriptor.complex(refName);
+                    return TypeDescriptor.complex(normalizeModelName(refName));
                 }
                 return resolveSchemaType(refSchema);
             }
-            return TypeDescriptor.complex(refName);
+            return TypeDescriptor.complex(normalizeModelName(refName));
         }
 
         if (schema.getEnum() != null && !schema.getEnum().isEmpty()) {
@@ -350,6 +354,18 @@ public class ClientResolver implements Resolver<OpenAPI> {
         return false;
     }
 
+    private static String fallbackOperationId(HttpMethod method, String path) {
+        String normalized = path == null ? "" : path;
+        normalized = normalized.replace("{", "").replace("}", "");
+        normalized = normalized.replaceAll("[^A-Za-z0-9]+", "_");
+        normalized = normalized.replaceAll("^_+|_+$", "");
+        String methodPrefix = method != null ? method.name().toLowerCase() : "operation";
+        if (normalized.isBlank()) {
+            return methodPrefix;
+        }
+        return methodPrefix + "_" + normalized;
+    }
+
     private static String resolveSchemaTypeName(Schema<?> schema) {
         String type = schema.getType();
         if (type != null) {
@@ -432,6 +448,18 @@ public class ClientResolver implements Resolver<OpenAPI> {
     static String extractRefName(String ref) {
         int lastSlash = ref.lastIndexOf('/');
         return lastSlash >= 0 ? ref.substring(lastSlash + 1) : ref;
+    }
+
+    private static String normalizeModelName(String name) {
+        String pascal = toPascalCase(name);
+        String sanitized = JavaIdentifierUtils.sanitize(pascal);
+        if (sanitized.isEmpty()) {
+            return "Model";
+        }
+        if (Character.isLowerCase(sanitized.charAt(0))) {
+            sanitized = Character.toUpperCase(sanitized.charAt(0)) + sanitized.substring(1);
+        }
+        return sanitized;
     }
 
     static String toPascalCase(String input) {

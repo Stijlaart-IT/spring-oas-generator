@@ -152,6 +152,20 @@ class ModelResolverTest {
             assertTrue(valueField.isRequired());
             assertTrue(valueField.isJsonValue());
         }
+
+        @Test
+        void normalizesComponentSchemaNamesToPascalCase() {
+            Schema<?> schema = new ObjectSchema()
+                    .addProperty("value", new StringSchema());
+
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("search_SliceInfo", schema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
+
+            assertEquals(1, models.size());
+            assertEquals("SearchSliceInfo", models.get(0).getName());
+        }
     }
 
     @Nested

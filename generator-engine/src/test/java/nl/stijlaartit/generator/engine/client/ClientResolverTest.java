@@ -123,6 +123,23 @@ class ClientResolverTest {
             assertEquals(1, clients.size());
             assertEquals("DefaultApi", clients.get(0).getName());
         }
+
+        @Test
+        void generatesFallbackOperationIdWhenMissing() {
+            OpenAPI openAPI = openApiWithOperation(
+                    "/auth/session", "get", null, "auth",
+                    List.of(), null, jsonResponse(new StringSchema())
+            );
+
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPI, context);
+
+            List<ApiFile> clients = context.getFiles(ApiFile.class);
+
+            assertEquals(1, clients.size());
+            OperationModel operation = clients.get(0).getOperations().get(0);
+            assertEquals("get_auth_session", operation.getName());
+        }
     }
 
     @Nested
@@ -528,6 +545,34 @@ class ClientResolverTest {
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.complex("GetInventoryResponse"), response);
+        }
+
+        @Test
+        void normalizesComponentSchemaNamesInResponseType() {
+            OpenAPI openAPI = new OpenAPI();
+            openAPI.setComponents(new Components()
+                    .schemas(new java.util.LinkedHashMap<>(
+                            java.util.Map.of("search_SliceInfo", new ObjectSchema()
+                                    .addProperty("value", new StringSchema()))
+                    )));
+
+            Paths paths = new Paths();
+            Schema<?> ref = new Schema<>().$ref("#/components/schemas/search_SliceInfo");
+            Operation operation = new Operation()
+                    .operationId("getSliceInfo")
+                    .tags(List.of("search"))
+                    .responses(jsonResponse(ref));
+            PathItem pathItem = new PathItem().get(operation);
+            paths.addPathItem("/search/slice-info", pathItem);
+            openAPI.setPaths(paths);
+
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPI, context);
+
+            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
+
+            assertEquals(TypeDescriptor.complex("SearchSliceInfo"), response);
         }
 
         @Test
