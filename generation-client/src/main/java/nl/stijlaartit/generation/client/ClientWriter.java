@@ -7,6 +7,7 @@ import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.TypeSpec;
 import nl.stijlaartit.generator.domain.ApiFile;
+import nl.stijlaartit.generator.domain.GenerationFileWriter;
 import nl.stijlaartit.generator.domain.HttpMethod;
 import nl.stijlaartit.generator.domain.OperationModel;
 import nl.stijlaartit.generator.domain.ParameterLocation;
@@ -20,7 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-public class ClientWriter {
+public class ClientWriter implements GenerationFileWriter<ApiFile> {
 
     private static final ClassName GET_EXCHANGE = ClassName.get(
             "org.springframework.web.service.annotation", "GetExchange");
@@ -52,6 +53,7 @@ public class ClientWriter {
         this.typeNameResolver = new TypeNameResolver(modelsPackage);
     }
 
+    @Override
     public void writeAll(List<ApiFile> clients, Path outputDirectory) throws IOException {
         writePackageInfo(outputDirectory);
         for (ApiFile client : clients) {

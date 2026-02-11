@@ -1,6 +1,7 @@
 package nl.stijlaartit.generation.model;
 
 import nl.stijlaartit.generator.domain.EnumModel;
+import nl.stijlaartit.generator.domain.GenerationContext;
 import nl.stijlaartit.generator.domain.EnumValueType;
 import nl.stijlaartit.generator.domain.FieldModel;
 import nl.stijlaartit.generator.domain.ModelFile;
@@ -87,7 +88,10 @@ class ModelResolverTest {
                     .addProperty("age", new IntegerSchema())
                     .addRequiredItem("name");
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("User", userSchema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             assertEquals(1, models.size());
             RecordModel user = (RecordModel) models.get(0);
@@ -118,7 +122,10 @@ class ModelResolverTest {
             schemas.put("User", userSchema);
             schemas.put("Pet", petSchema);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(schemas), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             assertEquals(2, models.size());
             assertEquals("User", models.get(0).getName());
@@ -139,7 +146,10 @@ class ModelResolverTest {
                     .addProperty("name", new StringSchema())
                     .addProperty("address", addressSchema);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("User", userSchema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             assertEquals(2, models.size());
 
@@ -173,7 +183,10 @@ class ModelResolverTest {
                     .addProperty("name", new StringSchema())
                     .addProperty("address", addressSchema);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("User", userSchema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             assertEquals(3, models.size());
             assertTrue(models.stream().anyMatch(m -> m.getName().equals("User")));
@@ -200,7 +213,10 @@ class ModelResolverTest {
                     .addProperty("homeAddress", address1)
                     .addProperty("workAddress", address2);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("User", userSchema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             // Should be 2 models: User and UserHomeAddress (workAddress reuses UserHomeAddress)
             assertEquals(2, models.size());
@@ -239,7 +255,10 @@ class ModelResolverTest {
             schemas.put("Address", componentAddress);
             schemas.put("User", userSchema);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(schemas), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             // Should have Address and User (no UserAddress because Address has same shape)
             assertEquals(2, models.size());
@@ -268,7 +287,10 @@ class ModelResolverTest {
             schemas.put("Category", categorySchema);
             schemas.put("Tag", tagSchema);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(schemas), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             assertEquals(2, models.size());
             assertTrue(models.stream().anyMatch(m -> m.getName().equals("Category")));
@@ -301,7 +323,10 @@ class ModelResolverTest {
                     requestBody, responses
             );
 
-            List<ModelFile> models = resolver.resolve(openAPI);
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPI, context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             assertTrue(models.stream().anyMatch(m -> m.getName().equals("SaveAlbumsUserRequest")));
             assertTrue(models.stream().anyMatch(m -> m.getName().equals("SaveAlbumsUserResponse")));
@@ -415,7 +440,10 @@ class ModelResolverTest {
             Schema<?> schema = new ObjectSchema()
                     .addProperty("first_name", new StringSchema());
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", schema)));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("User", schema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             FieldModel field = ((RecordModel) models.get(0)).getFields().get(0);
             assertEquals("firstName", field.getName());
@@ -427,7 +455,10 @@ class ModelResolverTest {
             Schema<?> schema = new ObjectSchema()
                     .addProperty("public", new BooleanSchema());
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("Playlist", schema)));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("Playlist", schema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             FieldModel field = ((RecordModel) models.get(0)).getFields().get(0);
             assertEquals("public_", field.getName());
@@ -447,7 +478,10 @@ class ModelResolverTest {
                     .addProperty("name", new StringSchema())
                     .addProperty("address", addressSchema);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("User", userSchema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             RecordModel user = (RecordModel) models.stream()
                     .filter(m -> m.getName().equals("User")).findFirst().orElseThrow();
@@ -471,7 +505,10 @@ class ModelResolverTest {
             schemas.put("Pet", petSchema);
             schemas.put("Owner", ownerSchema);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(schemas), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             RecordModel owner = (RecordModel) models.stream()
                     .filter(m -> m.getName().equals("Owner")).findFirst().orElseThrow();
@@ -495,7 +532,10 @@ class ModelResolverTest {
             schemas.put("Status", statusSchema);
             schemas.put("Order", orderSchema);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(schemas), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             EnumModel status = (EnumModel) models.stream()
                     .filter(m -> m.getName().equals("Status")).findFirst().orElseThrow();
@@ -517,7 +557,10 @@ class ModelResolverTest {
             Schema<?> userSchema = new ObjectSchema()
                     .addProperty("status", statusSchema);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("User", userSchema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             RecordModel user = (RecordModel) models.stream()
                     .filter(m -> m.getName().equals("User")).findFirst().orElseThrow();
@@ -541,7 +584,10 @@ class ModelResolverTest {
                     .addProperty("primaryStatus", primarySchema)
                     .addProperty("secondaryStatus", secondarySchema);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(Map.of("User", userSchema)));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("User", userSchema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             RecordModel user = (RecordModel) models.stream()
                     .filter(m -> m.getName().equals("User")).findFirst().orElseThrow();
@@ -585,7 +631,10 @@ class ModelResolverTest {
             schemas.put("EpisodeObject", episodeSchema);
             schemas.put("QueueObject", queueSchema);
 
-            List<ModelFile> models = resolver.resolve(openAPIWith(schemas));
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(schemas), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
 
             RecordModel queue = (RecordModel) models.stream()
                     .filter(m -> m.getName().equals("QueueObject")).findFirst().orElseThrow();

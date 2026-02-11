@@ -11,6 +11,7 @@ import com.palantir.javapoet.TypeSpec;
 import nl.stijlaartit.generator.domain.EnumModel;
 import nl.stijlaartit.generator.domain.EnumValueType;
 import nl.stijlaartit.generator.domain.FieldModel;
+import nl.stijlaartit.generator.domain.GenerationFileWriter;
 import nl.stijlaartit.generator.domain.ModelFile;
 import nl.stijlaartit.generator.domain.OneOfModel;
 import nl.stijlaartit.generator.domain.OneOfVariant;
@@ -27,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class ModelWriter {
+public class ModelWriter implements GenerationFileWriter<ModelFile> {
 
     private static final ClassName JSON_PROPERTY =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonProperty");
@@ -48,6 +49,7 @@ public class ModelWriter {
         this.typeNameResolver = new TypeNameResolver(modelsPackage);
     }
 
+    @Override
     public void writeAll(List<ModelFile> models, Path outputDirectory) throws IOException {
         writePackageInfo(outputDirectory);
         for (ModelFile model : models) {

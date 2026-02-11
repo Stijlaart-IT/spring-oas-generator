@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public class ApiFile {
+public class ApiFile implements GenerationFile {
     private String name;
     private final List<OperationModel> operations = new ArrayList<>();
 
@@ -22,10 +22,12 @@ public class ApiFile {
         }
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public void setName(String name) {
         this.name = Objects.requireNonNull(name);
     }

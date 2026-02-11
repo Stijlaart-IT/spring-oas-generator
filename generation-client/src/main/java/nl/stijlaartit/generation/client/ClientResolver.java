@@ -1,10 +1,12 @@
 package nl.stijlaartit.generation.client;
 
 import nl.stijlaartit.generator.domain.ApiFile;
+import nl.stijlaartit.generator.domain.GenerationContext;
 import nl.stijlaartit.generator.domain.HttpMethod;
 import nl.stijlaartit.generator.domain.OperationModel;
 import nl.stijlaartit.generator.domain.ParameterLocation;
 import nl.stijlaartit.generator.domain.ParameterModel;
+import nl.stijlaartit.generator.domain.Resolver;
 import nl.stijlaartit.generator.model.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -28,12 +30,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ClientResolver {
+public class ClientResolver implements Resolver<OpenAPI> {
 
     private Map<String, Schema> componentSchemas = Map.of();
     private Map<String, Parameter> componentParameters = Map.of();
 
-    public List<ApiFile> resolve(OpenAPI openAPI) {
+    @Override
+    public void resolve(OpenAPI openAPI, GenerationContext context) {
         componentSchemas = Map.of();
         componentParameters = Map.of();
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
@@ -57,7 +60,7 @@ public class ClientResolver {
             String interfaceName = toPascalCase(entry.getKey()) + "Api";
             clients.add(new ApiFile(interfaceName, entry.getValue()));
         }
-        return clients;
+        context.addFiles(clients);
     }
 
     private void resolvePathItem(String path, PathItem pathItem,

@@ -3,10 +3,12 @@ package nl.stijlaartit.generation.model;
 import nl.stijlaartit.generator.domain.EnumModel;
 import nl.stijlaartit.generator.domain.EnumValueType;
 import nl.stijlaartit.generator.domain.FieldModel;
+import nl.stijlaartit.generator.domain.GenerationContext;
 import nl.stijlaartit.generator.domain.ModelFile;
 import nl.stijlaartit.generator.domain.OneOfModel;
 import nl.stijlaartit.generator.domain.OneOfVariant;
 import nl.stijlaartit.generator.domain.RecordModel;
+import nl.stijlaartit.generator.domain.Resolver;
 import nl.stijlaartit.generator.model.JavaIdentifierUtils;
 import nl.stijlaartit.generator.model.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -40,7 +42,7 @@ import java.util.Set;
  *       the component name takes priority.</li>
  * </ol>
  */
-public class ModelResolver {
+public class ModelResolver implements Resolver<OpenAPI> {
 
     /** Signature -> model name that was created for it */
     private final Map<SchemaSignature, String> signatureToName = new LinkedHashMap<>();
@@ -54,7 +56,8 @@ public class ModelResolver {
     private Map<String, Schema> componentSchemas = Map.of();
     private final Map<String, Set<String>> pendingImplements = new LinkedHashMap<>();
 
-    public List<ModelFile> resolve(OpenAPI openAPI) {
+    @Override
+    public void resolve(OpenAPI openAPI, GenerationContext context) {
         signatureToName.clear();
         enumSignatureToName.clear();
         models.clear();
@@ -76,7 +79,7 @@ public class ModelResolver {
             }
         }
 
-        return List.copyOf(models.values());
+        context.addFiles(List.copyOf(models.values()));
     }
 
     private void resolveOperationSchemas(io.swagger.v3.oas.models.PathItem pathItem) {
