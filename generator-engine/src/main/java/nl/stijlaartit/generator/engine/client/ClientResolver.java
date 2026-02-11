@@ -166,7 +166,7 @@ public class ClientResolver implements Resolver<OpenAPI> {
             return null;
         }
 
-        ApiResponse successResponse = responses.get("200");
+        ApiResponse successResponse = findSuccessResponse(operationId, responses);
         if (successResponse == null) {
             return null;
         }
@@ -185,6 +185,37 @@ public class ClientResolver implements Resolver<OpenAPI> {
         }
 
         return resolveSchemaTypeForOperation(operationId, "Response", mediaType.getSchema());
+    }
+
+    private ApiResponse findSuccessResponse(String operationId, ApiResponses responses) {
+        ApiResponse responseWithBody = null;
+        String responseWithBodyCode = null;
+        List<String> successCodes = new ArrayList<>();
+
+        for (String code : responses.keySet()) {
+            if (code == null || !code.startsWith("2")) {
+                continue;
+            }
+            successCodes.add(code);
+            ApiResponse candidate = responses.get(code);
+            Content content = candidate != null ? candidate.getContent() : null;
+            if (content == null || content.isEmpty()) {
+                continue;
+            }
+            if (responseWithBody != null) {
+                throw new IllegalArgumentException("Multiple 2xx responses with body defined for operation '"
+                        + operationId + "': " + responseWithBodyCode + " and " + code);
+            }
+            responseWithBody = candidate;
+            responseWithBodyCode = code;
+        }
+
+        if (responseWithBody != null && successCodes.size() > 1) {
+            System.out.println("[warn] Operation '" + operationId
+                    + "' defines multiple 2xx responses. Using response " + responseWithBodyCode + ".");
+        }
+
+        return responseWithBody;
     }
 
     TypeDescriptor resolveSchemaType(Schema<?> schema) {

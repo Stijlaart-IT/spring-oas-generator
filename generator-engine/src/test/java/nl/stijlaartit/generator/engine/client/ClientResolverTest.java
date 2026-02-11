@@ -406,6 +406,77 @@ class ClientResolverTest {
         }
 
         @Test
+        void resolves201ResponseType() {
+            Schema<?> petRef = new Schema<>().$ref("#/components/schemas/Pet");
+            ApiResponses responses = new ApiResponses()
+                    .addApiResponse("201",
+                            new ApiResponse()
+                                    .content(new Content()
+                                            .addMediaType("application/json",
+                                                    new MediaType().schema(petRef))));
+            OpenAPI openAPI = openApiWithOperation(
+                    "/pet", "post", "createPet", "pet",
+                    List.of(), null, responses
+            );
+
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPI, context);
+
+            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
+
+            assertEquals(TypeDescriptor.complex("Pet"), response);
+        }
+
+        @Test
+        void ignores2xxWithoutBodyWhenSingleBodyPresent() {
+            Schema<?> petRef = new Schema<>().$ref("#/components/schemas/Pet");
+            ApiResponses responses = new ApiResponses()
+                    .addApiResponse("200", new ApiResponse().description("ok"))
+                    .addApiResponse("204", new ApiResponse().description("no content"))
+                    .addApiResponse("201",
+                            new ApiResponse()
+                                    .content(new Content()
+                                            .addMediaType("application/json",
+                                                    new MediaType().schema(petRef))));
+            OpenAPI openAPI = openApiWithOperation(
+                    "/pet", "post", "createPet", "pet",
+                    List.of(), null, responses
+            );
+
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPI, context);
+
+            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
+
+            assertEquals(TypeDescriptor.complex("Pet"), response);
+        }
+
+        @Test
+        void throwsWhenMultiple2xxResponsesWithBodiesDefined() {
+            ApiResponses responses = new ApiResponses()
+                    .addApiResponse("200",
+                            new ApiResponse()
+                                    .content(new Content()
+                                            .addMediaType("application/json",
+                                                    new MediaType().schema(new StringSchema()))))
+                    .addApiResponse("201",
+                            new ApiResponse()
+                                    .content(new Content()
+                                            .addMediaType("application/json",
+                                                    new MediaType().schema(new StringSchema()))))
+                    .addApiResponse("204", new ApiResponse().description("no content"));
+            OpenAPI openAPI = openApiWithOperation(
+                    "/pet", "post", "createPet", "pet",
+                    List.of(), null, responses
+            );
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> resolver.resolve(openAPI, new GenerationContext()));
+        }
+
+        @Test
         void resolvesArrayResponseType() {
             Schema<?> arraySchema = new ArraySchema()
                     .items(new Schema<>().$ref("#/components/schemas/Pet"));
