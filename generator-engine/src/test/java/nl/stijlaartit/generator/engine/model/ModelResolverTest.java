@@ -166,6 +166,32 @@ class ModelResolverTest {
             assertEquals(1, models.size());
             assertEquals("SearchSliceInfo", models.get(0).getName());
         }
+
+        @Test
+        void marksNullableRequiredArrayPropertyAsNotRequired() {
+            ArraySchema itemsSchema = new ArraySchema()
+                    .items(new StringSchema());
+            itemsSchema.setNullable(true);
+
+            Schema<?> schema = new ObjectSchema()
+                    .addProperty("items", itemsSchema)
+                    .addRequiredItem("items");
+
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("Container", schema)), context);
+
+            RecordModel container = (RecordModel) context.getFiles(ModelFile.class).stream()
+                    .filter(model -> model.getName().equals("Container"))
+                    .findFirst()
+                    .orElseThrow();
+
+            FieldModel itemsField = container.getFields().stream()
+                    .filter(field -> field.getName().equals("items"))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertFalse(itemsField.isRequired());
+        }
     }
 
     @Nested
@@ -301,6 +327,40 @@ class ModelResolverTest {
             assertTrue(models.stream().anyMatch(m -> m.getName().equals("User")));
 
             // User.address should reference Address (the component name)
+            RecordModel user = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("User")).findFirst().orElseThrow();
+            FieldModel addressField = user.getFields().stream()
+                    .filter(f -> f.getName().equals("address")).findFirst().orElseThrow();
+            assertEquals(TypeDescriptor.complex("Address"), addressField.getType());
+        }
+
+        @Test
+        void prefersComponentModelWhenComponentSchemaMatchesSameShape() {
+            Schema<?> inlineAddress = new ObjectSchema()
+                    .addProperty("street", new StringSchema())
+                    .addProperty("city", new StringSchema());
+
+            Schema<?> userSchema = new ObjectSchema()
+                    .addProperty("name", new StringSchema())
+                    .addProperty("address", inlineAddress);
+
+            Schema<?> componentAddress = new ObjectSchema()
+                    .addProperty("street", new StringSchema())
+                    .addProperty("city", new StringSchema());
+
+            Map<String, Schema> schemas = new LinkedHashMap<>();
+            schemas.put("User", userSchema);
+            schemas.put("Address", componentAddress);
+
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(schemas), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
+
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("User")));
+            assertTrue(models.stream().anyMatch(m -> m.getName().equals("Address")));
+            assertFalse(models.stream().anyMatch(m -> m.getName().equals("UserAddress")));
+
             RecordModel user = (RecordModel) models.stream()
                     .filter(m -> m.getName().equals("User")).findFirst().orElseThrow();
             FieldModel addressField = user.getFields().stream()
@@ -489,6 +549,52 @@ class ModelResolverTest {
 
             TypeDescriptor type = resolver.resolveType("Parent", "pet", refSchema);
             assertEquals(TypeDescriptor.complex("Pet"), type);
+        }
+    }
+
+    @Nested
+    class ComponentSchemaWrappers {
+
+        @Test
+        void generatesWrapperForComponentAliasSchema() {
+            Schema<?> petSchema = new ObjectSchema()
+                    .addProperty("species", new StringSchema());
+            Schema<?> aliasSchema = new Schema<>().$ref("#/components/schemas/Pet");
+
+            Map<String, Schema> schemas = new LinkedHashMap<>();
+            schemas.put("Pet", petSchema);
+            schemas.put("PetSummary", aliasSchema);
+
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(schemas), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
+
+            RecordModel petSummary = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("PetSummary")).findFirst().orElseThrow();
+            assertEquals(1, petSummary.getFields().size());
+            FieldModel valueField = petSummary.getFields().get(0);
+            assertEquals("value", valueField.getName());
+            assertEquals(TypeDescriptor.complex("Pet"), valueField.getType());
+            assertTrue(valueField.isJsonValue());
+        }
+
+        @Test
+        void generatesWrapperForComponentScalarSchema() {
+            Schema<?> slugSchema = new StringSchema();
+
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPIWith(Map.of("Slug", slugSchema)), context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
+
+            RecordModel slug = (RecordModel) models.stream()
+                    .filter(m -> m.getName().equals("Slug")).findFirst().orElseThrow();
+            assertEquals(1, slug.getFields().size());
+            FieldModel valueField = slug.getFields().get(0);
+            assertEquals("value", valueField.getName());
+            assertEquals(TypeDescriptor.simple("java.lang.String"), valueField.getType());
+            assertTrue(valueField.isJsonValue());
         }
     }
 

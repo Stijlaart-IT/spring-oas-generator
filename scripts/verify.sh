@@ -37,6 +37,12 @@ java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0
   "$PROJECT_DIR/example-validation/spotify-validation/src/main/java" \
   "nl.stijlaartit.spotify.generated"
 
+echo "Generating pokeapi sources..."
+java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0.0.1-SNAPSHOT.jar" \
+  "$PROJECT_DIR/examples/pokeapi.yml" \
+  "$PROJECT_DIR/example-validation/pokeapi-validation/src/main/java" \
+  "nl.stijlaartit.pokeapi.generated"
+
 echo "Validating generated sources..."
 mvn -f "$PROJECT_DIR/example-validation/pom.xml" test
 

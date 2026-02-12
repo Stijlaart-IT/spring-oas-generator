@@ -45,6 +45,8 @@ public class ModelResolver implements Resolver<OpenAPI> {
     /** Signature -> model name that was created for it */
     private final Map<SchemaSignature, String> signatureToName = new LinkedHashMap<>();
     private final Map<EnumSignature, String> enumSignatureToName = new LinkedHashMap<>();
+    private final Map<SchemaSignature, String> componentSchemaSignatureToName = new LinkedHashMap<>();
+    private final Map<EnumSignature, String> componentEnumSignatureToName = new LinkedHashMap<>();
 
     /** All resolved models, keyed by name */
     private final Map<String, ModelFile> models = new LinkedHashMap<>();
@@ -62,10 +64,27 @@ public class ModelResolver implements Resolver<OpenAPI> {
         componentNames.clear();
         componentSchemas = Map.of();
         pendingImplements.clear();
+        componentSchemaSignatureToName.clear();
+        componentEnumSignatureToName.clear();
 
         // First pass: component schemas (named schemas take priority)
         if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
             componentSchemas = openAPI.getComponents().getSchemas();
+            for (var entry : openAPI.getComponents().getSchemas().entrySet()) {
+                Schema<?> schema = entry.getValue();
+                if (schema == null) {
+                    continue;
+                }
+                String modelName = normalizeModelName(entry.getKey());
+                if (schema.get$ref() != null) {
+                    continue;
+                }
+                if (isEnumSchema(schema)) {
+                    componentEnumSignatureToName.putIfAbsent(EnumSignature.of(schema), modelName);
+                } else if (isObjectSchema(schema)) {
+                    componentSchemaSignatureToName.putIfAbsent(SchemaSignature.of(schema), modelName);
+                }
+            }
             for (var entry : openAPI.getComponents().getSchemas().entrySet()) {
                 String modelName = normalizeModelName(entry.getKey());
                 resolveSchema(modelName, entry.getValue(), true);
@@ -212,12 +231,27 @@ public class ModelResolver implements Resolver<OpenAPI> {
         models.put(name, model);
     }
 
+    private void createScalarWrapperModel(String name, TypeDescriptor valueType) {
+        if (models.containsKey(name)) {
+            return;
+        }
+        List<FieldModel> fields = List.of(new FieldModel("value", "value", valueType, true, true));
+        RecordModel model = new RecordModel(name, fields, consumePendingImplements(name));
+        models.put(name, model);
+    }
+
     /**
      * Resolves a schema into a model. Returns the model name if this schema represents
      * a complex object type, or null if it maps to a simple/built-in Java type.
      */
     private String resolveSchema(String name, Schema<?> schema, boolean isComponent) {
         if (schema.get$ref() != null) {
+            if (isComponent) {
+                String targetName = normalizeModelName(extractRefName(schema.get$ref()));
+                createScalarWrapperModel(name, TypeDescriptor.complex(targetName));
+                componentNames.add(name);
+                return name;
+            }
             return normalizeModelName(extractRefName(schema.get$ref()));
         }
 
@@ -233,10 +267,22 @@ public class ModelResolver implements Resolver<OpenAPI> {
         }
 
         if (!isObjectSchema(schema)) {
+            if (isComponent) {
+                TypeDescriptor valueType = resolveType(name, "value", schema);
+                createScalarWrapperModel(name, valueType);
+                componentNames.add(name);
+                return name;
+            }
             return null;
         }
 
         SchemaSignature signature = SchemaSignature.of(schema);
+        if (!isComponent) {
+            String componentName = componentSchemaSignatureToName.get(signature);
+            if (componentName != null) {
+                return componentName;
+            }
+        }
 
         // If a model with this signature already exists...
         String existingName = signatureToName.get(signature);
@@ -246,12 +292,13 @@ public class ModelResolver implements Resolver<OpenAPI> {
                 return existingName;
             }
             if (!componentNames.contains(existingName)) {
-                // Component schema takes priority: replace anonymous name with component name
-                ModelFile existing = models.remove(existingName);
+                // Component schema should also be generated: keep the anonymous model and add a duplicate
+                ModelFile existing = models.get(existingName);
                 if (existing instanceof RecordModel record) {
-                    RecordModel renamed = new RecordModel(name, record.getFields(), List.of());
-                    models.put(name, renamed);
-                    signatureToName.put(signature, name);
+                    List<String> implementsTypes = new ArrayList<>(record.getImplementsTypes());
+                    implementsTypes.addAll(consumePendingImplements(name));
+                    RecordModel duplicate = new RecordModel(name, record.getFields(), implementsTypes);
+                    models.put(name, duplicate);
                     componentNames.add(name);
                     return name;
                 }
@@ -291,7 +338,9 @@ public class ModelResolver implements Resolver<OpenAPI> {
             TypeDescriptor type = resolveType(parentName, propertyName, propertySchema);
             String javaName = JavaIdentifierUtils.sanitize(toCamelCase(propertyName));
 
-            fields.add(new FieldModel(javaName, propertyName, type, required.contains(propertyName)));
+            boolean isRequired = required.contains(propertyName)
+                    && !Boolean.TRUE.equals(propertySchema.getNullable());
+            fields.add(new FieldModel(javaName, propertyName, type, isRequired));
         }
         return fields;
     }
@@ -356,6 +405,12 @@ public class ModelResolver implements Resolver<OpenAPI> {
 
     private String resolveEnumSchema(String name, Schema<?> schema, boolean isComponent) {
         EnumSignature signature = EnumSignature.of(schema);
+        if (!isComponent) {
+            String componentName = componentEnumSignatureToName.get(signature);
+            if (componentName != null) {
+                return componentName;
+            }
+        }
 
         String existingName = enumSignatureToName.get(signature);
         if (existingName != null) {
@@ -363,16 +418,17 @@ public class ModelResolver implements Resolver<OpenAPI> {
                 return existingName;
             }
             if (!componentNames.contains(existingName)) {
-                ModelFile existing = models.remove(existingName);
+                ModelFile existing = models.get(existingName);
                 if (existing instanceof EnumModel enumDescriptor) {
-                    EnumModel renamed = new EnumModel(
+                    List<String> implementsTypes = new ArrayList<>(enumDescriptor.getImplementsTypes());
+                    implementsTypes.addAll(consumePendingImplements(name));
+                    EnumModel duplicate = new EnumModel(
                             name,
                             enumDescriptor.getEnumValues(),
                             enumDescriptor.getEnumValueType(),
-                            enumDescriptor.getImplementsTypes()
+                            implementsTypes
                     );
-                    models.put(name, renamed);
-                    enumSignatureToName.put(signature, name);
+                    models.put(name, duplicate);
                     componentNames.add(name);
                     return name;
                 }

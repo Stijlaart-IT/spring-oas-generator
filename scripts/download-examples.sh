@@ -13,3 +13,6 @@ echo "Downloaded realworld.yml to examples/realworld.yml"
 
 curl -sL https://raw.githubusercontent.com/sonallux/spotify-web-api/refs/heads/main/fixed-spotify-open-api.yml -o "$PROJECT_DIR/examples/spotify.yml"
 echo "Downloaded spotify.yml to examples/spotify.yml"
+
+curl -sL https://raw.githubusercontent.com/PokeAPI/pokeapi/master/openapi.yml -o "$PROJECT_DIR/examples/pokeapi.yml"
+echo "Downloaded pokeapi.yml to examples/pokeapi.yml"
