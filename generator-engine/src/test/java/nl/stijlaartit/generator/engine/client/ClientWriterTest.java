@@ -3,6 +3,7 @@ package nl.stijlaartit.generator.engine.client;
 import nl.stijlaartit.generator.engine.domain.ApiFile;
 import nl.stijlaartit.generator.engine.domain.HttpMethod;
 import nl.stijlaartit.generator.engine.domain.OperationModel;
+import nl.stijlaartit.generator.engine.domain.OperationName;
 import nl.stijlaartit.generator.engine.domain.ParameterLocation;
 import nl.stijlaartit.generator.engine.domain.ParameterModel;
 import nl.stijlaartit.generator.engine.model.TypeDescriptor;
@@ -20,7 +21,7 @@ class ClientWriterTest {
     @Test
     void generatesInterfaceWithGetOperation() {
         ApiFile client = new ApiFile("PetApi", List.of(
-                new OperationModel("getPetById", HttpMethod.GET,
+                new OperationModel(OperationName.id("getPetById"), HttpMethod.GET,
                         "/pet/{petId}",
                         List.of(new ParameterModel("petId",
                                 ParameterLocation.PATH,
@@ -42,7 +43,7 @@ class ClientWriterTest {
     @Test
     void generatesPostOperationWithRequestBody() {
         ApiFile client = new ApiFile("PetApi", List.of(
-                new OperationModel("addPet", HttpMethod.POST,
+                new OperationModel(OperationName.id("addPet"), HttpMethod.POST,
                         "/pet", List.of(),
                         TypeDescriptor.complex("Pet"),
                         TypeDescriptor.complex("Pet"),
@@ -59,7 +60,7 @@ class ClientWriterTest {
     @Test
     void generatesVoidReturnForNoResponseBody() {
         ApiFile client = new ApiFile("PetApi", List.of(
-                new OperationModel("deletePet", HttpMethod.DELETE,
+                new OperationModel(OperationName.id("deletePet"), HttpMethod.DELETE,
                         "/pet/{petId}",
                         List.of(new ParameterModel("petId",
                                 ParameterLocation.PATH,
@@ -77,7 +78,7 @@ class ClientWriterTest {
     @Test
     void generatesQueryParameterAnnotation() {
         ApiFile client = new ApiFile("PetApi", List.of(
-                new OperationModel("findPetsByStatus", HttpMethod.GET,
+                new OperationModel(OperationName.id("findPetsByStatus"), HttpMethod.GET,
                         "/pet/findByStatus",
                         List.of(new ParameterModel("status",
                                 ParameterLocation.QUERY,
@@ -97,7 +98,7 @@ class ClientWriterTest {
     @Test
     void generatesHeaderParameterWithOriginalName() {
         ApiFile client = new ApiFile("PetApi", List.of(
-                new OperationModel("deletePet", HttpMethod.DELETE,
+                new OperationModel(OperationName.id("deletePet"), HttpMethod.DELETE,
                         "/pet/{petId}",
                         List.of(
                                 new ParameterModel("api_key",
@@ -120,7 +121,7 @@ class ClientWriterTest {
     @Test
     void sanitizesKeywordParameterName() {
         ApiFile client = new ApiFile("PlaylistApi", List.of(
-                new OperationModel("getPlaylist", HttpMethod.GET,
+                new OperationModel(OperationName.id("getPlaylist"), HttpMethod.GET,
                         "/playlists/{id}",
                         List.of(new ParameterModel("public",
                                 ParameterLocation.QUERY,
@@ -139,7 +140,7 @@ class ClientWriterTest {
     @Test
     void sanitizesOperationIdToValidMethodName() {
         ApiFile client = new ApiFile("AlbumApi", List.of(
-                new OperationModel("get-an-album", HttpMethod.GET,
+                new OperationModel(OperationName.id("get-an-album"), HttpMethod.GET,
                         "/albums/{id}",
                         List.of(new ParameterModel("id",
                                 ParameterLocation.PATH,
@@ -157,11 +158,11 @@ class ClientWriterTest {
     @Test
     void generatesMultipleOperationsInOneInterface() {
         ApiFile client = new ApiFile("StoreApi", List.of(
-                new OperationModel("getInventory", HttpMethod.GET,
+                new OperationModel(OperationName.id("getInventory"), HttpMethod.GET,
                         "/store/inventory", List.of(), null,
                         TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")),
                         false),
-                new OperationModel("placeOrder", HttpMethod.POST,
+                new OperationModel(OperationName.id("placeOrder"), HttpMethod.POST,
                         "/store/order", List.of(),
                         TypeDescriptor.complex("Order"),
                         TypeDescriptor.complex("Order"),
@@ -177,7 +178,7 @@ class ClientWriterTest {
     @Test
     void generatesPutExchange() {
         ApiFile client = new ApiFile("PetApi", List.of(
-                new OperationModel("updatePet", HttpMethod.PUT,
+                new OperationModel(OperationName.id("updatePet"), HttpMethod.PUT,
                         "/pet", List.of(),
                         TypeDescriptor.complex("Pet"),
                         TypeDescriptor.complex("Pet"),
@@ -192,7 +193,7 @@ class ClientWriterTest {
     @Test
     void generatesListReturnType() {
         ApiFile client = new ApiFile("PetApi", List.of(
-                new OperationModel("findPetsByTags", HttpMethod.GET,
+                new OperationModel(OperationName.id("findPetsByTags"), HttpMethod.GET,
                         "/pet/findByTags",
                         List.of(new ParameterModel("tags",
                                 ParameterLocation.QUERY,
@@ -211,7 +212,7 @@ class ClientWriterTest {
     @Test
     void generatesPatchExchange() {
         ApiFile client = new ApiFile("PetApi", List.of(
-                new OperationModel("patchPet", HttpMethod.PATCH,
+                new OperationModel(OperationName.id("patchPet"), HttpMethod.PATCH,
                         "/pet/{petId}",
                         List.of(new ParameterModel("petId",
                                 ParameterLocation.PATH,
@@ -229,7 +230,7 @@ class ClientWriterTest {
     @Test
     void marksDeprecatedOperation() {
         ApiFile client = new ApiFile("PetApi", List.of(
-                new OperationModel("deletePet", HttpMethod.DELETE,
+                new OperationModel(OperationName.id("deletePet"), HttpMethod.DELETE,
                         "/pet/{petId}",
                         List.of(new ParameterModel("petId",
                                 ParameterLocation.PATH,

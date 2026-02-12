@@ -1,469 +1,114 @@
 package nl.stijlaartit.generator.engine.client;
 
+import io.swagger.v3.oas.models.OpenAPI;
+import nl.stijlaartit.generator.engine.client.raw.GeneratableOperation;
+import nl.stijlaartit.generator.engine.client.raw.NonGeneratableOperation;
+import nl.stijlaartit.generator.engine.client.raw.RawOperationResolver;
+import nl.stijlaartit.generator.engine.client.raw.RawParameter;
+import nl.stijlaartit.generator.engine.client.raw.RequestBodyType;
+import nl.stijlaartit.generator.engine.client.raw.ResponseBodyType;
 import nl.stijlaartit.generator.engine.domain.ApiFile;
-import nl.stijlaartit.generator.engine.domain.GenerationContext;
-import nl.stijlaartit.generator.engine.domain.HttpMethod;
 import nl.stijlaartit.generator.engine.domain.OperationModel;
+import nl.stijlaartit.generator.engine.domain.OperationName;
 import nl.stijlaartit.generator.engine.domain.ParameterLocation;
 import nl.stijlaartit.generator.engine.domain.ParameterModel;
-import nl.stijlaartit.generator.engine.domain.Resolver;
 import nl.stijlaartit.generator.engine.model.TypeDescriptor;
-import nl.stijlaartit.generator.engine.model.JavaIdentifierUtils;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.media.ArraySchema;
-import io.swagger.v3.oas.models.media.BooleanSchema;
-import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.IntegerSchema;
-import io.swagger.v3.oas.models.media.MediaType;
-import io.swagger.v3.oas.models.media.NumberSchema;
-import io.swagger.v3.oas.models.media.ObjectSchema;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.media.StringSchema;
-import io.swagger.v3.oas.models.parameters.Parameter;
-import io.swagger.v3.oas.models.parameters.RequestBody;
-import io.swagger.v3.oas.models.responses.ApiResponse;
-import io.swagger.v3.oas.models.responses.ApiResponses;
+import nl.stijlaartit.generator.engine.model.TypeDescriptorFactory;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-public class ClientResolver implements Resolver<OpenAPI> {
+public class ClientResolver {
 
-    private Map<String, Schema> componentSchemas = Map.of();
-    private Map<String, Parameter> componentParameters = Map.of();
+    private final TypeDescriptorFactory typeDescriptorFactory;
 
-    @Override
-    public void resolve(OpenAPI openAPI, GenerationContext context) {
-        componentSchemas = Map.of();
-        componentParameters = Map.of();
-        if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
-            componentSchemas = openAPI.getComponents().getSchemas();
-        }
-        if (openAPI.getComponents() != null && openAPI.getComponents().getParameters() != null) {
-            componentParameters = openAPI.getComponents().getParameters();
-        }
-        Map<String, List<OperationModel>> operationsByTag = new LinkedHashMap<>();
+    public ClientResolver(TypeDescriptorFactory typeDescriptorFactory) {
+        this.typeDescriptorFactory = typeDescriptorFactory;
+    }
 
-        if (openAPI.getPaths() != null) {
-            for (var pathEntry : openAPI.getPaths().entrySet()) {
-                String path = pathEntry.getKey();
-                PathItem pathItem = pathEntry.getValue();
-                resolvePathItem(path, pathItem, operationsByTag);
+
+    public List<ApiFile> resolve(OpenAPI openAPI) {
+        final var rawOperationResolver = new RawOperationResolver(openAPI);
+        final var rawOperations = rawOperationResolver.resolve();
+
+        List<GeneratableOperation> generatableOperations = new ArrayList<>();
+        rawOperations.forEach(operation -> {
+            switch (operation) {
+                case GeneratableOperation generatableOperation -> generatableOperations.add(generatableOperation);
+                case NonGeneratableOperation ignored -> {/* TODO Warning */ }
             }
-        }
+        });
 
-        List<ApiFile> clients = new ArrayList<>();
-        for (var entry : operationsByTag.entrySet()) {
-            String interfaceName = toPascalCase(entry.getKey()) + "Api";
-            clients.add(new ApiFile(interfaceName, entry.getValue()));
-        }
-        context.addFiles(clients);
+        Set<String> tags = generatableOperations.stream().flatMap(v -> v.tags().stream())
+                .collect(Collectors.toSet());
+
+        return tags.stream()
+                .map(tag -> apiFileFromTag(tag, generatableOperations, typeDescriptorFactory))
+                .toList();
     }
 
-    private void resolvePathItem(String path, PathItem pathItem,
-                                  Map<String, List<OperationModel>> operationsByTag) {
-        addOperation(path, HttpMethod.GET, pathItem.getGet(), operationsByTag);
-        addOperation(path, HttpMethod.POST, pathItem.getPost(), operationsByTag);
-        addOperation(path, HttpMethod.PUT, pathItem.getPut(), operationsByTag);
-        addOperation(path, HttpMethod.DELETE, pathItem.getDelete(), operationsByTag);
-        addOperation(path, HttpMethod.PATCH, pathItem.getPatch(), operationsByTag);
+    private ApiFile apiFileFromTag(String tag, List<GeneratableOperation> operations,
+                                   TypeDescriptorFactory typeDescriptorFactory) {
+        final List<OperationModel> apiOperations = operations
+                .stream()
+                .filter(operation -> operation.hasTag(tag))
+                .map(operation -> rawOperationToOperationModel(operation, typeDescriptorFactory))
+                .toList();
+
+        String interfaceName = toPascalCase(tag) + "Api";
+        return new ApiFile(interfaceName, apiOperations);
     }
 
-    private void addOperation(String path, HttpMethod method,
-                               Operation operation,
-                               Map<String, List<OperationModel>> operationsByTag) {
-        if (operation == null) {
-            return;
-        }
+    private OperationModel rawOperationToOperationModel(GeneratableOperation operation,
+                                                        TypeDescriptorFactory typeDescriptorFactory) {
+        String operationId = operation.operationId();
+        final OperationName rawName = (operationId == null || operationId.isBlank()) ?
+                OperationName.pathAndMethod(operation.path(), operation.method())
+                : OperationName.id(operation.operationId());
 
-        String tag = (operation.getTags() != null && !operation.getTags().isEmpty())
-                ? operation.getTags().get(0)
-                : "default";
+        TypeDescriptor requestBodyType = switch (operation.requestBodyType()) {
+            case RequestBodyType.None ignored -> null;
+            case RequestBodyType.Resource ignored -> TypeDescriptor.simple("org.springframework.core.io.Resource");
+            case RequestBodyType.Unknown ignored -> TypeDescriptor.simple("java.lang.Object");
+            case RequestBodyType.Typed typed -> typeDescriptorFactory.build(typed.schema());
+        };
 
-        List<ParameterModel> parameters = resolveParameters(operation.getParameters());
-        String operationId = operation.getOperationId();
-        if (operationId == null || operationId.isBlank()) {
-            operationId = fallbackOperationId(method, path);
-        }
-        TypeDescriptor requestBody = resolveRequestBody(operationId, operation.getRequestBody());
-        TypeDescriptor responseType = resolveResponseType(operationId, operation.getResponses());
+        TypeDescriptor responseType = switch (operation.responseBodyType()) {
+            case ResponseBodyType.None ignored -> null;
+            // TODO Missing Resource? or Unknown?
+            case ResponseBodyType.SchemaType typed -> typeDescriptorFactory.build(typed.schema());
+        };
 
-        boolean deprecated = operation.getDeprecated() != null && operation.getDeprecated();
-        OperationModel descriptor = new OperationModel(
-                operationId, method, path, parameters, requestBody, responseType, deprecated
+        return new OperationModel(
+                rawName,
+                operation.method(),
+                operation.path(),
+                operation.parameters().stream().map(param -> rawParameterToParameterModel(param, typeDescriptorFactory)).toList(),
+                requestBodyType,
+                responseType,
+                operation.deprecated()
         );
-
-        operationsByTag.computeIfAbsent(tag, k -> new ArrayList<>()).add(descriptor);
     }
 
-    private List<ParameterModel> resolveParameters(List<Parameter> parameters) {
-        if (parameters == null) {
-            return List.of();
-        }
-
-        List<ParameterModel> result = new ArrayList<>();
-        for (Parameter param : parameters) {
-            Parameter resolved = resolveParameter(param);
-            if (resolved == null || resolved.getIn() == null) {
-                continue;
-            }
-            ParameterLocation location = switch (resolved.getIn()) {
-                case "path" -> ParameterLocation.PATH;
-                case "query" -> ParameterLocation.QUERY;
-                case "header" -> ParameterLocation.HEADER;
-                default -> throw new IllegalArgumentException(
-                        "Unsupported parameter location: " + resolved.getIn());
-            };
-
-            TypeDescriptor type = resolved.getSchema() != null
-                    ? resolveSchemaType(resolved.getSchema())
-                    : TypeDescriptor.simple("java.lang.Object");
-            boolean required = resolved.getRequired() != null && resolved.getRequired();
-
-            result.add(new ParameterModel(resolved.getName(), location, type, required));
-        }
-        return result;
+    private ParameterModel rawParameterToParameterModel(RawParameter parameter,
+                                                        TypeDescriptorFactory typeDescriptorFactory) {
+        return new ParameterModel(
+                parameter.name(),
+                switch (parameter.location()) {
+                    case PATH -> ParameterLocation.PATH;
+                    case QUERY -> ParameterLocation.QUERY;
+                    case HEADER -> ParameterLocation.HEADER;
+                },
+                typeDescriptorFactory.build(parameter.schema()),
+                parameter.required()
+        );
     }
 
-    private Parameter resolveParameter(Parameter parameter) {
-        if (parameter == null || parameter.get$ref() == null) {
-            return parameter;
-        }
-        Parameter current = parameter;
-        java.util.Set<String> visitedRefs = new java.util.HashSet<>();
-        while (current != null && current.get$ref() != null) {
-            String refName = extractRefName(current.get$ref());
-            if (!visitedRefs.add(refName)) {
-                return null;
-            }
-            current = componentParameters.get(refName);
-        }
-        return current;
-    }
-
-    private TypeDescriptor resolveRequestBody(String operationId, RequestBody requestBody) {
-        if (requestBody == null || requestBody.getContent() == null) {
-            return null;
-        }
-
-        Content content = requestBody.getContent();
-        MediaType mediaType = content.get("application/json");
-        if (mediaType == null && content.get("application/octet-stream") != null) {
-            return TypeDescriptor.simple("org.springframework.core.io.Resource");
-        }
-        if (mediaType == null) {
-            mediaType = content.values().iterator().next();
-        }
-        if (mediaType == null || mediaType.getSchema() == null) {
-            return null;
-        }
-
-        return resolveSchemaTypeForOperation(operationId, "Request", mediaType.getSchema());
-    }
-
-    private TypeDescriptor resolveResponseType(String operationId, ApiResponses responses) {
-        if (responses == null) {
-            return null;
-        }
-
-        ApiResponse successResponse = findSuccessResponse(operationId, responses);
-        if (successResponse == null) {
-            return null;
-        }
-
-        Content content = successResponse.getContent();
-        if (content == null) {
-            return null;
-        }
-
-        MediaType mediaType = content.get("application/json");
-        if (mediaType == null) {
-            mediaType = content.values().iterator().next();
-        }
-        if (mediaType == null || mediaType.getSchema() == null) {
-            return null;
-        }
-
-        return resolveSchemaTypeForOperation(operationId, "Response", mediaType.getSchema());
-    }
-
-    private ApiResponse findSuccessResponse(String operationId, ApiResponses responses) {
-        ApiResponse responseWithBody = null;
-        String responseWithBodyCode = null;
-        List<String> successCodes = new ArrayList<>();
-
-        for (String code : responses.keySet()) {
-            if (code == null || !code.startsWith("2")) {
-                continue;
-            }
-            successCodes.add(code);
-            ApiResponse candidate = responses.get(code);
-            Content content = candidate != null ? candidate.getContent() : null;
-            if (content == null || content.isEmpty()) {
-                continue;
-            }
-            if (responseWithBody != null) {
-                throw new IllegalArgumentException("Multiple 2xx responses with body defined for operation '"
-                        + operationId + "': " + responseWithBodyCode + " and " + code);
-            }
-            responseWithBody = candidate;
-            responseWithBodyCode = code;
-        }
-
-        if (responseWithBody != null && successCodes.size() > 1) {
-            System.out.println("[warn] Operation '" + operationId
-                    + "' defines multiple 2xx responses. Using response " + responseWithBodyCode + ".");
-        }
-
-        return responseWithBody;
-    }
-
-    TypeDescriptor resolveSchemaType(Schema<?> schema) {
-        if (schema == null) {
-            return null;
-        }
-
-        if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
-            if (schema.getAllOf().size() == 1) {
-                return resolveSchemaType(schema.getAllOf().get(0));
-            }
-        }
-
-        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
-            return TypeDescriptor.simple("java.lang.Object");
-        }
-
-        if (schema.get$ref() != null) {
-            String refName = extractRefName(schema.get$ref());
-            Schema<?> refSchema = componentSchemas.get(refName);
-            if (refSchema != null) {
-                if (refSchema.getEnum() != null && !refSchema.getEnum().isEmpty()) {
-                    return TypeDescriptor.complex(normalizeModelName(refName));
-                }
-                if ("object".equals(refSchema.getType()) || refSchema.getType() == null) {
-                    return TypeDescriptor.complex(normalizeModelName(refName));
-                }
-                return resolveSchemaType(refSchema);
-            }
-            return TypeDescriptor.complex(normalizeModelName(refName));
-        }
-
-        if (schema.getEnum() != null && !schema.getEnum().isEmpty()) {
-            return TypeDescriptor.simple("java.lang.String");
-        }
-
-        String type = resolveSchemaTypeName(schema);
-
-        if ("array".equals(type) && schema.getItems() != null) {
-            TypeDescriptor elementType = resolveSchemaType(schema.getItems());
-            return TypeDescriptor.list(elementType);
-        }
-
-        if (schema.getAdditionalProperties() instanceof Schema<?> additional) {
-            TypeDescriptor valueType = resolveSchemaType(additional);
-            return TypeDescriptor.map(valueType);
-        }
-        if (Boolean.TRUE.equals(schema.getAdditionalProperties())) {
-            return TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object"));
-        }
-
-        if ("string".equals(type) && "binary".equals(schema.getFormat())) {
-            return TypeDescriptor.simple("org.springframework.core.io.Resource");
-        }
-
-        return mapSimpleType(type, schema.getFormat());
-    }
-
-    private TypeDescriptor resolveSchemaTypeForOperation(String operationId, String suffix, Schema<?> schema) {
-        if (schema == null) {
-            return null;
-        }
-
-        if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
-            if (schema.getAllOf().size() == 1) {
-                return resolveSchemaTypeForOperation(operationId, suffix, schema.getAllOf().get(0));
-            }
-        }
-
-        if (schema.getOneOf() != null && !schema.getOneOf().isEmpty()) {
-            String baseName = toPascalCase(operationId);
-            if (baseName == null || baseName.isBlank()) {
-                baseName = "Operation";
-            }
-            return TypeDescriptor.complex(baseName + suffix);
-        }
-
-        if (schema.get$ref() != null) {
-            return resolveSchemaType(schema);
-        }
-
-        String baseName = toPascalCase(operationId);
-        if (baseName == null || baseName.isBlank()) {
-            baseName = "Operation";
-        }
-        String typeName = baseName + suffix;
-
-        if (schema.getEnum() != null && !schema.getEnum().isEmpty()) {
-            return TypeDescriptor.complex(typeName);
-        }
-
-        if (isObjectSchema(schema)) {
-            return TypeDescriptor.complex(typeName);
-        }
-
-        String type = resolveSchemaTypeName(schema);
-        if ("array".equals(type) && schema.getItems() != null) {
-            TypeDescriptor elementType = resolveSchemaTypeForOperation(
-                    operationId, suffix + "Item", schema.getItems());
-            return TypeDescriptor.list(elementType);
-        }
-
-        if (schema.getAdditionalProperties() instanceof Schema<?> additional) {
-            TypeDescriptor valueType = resolveSchemaTypeForOperation(
-                    operationId, suffix + "Value", additional);
-            return TypeDescriptor.map(valueType);
-        }
-
-        return resolveSchemaType(schema);
-    }
-
-    private boolean isObjectSchema(Schema<?> schema) {
-        if (!("object".equals(schema.getType()) || schema.getType() == null)) {
-            return false;
-        }
-        if (schema.getProperties() != null && !schema.getProperties().isEmpty()) {
-            return true;
-        }
-        if (schema.getAdditionalProperties() instanceof Schema<?> || Boolean.TRUE.equals(schema.getAdditionalProperties())) {
-            return true;
-        }
-        if (schema.getAllOf() != null && !schema.getAllOf().isEmpty()) {
-            for (Schema<?> part : schema.getAllOf()) {
-                Schema<?> resolved = part.get$ref() != null
-                        ? componentSchemas.getOrDefault(extractRefName(part.get$ref()), part)
-                        : part;
-                if (resolved.getProperties() != null && !resolved.getProperties().isEmpty()) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private static String fallbackOperationId(HttpMethod method, String path) {
-        String normalized = path == null ? "" : path;
-        normalized = normalized.replace("{", "").replace("}", "");
-        normalized = normalized.replaceAll("[^A-Za-z0-9]+", "_");
-        normalized = normalized.replaceAll("^_+|_+$", "");
-        String methodPrefix = method != null ? method.name().toLowerCase() : "operation";
-        if (normalized.isBlank()) {
-            return methodPrefix;
-        }
-        return methodPrefix + "_" + normalized;
-    }
-
-    private static String resolveSchemaTypeName(Schema<?> schema) {
-        String type = schema.getType();
-        if (type != null) {
-            return type;
-        }
-        if (schema.getTypes() != null && !schema.getTypes().isEmpty()) {
-            if (schema.getTypes().contains("string")) {
-                return "string";
-            }
-            if (schema.getTypes().contains("integer")) {
-                return "integer";
-            }
-            if (schema.getTypes().contains("number")) {
-                return "number";
-            }
-            if (schema.getTypes().contains("boolean")) {
-                return "boolean";
-            }
-            if (schema.getTypes().contains("array")) {
-                return "array";
-            }
-            if (schema.getTypes().contains("object")) {
-                return "object";
-            }
-            return schema.getTypes().iterator().next();
-        }
-        if (schema instanceof StringSchema) {
-            return "string";
-        }
-        if (schema instanceof IntegerSchema) {
-            return "integer";
-        }
-        if (schema instanceof NumberSchema) {
-            return "number";
-        }
-        if (schema instanceof BooleanSchema) {
-            return "boolean";
-        }
-        if (schema instanceof ArraySchema) {
-            return "array";
-        }
-        if (schema instanceof ObjectSchema) {
-            return "object";
-        }
-        return null;
-    }
-
-    static TypeDescriptor mapSimpleType(String type, String format) {
-        if (type == null) {
-            return TypeDescriptor.simple("java.lang.Object");
-        }
-
-        return switch (type) {
-            case "string" -> mapStringType(format);
-            case "integer" -> "int64".equals(format)
-                    ? TypeDescriptor.simple("java.lang.Long")
-                    : TypeDescriptor.simple("java.lang.Integer");
-            case "number" -> switch (format != null ? format : "") {
-                case "float" -> TypeDescriptor.simple("java.lang.Float");
-                case "double" -> TypeDescriptor.simple("java.lang.Double");
-                default -> TypeDescriptor.simple("java.math.BigDecimal");
-            };
-            case "boolean" -> TypeDescriptor.simple("java.lang.Boolean");
-            default -> TypeDescriptor.simple("java.lang.Object");
-        };
-    }
-
-    private static TypeDescriptor mapStringType(String format) {
-        if (format == null) {
-            return TypeDescriptor.simple("java.lang.String");
-        }
-        return switch (format) {
-            case "date" -> TypeDescriptor.simple("java.time.LocalDate");
-            case "date-time" -> TypeDescriptor.simple("java.time.OffsetDateTime");
-            case "uuid" -> TypeDescriptor.simple("java.util.UUID");
-            default -> TypeDescriptor.simple("java.lang.String");
-        };
-    }
-
-    static String extractRefName(String ref) {
-        int lastSlash = ref.lastIndexOf('/');
-        return lastSlash >= 0 ? ref.substring(lastSlash + 1) : ref;
-    }
-
-    private static String normalizeModelName(String name) {
-        String pascal = toPascalCase(name);
-        String sanitized = JavaIdentifierUtils.sanitize(pascal);
-        if (sanitized.isEmpty()) {
-            return "Model";
-        }
-        if (Character.isLowerCase(sanitized.charAt(0))) {
-            sanitized = Character.toUpperCase(sanitized.charAt(0)) + sanitized.substring(1);
-        }
-        return sanitized;
-    }
 
     static String toPascalCase(String input) {
-        if (input == null || input.isEmpty()) {
+        if (input.isEmpty()) {
             return input;
         }
         String camel = toCamelCase(input);
@@ -471,7 +116,7 @@ public class ClientResolver implements Resolver<OpenAPI> {
     }
 
     static String toCamelCase(String input) {
-        if (input == null || input.isEmpty()) {
+        if (input.isEmpty()) {
             return input;
         }
         StringBuilder result = new StringBuilder();

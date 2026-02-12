@@ -1,12 +1,14 @@
 package nl.stijlaartit.generator.engine.client;
 
 import nl.stijlaartit.generator.engine.domain.ApiFile;
-import nl.stijlaartit.generator.engine.domain.GenerationContext;
 import nl.stijlaartit.generator.engine.domain.HttpMethod;
 import nl.stijlaartit.generator.engine.domain.OperationModel;
+import nl.stijlaartit.generator.engine.domain.OperationName;
 import nl.stijlaartit.generator.engine.domain.ParameterLocation;
 import nl.stijlaartit.generator.engine.domain.ParameterModel;
 import nl.stijlaartit.generator.engine.model.TypeDescriptor;
+import nl.stijlaartit.generator.engine.model.TypeDescriptorFactory;
+import nl.stijlaartit.generator.engine.schemas.SchemaRegistry;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
@@ -23,21 +25,24 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
-import org.junit.jupiter.api.BeforeEach;
+import nl.stijlaartit.generator.engine.schematype.SchemaTypeResolver;
+import nl.stijlaartit.generator.engine.schematype.SchemaTypes;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class ClientResolverTest {
 
-    private ClientResolver resolver;
-
-    @BeforeEach
-    void setUp() {
-        resolver = new ClientResolver();
+    private List<ApiFile> resolveClient(OpenAPI openAPI) {
+        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
+        SchemaTypes schemaTypes = new SchemaTypeResolver().resolve(registry);
+        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, registry);
+        return new ClientResolver(typeDescriptorFactory).resolve(openAPI);
     }
 
     @Nested
@@ -66,16 +71,16 @@ class ClientResolverTest {
 
             openAPI.setPaths(paths);
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI)
+                    .stream()
+                    .sorted(Comparator.comparing(ApiFile::getName))
+                    .toList();
 
             assertEquals(2, clients.size());
             assertEquals("PetApi", clients.get(0).getName());
             assertEquals("StoreApi", clients.get(1).getName());
             assertEquals(1, clients.get(0).getOperations().size());
-            assertEquals("getPetById", clients.get(0).getOperations().get(0).getName());
+            assertEquals(OperationName.id("getPetById"), clients.get(0).getOperations().get(0).getName());
         }
 
         @Test
@@ -92,10 +97,7 @@ class ClientResolverTest {
             paths.addPathItem("/users/login", pathItem);
             openAPI.setPaths(paths);
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
 
             assertEquals(1, clients.size());
             assertEquals("UserAndAuthenticationApi", clients.get(0).getName());
@@ -115,10 +117,7 @@ class ClientResolverTest {
 
             openAPI.setPaths(paths);
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
 
             assertEquals(1, clients.size());
             assertEquals("DefaultApi", clients.get(0).getName());
@@ -131,14 +130,11 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(new StringSchema())
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
 
             assertEquals(1, clients.size());
             OperationModel operation = clients.get(0).getOperations().get(0);
-            assertEquals("get_auth_session", operation.getName());
+            assertEquals(OperationName.pathAndMethod("/auth/session", HttpMethod.GET), operation.getName());
         }
     }
 
@@ -153,10 +149,7 @@ class ClientResolverTest {
                     null, null
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             OperationModel op = clients.get(0).getOperations().get(0);
 
             assertEquals(1, op.getParameters().size());
@@ -175,10 +168,7 @@ class ClientResolverTest {
                     null, null
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             ParameterModel param = clients.get(0).getOperations().get(0).getParameters().get(0);
 
             assertEquals("status", param.getName());
@@ -194,10 +184,7 @@ class ClientResolverTest {
                     null, null
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             ParameterModel param = clients.get(0).getOperations().get(0).getParameters().get(0);
 
             assertEquals("api_key", param.getName());
@@ -225,10 +212,7 @@ class ClientResolverTest {
                             .required(false)
                             .schema(new IntegerSchema().format("int32"))));
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             List<ParameterModel> params = clients.get(0).getOperations().get(0).getParameters();
 
             assertEquals(3, params.size());
@@ -240,7 +224,7 @@ class ClientResolverTest {
         }
 
         @Test
-        void skipsUnresolvedRefParameters() {
+        void failsOnUnresolvedRefParameters() {
             Parameter refParam = new Parameter().$ref("#/components/parameters/offsetParam");
             OpenAPI openAPI = openApiWithOperation(
                     "/articles", "get", "getArticles", "articles",
@@ -248,14 +232,8 @@ class ClientResolverTest {
                     null, null
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
-            List<ParameterModel> params = clients.get(0).getOperations().get(0).getParameters();
-
-            assertEquals(1, params.size());
-            assertEquals("tag", params.get(0).getName());
+            final var exception = assertThrows(IllegalArgumentException.class, () -> resolveClient(openAPI));
+            assertEquals("Parameter reference not found: #/components/parameters/offsetParam", exception.getMessage());
         }
 
         @Test
@@ -271,10 +249,7 @@ class ClientResolverTest {
                     List.of(tagsParam), null, null
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             ParameterModel param = clients.get(0).getOperations().get(0).getParameters().get(0);
 
             assertEquals(TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), param.getType());
@@ -293,10 +268,7 @@ class ClientResolverTest {
                     List.of(tagParam), null, null
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             ParameterModel param = clients.get(0).getOperations().get(0).getParameters().get(0);
 
             assertEquals(TypeDescriptor.simple("java.lang.String"), param.getType());
@@ -316,10 +288,7 @@ class ClientResolverTest {
                     List.of(tagParam), null, null
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             ParameterModel param = clients.get(0).getOperations().get(0).getParameters().get(0);
 
             assertEquals(TypeDescriptor.simple("java.lang.String"), param.getType());
@@ -337,10 +306,7 @@ class ClientResolverTest {
                     List.of(), jsonBody(petRef), null
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor body = clients.get(0).getOperations().get(0).getRequestBody();
 
             assertEquals(TypeDescriptor.complex("Pet"), body);
@@ -353,10 +319,7 @@ class ClientResolverTest {
                     List.of(), null, null
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             assertNull(clients.get(0).getOperations().get(0).getRequestBody());
         }
 
@@ -373,10 +336,7 @@ class ClientResolverTest {
                     List.of(), requestBody, null
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor body = clients.get(0).getOperations().get(0).getRequestBody();
 
             assertEquals(TypeDescriptor.simple("org.springframework.core.io.Resource"), body);
@@ -392,13 +352,36 @@ class ClientResolverTest {
                     List.of(), jsonBody(bodySchema), null
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor body = clients.get(0).getOperations().get(0).getRequestBody();
 
             assertEquals(TypeDescriptor.complex("SaveAlbumsUserRequest"), body);
+        }
+
+        @Test
+        void prefersComponentModelWhenInlineSchemaMatches() {
+            Schema<?> componentSchema = new ObjectSchema()
+                    .addProperty("id", new StringSchema())
+                    .addProperty("name", new StringSchema())
+                    .addRequiredItem("id");
+
+            Schema<?> inlineSchema = new ObjectSchema()
+                    .addProperty("id", new StringSchema())
+                    .addProperty("name", new StringSchema())
+                    .addRequiredItem("id");
+
+            OpenAPI openAPI = openApiWithOperation(
+                    "/users", "post", "createUser", "users",
+                    List.of(), jsonBody(inlineSchema), null
+            );
+            Components components = new Components();
+            components.setSchemas(Map.of("User", componentSchema));
+            openAPI.setComponents(components);
+
+            List<ApiFile> clients = resolveClient(openAPI);
+            TypeDescriptor body = clients.get(0).getOperations().get(0).getRequestBody();
+
+            assertEquals(TypeDescriptor.complex("User"), body);
         }
     }
 
@@ -413,10 +396,7 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(petRef)
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.complex("Pet"), response);
@@ -436,10 +416,7 @@ class ClientResolverTest {
                     List.of(), null, responses
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.complex("Pet"), response);
@@ -461,10 +438,7 @@ class ClientResolverTest {
                     List.of(), null, responses
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.complex("Pet"), response);
@@ -490,7 +464,7 @@ class ClientResolverTest {
             );
 
             assertThrows(IllegalArgumentException.class,
-                    () -> resolver.resolve(openAPI, new GenerationContext()));
+                    () -> resolveClient(openAPI));
         }
 
         @Test
@@ -502,10 +476,7 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(arraySchema)
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.list(TypeDescriptor.complex("Pet")), response);
@@ -520,10 +491,7 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(mapSchema)
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.complex("GetInventoryResponse"), response);
@@ -538,10 +506,7 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(mapSchema)
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.complex("GetInventoryResponse"), response);
@@ -566,10 +531,7 @@ class ClientResolverTest {
             paths.addPathItem("/search/slice-info", pathItem);
             openAPI.setPaths(paths);
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.complex("SearchSliceInfo"), response);
@@ -584,10 +546,7 @@ class ClientResolverTest {
                     List.of(), null, responses
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             assertNull(clients.get(0).getOperations().get(0).getResponseType());
         }
 
@@ -598,10 +557,7 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(new StringSchema())
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.simple("java.lang.String"), response);
@@ -617,10 +573,7 @@ class ClientResolverTest {
                     List.of(), null, jsonResponse(responseSchema)
             );
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
+            List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.get(0).getOperations().get(0).getResponseType();
 
             assertEquals(TypeDescriptor.complex("GetUserStatusResponse"), response);
@@ -645,11 +598,9 @@ class ClientResolverTest {
 
             openAPI.setPaths(paths);
 
-            GenerationContext context = new GenerationContext();
-            resolver.resolve(openAPI, context);
-
-            List<ApiFile> clients = context.getFiles(ApiFile.class);
-            List<OperationModel> ops = clients.get(0).getOperations();
+            List<ApiFile> clients = resolveClient(openAPI);
+            List<OperationModel> ops = clients.get(0).getOperations()
+                    .stream().sorted(Comparator.comparing(v -> v.getMethod().ordinal())).toList();
 
             assertEquals(5, ops.size());
             assertEquals(HttpMethod.GET, ops.get(0).getMethod());

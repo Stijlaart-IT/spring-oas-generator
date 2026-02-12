@@ -3,11 +3,8 @@ package nl.stijlaartit.generator.engine.domain;
 import java.util.Objects;
 
 public class OneOfVariant {
-    private String modelName;
-    private String discriminatorValue;
-
-    public OneOfVariant() {
-    }
+    private final String modelName;
+    private final String discriminatorValue;
 
     public OneOfVariant(String modelName, String discriminatorValue) {
         this.modelName = Objects.requireNonNull(modelName);
@@ -18,15 +15,7 @@ public class OneOfVariant {
         return modelName;
     }
 
-    public void setModelName(String modelName) {
-        this.modelName = Objects.requireNonNull(modelName);
-    }
-
     public String getDiscriminatorValue() {
         return discriminatorValue;
-    }
-
-    public void setDiscriminatorValue(String discriminatorValue) {
-        this.discriminatorValue = discriminatorValue;
     }
 }

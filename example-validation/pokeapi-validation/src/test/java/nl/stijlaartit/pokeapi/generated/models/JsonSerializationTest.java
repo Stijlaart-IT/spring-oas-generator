@@ -39,14 +39,14 @@ class JsonSerializationTest {
 
     @Test
     void abilityDetailPokemon() {
-        var original = new AbilityDetailPokemon(null, null, null);
-        assertSerializesSymmetrical(original, AbilityDetailPokemon.class);
+        var original = new AbilityDetailPokemonItem(null, null, null);
+        assertSerializesSymmetrical(original, AbilityDetailPokemonItem.class);
     }
 
     @Test
     void abilityDetailPokemonPokemon() {
-        var original = new AbilityDetailPokemonPokemon(null, null);
-        assertSerializesSymmetrical(original, AbilityDetailPokemonPokemon.class);
+        var original = new AbilityDetailPokemonItemPokemon(null, null);
+        assertSerializesSymmetrical(original, AbilityDetailPokemonItemPokemon.class);
     }
 
     @Test
@@ -81,14 +81,14 @@ class JsonSerializationTest {
 
     @Test
     void apiV2PokemonEncountersRetrieveResponseItemVersionDetails() {
-        var original = new ApiV2PokemonEncountersRetrieveResponseItemVersionDetails(null, null, null);
-        assertSerializesSymmetrical(original, ApiV2PokemonEncountersRetrieveResponseItemVersionDetails.class);
+        var original = new ApiV2PokemonEncountersRetrieveResponseItemVersionDetailsItem(null, null, null);
+        assertSerializesSymmetrical(original, ApiV2PokemonEncountersRetrieveResponseItemVersionDetailsItem.class);
     }
 
     @Test
     void apiV2PokemonEncountersRetrieveResponseItemVersionDetailsEncounterDetails() {
-        var original = new ApiV2PokemonEncountersRetrieveResponseItemVersionDetailsEncounterDetails(null, null, null, null, null);
-        assertSerializesSymmetrical(original, ApiV2PokemonEncountersRetrieveResponseItemVersionDetailsEncounterDetails.class);
+        var original = new ApiV2PokemonEncountersRetrieveResponseItemVersionDetailsItemEncounterDetailsItem(null, null, null, null, null);
+        assertSerializesSymmetrical(original, ApiV2PokemonEncountersRetrieveResponseItemVersionDetailsItemEncounterDetailsItem.class);
     }
 
     @Test
@@ -99,14 +99,14 @@ class JsonSerializationTest {
 
     @Test
     void berryDetailFlavors() {
-        var original = new BerryDetailFlavors(null, null);
-        assertSerializesSymmetrical(original, BerryDetailFlavors.class);
+        var original = new BerryDetailFlavorsItem(null, null);
+        assertSerializesSymmetrical(original, BerryDetailFlavorsItem.class);
     }
 
     @Test
     void berryDetailFlavorsFlavor() {
-        var original = new BerryDetailFlavorsFlavor(null, null);
-        assertSerializesSymmetrical(original, BerryDetailFlavorsFlavor.class);
+        var original = new BerryDetailFlavorsItemFlavor(null, null);
+        assertSerializesSymmetrical(original, BerryDetailFlavorsItemFlavor.class);
     }
 
     @Test
@@ -115,17 +115,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, BerryFirmnessDetail.class);
     }
 
-    @Test
-    void berryFirmnessName() {
-        var original = new BerryFirmnessName(null, null);
-        assertSerializesSymmetrical(original, BerryFirmnessName.class);
-    }
+    
 
-    @Test
-    void berryFirmnessSummary() {
-        var original = new BerryFirmnessSummary(null, null);
-        assertSerializesSymmetrical(original, BerryFirmnessSummary.class);
-    }
+    
 
     @Test
     void berryFlavorDetail() {
@@ -135,27 +127,15 @@ class JsonSerializationTest {
 
     @Test
     void berryFlavorDetailBerries() {
-        var original = new BerryFlavorDetailBerries(null, null);
-        assertSerializesSymmetrical(original, BerryFlavorDetailBerries.class);
+        var original = new BerryFlavorDetailBerriesItem(null, null);
+        assertSerializesSymmetrical(original, BerryFlavorDetailBerriesItem.class);
     }
 
-    @Test
-    void berryFlavorName() {
-        var original = new BerryFlavorName(null, null);
-        assertSerializesSymmetrical(original, BerryFlavorName.class);
-    }
+    
 
-    @Test
-    void berryFlavorSummary() {
-        var original = new BerryFlavorSummary(null, null);
-        assertSerializesSymmetrical(original, BerryFlavorSummary.class);
-    }
+    
 
-    @Test
-    void berrySummary() {
-        var original = new BerrySummary(null, null);
-        assertSerializesSymmetrical(original, BerrySummary.class);
-    }
+    
 
     @Test
     void characteristicDescription() {
@@ -181,11 +161,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ContestEffectDetail.class);
     }
 
-    @Test
-    void contestEffectEffectText() {
-        var original = new ContestEffectEffectText(null, null);
-        assertSerializesSymmetrical(original, ContestEffectEffectText.class);
-    }
+    
 
     @Test
     void contestEffectFlavorText() {
@@ -193,11 +169,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ContestEffectFlavorText.class);
     }
 
-    @Test
-    void contestEffectSummary() {
-        var original = new ContestEffectSummary(null);
-        assertSerializesSymmetrical(original, ContestEffectSummary.class);
-    }
+    
 
     @Test
     void contestTypeDetail() {
@@ -211,11 +183,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ContestTypeName.class);
     }
 
-    @Test
-    void contestTypeSummary() {
-        var original = new ContestTypeSummary(null, null);
-        assertSerializesSymmetrical(original, ContestTypeSummary.class);
-    }
+    
 
     @Test
     void eggGroupDetail() {
@@ -225,21 +193,13 @@ class JsonSerializationTest {
 
     @Test
     void eggGroupDetailPokemonSpecies() {
-        var original = new EggGroupDetailPokemonSpecies(null, null);
-        assertSerializesSymmetrical(original, EggGroupDetailPokemonSpecies.class);
+        var original = new EggGroupDetailPokemonSpeciesItem(null, null);
+        assertSerializesSymmetrical(original, EggGroupDetailPokemonSpeciesItem.class);
     }
 
-    @Test
-    void eggGroupName() {
-        var original = new EggGroupName(null, null);
-        assertSerializesSymmetrical(original, EggGroupName.class);
-    }
+    
 
-    @Test
-    void eggGroupSummary() {
-        var original = new EggGroupSummary(null, null);
-        assertSerializesSymmetrical(original, EggGroupSummary.class);
-    }
+    
 
     @Test
     void encounterConditionDetail() {
@@ -247,17 +207,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, EncounterConditionDetail.class);
     }
 
-    @Test
-    void encounterConditionName() {
-        var original = new EncounterConditionName(null, null);
-        assertSerializesSymmetrical(original, EncounterConditionName.class);
-    }
+    
 
-    @Test
-    void encounterConditionSummary() {
-        var original = new EncounterConditionSummary(null, null);
-        assertSerializesSymmetrical(original, EncounterConditionSummary.class);
-    }
+    
 
     @Test
     void encounterConditionValueDetail() {
@@ -265,17 +217,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, EncounterConditionValueDetail.class);
     }
 
-    @Test
-    void encounterConditionValueName() {
-        var original = new EncounterConditionValueName(null, null);
-        assertSerializesSymmetrical(original, EncounterConditionValueName.class);
-    }
+    
 
-    @Test
-    void encounterConditionValueSummary() {
-        var original = new EncounterConditionValueSummary(null, null);
-        assertSerializesSymmetrical(original, EncounterConditionValueSummary.class);
-    }
+    
 
     @Test
     void encounterMethodDetail() {
@@ -283,17 +227,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, EncounterMethodDetail.class);
     }
 
-    @Test
-    void encounterMethodName() {
-        var original = new EncounterMethodName(null, null);
-        assertSerializesSymmetrical(original, EncounterMethodName.class);
-    }
+    
 
-    @Test
-    void encounterMethodSummary() {
-        var original = new EncounterMethodSummary(null, null);
-        assertSerializesSymmetrical(original, EncounterMethodSummary.class);
-    }
+    
 
     @Test
     void evolutionChainDetail() {
@@ -309,21 +245,17 @@ class JsonSerializationTest {
 
     @Test
     void evolutionChainDetailChainEvolvesTo() {
-        var original = new EvolutionChainDetailChainEvolvesTo(null, null, null);
-        assertSerializesSymmetrical(original, EvolutionChainDetailChainEvolvesTo.class);
+        var original = new EvolutionChainDetailChainEvolvesToItem(null, null, null);
+        assertSerializesSymmetrical(original, EvolutionChainDetailChainEvolvesToItem.class);
     }
 
     @Test
     void evolutionChainDetailChainEvolvesToEvolutionDetails() {
-        var original = new EvolutionChainDetailChainEvolvesToEvolutionDetails(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
-        assertSerializesSymmetrical(original, EvolutionChainDetailChainEvolvesToEvolutionDetails.class);
+        var original = new EvolutionChainDetailChainEvolvesToItemEvolutionDetailsItem(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        assertSerializesSymmetrical(original, EvolutionChainDetailChainEvolvesToItemEvolutionDetailsItem.class);
     }
 
-    @Test
-    void evolutionChainSummary() {
-        var original = new EvolutionChainSummary(null);
-        assertSerializesSymmetrical(original, EvolutionChainSummary.class);
-    }
+    
 
     @Test
     void evolutionTriggerDetail() {
@@ -331,17 +263,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, EvolutionTriggerDetail.class);
     }
 
-    @Test
-    void evolutionTriggerName() {
-        var original = new EvolutionTriggerName(null, null);
-        assertSerializesSymmetrical(original, EvolutionTriggerName.class);
-    }
+    
 
-    @Test
-    void evolutionTriggerSummary() {
-        var original = new EvolutionTriggerSummary(null, null);
-        assertSerializesSymmetrical(original, EvolutionTriggerSummary.class);
-    }
+    
 
     @Test
     void experience() {
@@ -357,15 +281,11 @@ class JsonSerializationTest {
 
     @Test
     void genderDetailPokemonSpeciesDetails() {
-        var original = new GenderDetailPokemonSpeciesDetails(null, null);
-        assertSerializesSymmetrical(original, GenderDetailPokemonSpeciesDetails.class);
+        var original = new GenderDetailPokemonSpeciesDetailsItem(null, null);
+        assertSerializesSymmetrical(original, GenderDetailPokemonSpeciesDetailsItem.class);
     }
 
-    @Test
-    void genderSummary() {
-        var original = new GenderSummary(null, null);
-        assertSerializesSymmetrical(original, GenderSummary.class);
-    }
+    
 
     @Test
     void generationDetail() {
@@ -373,23 +293,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, GenerationDetail.class);
     }
 
-    @Test
-    void generationName() {
-        var original = new GenerationName(null, null);
-        assertSerializesSymmetrical(original, GenerationName.class);
-    }
+    
 
-    @Test
-    void generationSummary() {
-        var original = new GenerationSummary(null, null);
-        assertSerializesSymmetrical(original, GenerationSummary.class);
-    }
+    
 
-    @Test
-    void growthRateDescription() {
-        var original = new GrowthRateDescription(null, null);
-        assertSerializesSymmetrical(original, GrowthRateDescription.class);
-    }
+    
 
     @Test
     void growthRateDetail() {
@@ -397,17 +305,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, GrowthRateDetail.class);
     }
 
-    @Test
-    void growthRateSummary() {
-        var original = new GrowthRateSummary(null, null);
-        assertSerializesSymmetrical(original, GrowthRateSummary.class);
-    }
+    
 
-    @Test
-    void itemAttributeDescription() {
-        var original = new ItemAttributeDescription(null, null);
-        assertSerializesSymmetrical(original, ItemAttributeDescription.class);
-    }
+    
 
     @Test
     void itemAttributeDetail() {
@@ -415,17 +315,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemAttributeDetail.class);
     }
 
-    @Test
-    void itemAttributeName() {
-        var original = new ItemAttributeName(null, null);
-        assertSerializesSymmetrical(original, ItemAttributeName.class);
-    }
+    
 
-    @Test
-    void itemAttributeSummary() {
-        var original = new ItemAttributeSummary(null, null);
-        assertSerializesSymmetrical(original, ItemAttributeSummary.class);
-    }
+    
 
     @Test
     void itemCategoryDetail() {
@@ -433,17 +325,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemCategoryDetail.class);
     }
 
-    @Test
-    void itemCategoryName() {
-        var original = new ItemCategoryName(null, null);
-        assertSerializesSymmetrical(original, ItemCategoryName.class);
-    }
+    
 
-    @Test
-    void itemCategorySummary() {
-        var original = new ItemCategorySummary(null, null);
-        assertSerializesSymmetrical(original, ItemCategorySummary.class);
-    }
+    
 
     @Test
     void itemDetail() {
@@ -453,20 +337,20 @@ class JsonSerializationTest {
 
     @Test
     void itemDetailHeldByPokemon() {
-        var original = new ItemDetailHeldByPokemon(null, null);
-        assertSerializesSymmetrical(original, ItemDetailHeldByPokemon.class);
+        var original = new ItemDetailHeldByPokemonItem(null, null);
+        assertSerializesSymmetrical(original, ItemDetailHeldByPokemonItem.class);
     }
 
     @Test
     void itemDetailHeldByPokemonVersionDetails() {
-        var original = new ItemDetailHeldByPokemonVersionDetails(null, null);
-        assertSerializesSymmetrical(original, ItemDetailHeldByPokemonVersionDetails.class);
+        var original = new ItemDetailHeldByPokemonItemVersionDetailsItem(null, null);
+        assertSerializesSymmetrical(original, ItemDetailHeldByPokemonItemVersionDetailsItem.class);
     }
 
     @Test
     void itemDetailMachines() {
-        var original = new ItemDetailMachines(null, null);
-        assertSerializesSymmetrical(original, ItemDetailMachines.class);
+        var original = new ItemDetailMachinesItem(null, null);
+        assertSerializesSymmetrical(original, ItemDetailMachinesItem.class);
     }
 
     @Test
@@ -475,11 +359,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemDetailSprites.class);
     }
 
-    @Test
-    void itemEffectText() {
-        var original = new ItemEffectText(null, null, null);
-        assertSerializesSymmetrical(original, ItemEffectText.class);
-    }
+    
 
     @Test
     void itemFlavorText() {
@@ -493,17 +373,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemFlingEffectDetail.class);
     }
 
-    @Test
-    void itemFlingEffectEffectText() {
-        var original = new ItemFlingEffectEffectText(null, null);
-        assertSerializesSymmetrical(original, ItemFlingEffectEffectText.class);
-    }
+    
 
-    @Test
-    void itemFlingEffectSummary() {
-        var original = new ItemFlingEffectSummary(null, null);
-        assertSerializesSymmetrical(original, ItemFlingEffectSummary.class);
-    }
+    
 
     @Test
     void itemGameIndex() {
@@ -511,11 +383,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemGameIndex.class);
     }
 
-    @Test
-    void itemName() {
-        var original = new ItemName(null, null);
-        assertSerializesSymmetrical(original, ItemName.class);
-    }
+    
 
     @Test
     void itemPocketDetail() {
@@ -523,23 +391,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemPocketDetail.class);
     }
 
-    @Test
-    void itemPocketName() {
-        var original = new ItemPocketName(null, null);
-        assertSerializesSymmetrical(original, ItemPocketName.class);
-    }
+    
 
-    @Test
-    void itemPocketSummary() {
-        var original = new ItemPocketSummary(null, null);
-        assertSerializesSymmetrical(original, ItemPocketSummary.class);
-    }
+    
 
-    @Test
-    void itemSummary() {
-        var original = new ItemSummary(null, null);
-        assertSerializesSymmetrical(original, ItemSummary.class);
-    }
+    
 
     @Test
     void languageDetail() {
@@ -547,17 +403,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, LanguageDetail.class);
     }
 
-    @Test
-    void languageName() {
-        var original = new LanguageName(null, null);
-        assertSerializesSymmetrical(original, LanguageName.class);
-    }
+    
 
-    @Test
-    void languageSummary() {
-        var original = new LanguageSummary(null, null);
-        assertSerializesSymmetrical(original, LanguageSummary.class);
-    }
+    
 
     @Test
     void locationAreaDetail() {
@@ -567,45 +415,37 @@ class JsonSerializationTest {
 
     @Test
     void locationAreaDetailEncounterMethodRates() {
-        var original = new LocationAreaDetailEncounterMethodRates(null, null);
-        assertSerializesSymmetrical(original, LocationAreaDetailEncounterMethodRates.class);
+        var original = new LocationAreaDetailEncounterMethodRatesItem(null, null);
+        assertSerializesSymmetrical(original, LocationAreaDetailEncounterMethodRatesItem.class);
     }
 
     @Test
     void locationAreaDetailEncounterMethodRatesVersionDetails() {
-        var original = new LocationAreaDetailEncounterMethodRatesVersionDetails(null, null);
-        assertSerializesSymmetrical(original, LocationAreaDetailEncounterMethodRatesVersionDetails.class);
+        var original = new LocationAreaDetailEncounterMethodRatesItemVersionDetailsItem(null, null);
+        assertSerializesSymmetrical(original, LocationAreaDetailEncounterMethodRatesItemVersionDetailsItem.class);
     }
 
     @Test
     void locationAreaDetailPokemonEncounters() {
-        var original = new LocationAreaDetailPokemonEncounters(null, null);
-        assertSerializesSymmetrical(original, LocationAreaDetailPokemonEncounters.class);
+        var original = new LocationAreaDetailPokemonEncountersItem(null, null);
+        assertSerializesSymmetrical(original, LocationAreaDetailPokemonEncountersItem.class);
     }
 
     @Test
     void locationAreaDetailPokemonEncountersVersionDetails() {
-        var original = new LocationAreaDetailPokemonEncountersVersionDetails(null, null, null);
-        assertSerializesSymmetrical(original, LocationAreaDetailPokemonEncountersVersionDetails.class);
+        var original = new LocationAreaDetailPokemonEncountersItemVersionDetailsItem(null, null, null);
+        assertSerializesSymmetrical(original, LocationAreaDetailPokemonEncountersItemVersionDetailsItem.class);
     }
 
     @Test
     void locationAreaDetailPokemonEncountersVersionDetailsEncounterDetails() {
-        var original = new LocationAreaDetailPokemonEncountersVersionDetailsEncounterDetails(null, null, null, null, null);
-        assertSerializesSymmetrical(original, LocationAreaDetailPokemonEncountersVersionDetailsEncounterDetails.class);
+        var original = new LocationAreaDetailPokemonEncountersItemVersionDetailsItemEncounterDetails(null, null, null, null, null);
+        assertSerializesSymmetrical(original, LocationAreaDetailPokemonEncountersItemVersionDetailsItemEncounterDetails.class);
     }
 
-    @Test
-    void locationAreaName() {
-        var original = new LocationAreaName(null, null);
-        assertSerializesSymmetrical(original, LocationAreaName.class);
-    }
+    
 
-    @Test
-    void locationAreaSummary() {
-        var original = new LocationAreaSummary(null, null);
-        assertSerializesSymmetrical(original, LocationAreaSummary.class);
-    }
+    
 
     @Test
     void locationDetail() {
@@ -613,23 +453,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, LocationDetail.class);
     }
 
-    @Test
-    void locationGameIndex() {
-        var original = new LocationGameIndex(null, null);
-        assertSerializesSymmetrical(original, LocationGameIndex.class);
-    }
+    
 
-    @Test
-    void locationName() {
-        var original = new LocationName(null, null);
-        assertSerializesSymmetrical(original, LocationName.class);
-    }
+    
 
-    @Test
-    void locationSummary() {
-        var original = new LocationSummary(null, null);
-        assertSerializesSymmetrical(original, LocationSummary.class);
-    }
+    
 
     @Test
     void machineDetail() {
@@ -637,11 +465,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MachineDetail.class);
     }
 
-    @Test
-    void machineSummary() {
-        var original = new MachineSummary(null);
-        assertSerializesSymmetrical(original, MachineSummary.class);
-    }
+    
 
     @Test
     void moveBattleStyleDetail() {
@@ -649,17 +473,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveBattleStyleDetail.class);
     }
 
-    @Test
-    void moveBattleStyleName() {
-        var original = new MoveBattleStyleName(null, null);
-        assertSerializesSymmetrical(original, MoveBattleStyleName.class);
-    }
+    
 
-    @Test
-    void moveBattleStyleSummary() {
-        var original = new MoveBattleStyleSummary(null, null);
-        assertSerializesSymmetrical(original, MoveBattleStyleSummary.class);
-    }
+    
 
     @Test
     void moveChange() {
@@ -669,15 +485,11 @@ class JsonSerializationTest {
 
     @Test
     void moveChangeEffectEntries() {
-        var original = new MoveChangeEffectEntries(null, null, null);
-        assertSerializesSymmetrical(original, MoveChangeEffectEntries.class);
+        var original = new MoveChangeEffectEntriesItem(null, null, null);
+        assertSerializesSymmetrical(original, MoveChangeEffectEntriesItem.class);
     }
 
-    @Test
-    void moveDamageClassDescription() {
-        var original = new MoveDamageClassDescription(null, null);
-        assertSerializesSymmetrical(original, MoveDamageClassDescription.class);
-    }
+    
 
     @Test
     void moveDamageClassDetail() {
@@ -685,17 +497,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveDamageClassDetail.class);
     }
 
-    @Test
-    void moveDamageClassName() {
-        var original = new MoveDamageClassName(null, null);
-        assertSerializesSymmetrical(original, MoveDamageClassName.class);
-    }
+    
 
-    @Test
-    void moveDamageClassSummary() {
-        var original = new MoveDamageClassSummary(null, null);
-        assertSerializesSymmetrical(original, MoveDamageClassSummary.class);
-    }
+    
 
     @Test
     void moveDetail() {
@@ -717,39 +521,31 @@ class JsonSerializationTest {
 
     @Test
     void moveDetailEffectChanges() {
-        var original = new MoveDetailEffectChanges(null, null);
-        assertSerializesSymmetrical(original, MoveDetailEffectChanges.class);
+        var original = new MoveDetailEffectChangesItem(null, null);
+        assertSerializesSymmetrical(original, MoveDetailEffectChangesItem.class);
     }
 
     @Test
     void moveDetailEffectChangesEffectEntries() {
-        var original = new MoveDetailEffectChangesEffectEntries(null, null);
-        assertSerializesSymmetrical(original, MoveDetailEffectChangesEffectEntries.class);
+        var original = new MoveDetailEffectChangesItemEffectEntriesItem(null, null);
+        assertSerializesSymmetrical(original, MoveDetailEffectChangesItemEffectEntriesItem.class);
     }
 
     @Test
     void moveDetailMachines() {
-        var original = new MoveDetailMachines(null, null);
-        assertSerializesSymmetrical(original, MoveDetailMachines.class);
+        var original = new MoveDetailMachinesItem(null, null);
+        assertSerializesSymmetrical(original, MoveDetailMachinesItem.class);
     }
 
     @Test
     void moveDetailStatChanges() {
-        var original = new MoveDetailStatChanges(null, null);
-        assertSerializesSymmetrical(original, MoveDetailStatChanges.class);
+        var original = new MoveDetailStatChangesItem(null, null);
+        assertSerializesSymmetrical(original, MoveDetailStatChangesItem.class);
     }
 
-    @Test
-    void moveFlavorText() {
-        var original = new MoveFlavorText(null, null, null);
-        assertSerializesSymmetrical(original, MoveFlavorText.class);
-    }
+    
 
-    @Test
-    void moveLearnMethodDescription() {
-        var original = new MoveLearnMethodDescription(null, null);
-        assertSerializesSymmetrical(original, MoveLearnMethodDescription.class);
-    }
+    
 
     @Test
     void moveLearnMethodDetail() {
@@ -757,17 +553,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveLearnMethodDetail.class);
     }
 
-    @Test
-    void moveLearnMethodName() {
-        var original = new MoveLearnMethodName(null, null);
-        assertSerializesSymmetrical(original, MoveLearnMethodName.class);
-    }
+    
 
-    @Test
-    void moveLearnMethodSummary() {
-        var original = new MoveLearnMethodSummary(null, null);
-        assertSerializesSymmetrical(original, MoveLearnMethodSummary.class);
-    }
+    
 
     @Test
     void moveMeta() {
@@ -781,23 +569,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveMetaAilmentDetail.class);
     }
 
-    @Test
-    void moveMetaAilmentName() {
-        var original = new MoveMetaAilmentName(null, null);
-        assertSerializesSymmetrical(original, MoveMetaAilmentName.class);
-    }
+    
 
-    @Test
-    void moveMetaAilmentSummary() {
-        var original = new MoveMetaAilmentSummary(null, null);
-        assertSerializesSymmetrical(original, MoveMetaAilmentSummary.class);
-    }
+    
 
-    @Test
-    void moveMetaCategoryDescription() {
-        var original = new MoveMetaCategoryDescription(null, null);
-        assertSerializesSymmetrical(original, MoveMetaCategoryDescription.class);
-    }
+    
 
     @Test
     void moveMetaCategoryDetail() {
@@ -805,29 +581,13 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveMetaCategoryDetail.class);
     }
 
-    @Test
-    void moveMetaCategorySummary() {
-        var original = new MoveMetaCategorySummary(null, null);
-        assertSerializesSymmetrical(original, MoveMetaCategorySummary.class);
-    }
+    
 
-    @Test
-    void moveName() {
-        var original = new MoveName(null, null);
-        assertSerializesSymmetrical(original, MoveName.class);
-    }
+    
 
-    @Test
-    void moveSummary() {
-        var original = new MoveSummary(null, null);
-        assertSerializesSymmetrical(original, MoveSummary.class);
-    }
+    
 
-    @Test
-    void moveTargetDescription() {
-        var original = new MoveTargetDescription(null, null);
-        assertSerializesSymmetrical(original, MoveTargetDescription.class);
-    }
+    
 
     @Test
     void moveTargetDetail() {
@@ -835,17 +595,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveTargetDetail.class);
     }
 
-    @Test
-    void moveTargetName() {
-        var original = new MoveTargetName(null, null);
-        assertSerializesSymmetrical(original, MoveTargetName.class);
-    }
+    
 
-    @Test
-    void moveTargetSummary() {
-        var original = new MoveTargetSummary(null, null);
-        assertSerializesSymmetrical(original, MoveTargetSummary.class);
-    }
+    
 
     @Test
     void natureBattleStylePreference() {
@@ -861,21 +613,13 @@ class JsonSerializationTest {
 
     @Test
     void natureDetailPokeathlonStatChanges() {
-        var original = new NatureDetailPokeathlonStatChanges(null, null);
-        assertSerializesSymmetrical(original, NatureDetailPokeathlonStatChanges.class);
+        var original = new NatureDetailPokeathlonStatChangesItem(null, null);
+        assertSerializesSymmetrical(original, NatureDetailPokeathlonStatChangesItem.class);
     }
 
-    @Test
-    void natureName() {
-        var original = new NatureName(null, null);
-        assertSerializesSymmetrical(original, NatureName.class);
-    }
+    
 
-    @Test
-    void natureSummary() {
-        var original = new NatureSummary(null, null);
-        assertSerializesSymmetrical(original, NatureSummary.class);
-    }
+    
 
     @Test
     void paginatedAbilitySummaryList() {
@@ -1173,21 +917,13 @@ class JsonSerializationTest {
 
     @Test
     void palParkAreaDetailPokemonEncounters() {
-        var original = new PalParkAreaDetailPokemonEncounters(null, null, null);
-        assertSerializesSymmetrical(original, PalParkAreaDetailPokemonEncounters.class);
+        var original = new PalParkAreaDetailPokemonEncountersItem(null, null, null);
+        assertSerializesSymmetrical(original, PalParkAreaDetailPokemonEncountersItem.class);
     }
 
-    @Test
-    void palParkAreaName() {
-        var original = new PalParkAreaName(null, null);
-        assertSerializesSymmetrical(original, PalParkAreaName.class);
-    }
+    
 
-    @Test
-    void palParkAreaSummary() {
-        var original = new PalParkAreaSummary(null, null);
-        assertSerializesSymmetrical(original, PalParkAreaSummary.class);
-    }
+    
 
     @Test
     void pokeathlonStatDetail() {
@@ -1203,27 +939,15 @@ class JsonSerializationTest {
 
     @Test
     void pokeathlonStatDetailAffectingNaturesDecrease() {
-        var original = new PokeathlonStatDetailAffectingNaturesDecrease(null, null);
-        assertSerializesSymmetrical(original, PokeathlonStatDetailAffectingNaturesDecrease.class);
+        var original = new PokeathlonStatDetailAffectingNaturesDecreaseItem(null, null);
+        assertSerializesSymmetrical(original, PokeathlonStatDetailAffectingNaturesDecreaseItem.class);
     }
 
-    @Test
-    void pokeathlonStatName() {
-        var original = new PokeathlonStatName(null, null);
-        assertSerializesSymmetrical(original, PokeathlonStatName.class);
-    }
+    
 
-    @Test
-    void pokeathlonStatSummary() {
-        var original = new PokeathlonStatSummary(null, null);
-        assertSerializesSymmetrical(original, PokeathlonStatSummary.class);
-    }
+    
 
-    @Test
-    void pokedexDescription() {
-        var original = new PokedexDescription(null, null);
-        assertSerializesSymmetrical(original, PokedexDescription.class);
-    }
+    
 
     @Test
     void pokedexDetail() {
@@ -1233,21 +957,13 @@ class JsonSerializationTest {
 
     @Test
     void pokedexDetailPokemonEntries() {
-        var original = new PokedexDetailPokemonEntries(null, null);
-        assertSerializesSymmetrical(original, PokedexDetailPokemonEntries.class);
+        var original = new PokedexDetailPokemonEntriesItem(null, null);
+        assertSerializesSymmetrical(original, PokedexDetailPokemonEntriesItem.class);
     }
 
-    @Test
-    void pokedexName() {
-        var original = new PokedexName(null, null);
-        assertSerializesSymmetrical(original, PokedexName.class);
-    }
+    
 
-    @Test
-    void pokedexSummary() {
-        var original = new PokedexSummary(null, null);
-        assertSerializesSymmetrical(original, PokedexSummary.class);
-    }
+    
 
     @Test
     void pokemonColorDetail() {
@@ -1255,17 +971,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokemonColorDetail.class);
     }
 
-    @Test
-    void pokemonColorName() {
-        var original = new PokemonColorName(null, null);
-        assertSerializesSymmetrical(original, PokemonColorName.class);
-    }
+    
 
-    @Test
-    void pokemonColorSummary() {
-        var original = new PokemonColorSummary(null, null);
-        assertSerializesSymmetrical(original, PokemonColorSummary.class);
-    }
+    
 
     @Test
     void pokemonDetail() {
@@ -1275,8 +983,8 @@ class JsonSerializationTest {
 
     @Test
     void pokemonDetailAbilities() {
-        var original = new PokemonDetailAbilities(null, null, null);
-        assertSerializesSymmetrical(original, PokemonDetailAbilities.class);
+        var original = new PokemonDetailAbilitiesItem(null, null, null);
+        assertSerializesSymmetrical(original, PokemonDetailAbilitiesItem.class);
     }
 
     @Test
@@ -1287,38 +995,38 @@ class JsonSerializationTest {
 
     @Test
     void pokemonDetailHeldItems() {
-        var original = new PokemonDetailHeldItems(null, null);
-        assertSerializesSymmetrical(original, PokemonDetailHeldItems.class);
+        var original = new PokemonDetailHeldItemsItem(null, null);
+        assertSerializesSymmetrical(original, PokemonDetailHeldItemsItem.class);
     }
 
     @Test
     void pokemonDetailMoves() {
-        var original = new PokemonDetailMoves(null, null);
-        assertSerializesSymmetrical(original, PokemonDetailMoves.class);
+        var original = new PokemonDetailMovesItem(null, null);
+        assertSerializesSymmetrical(original, PokemonDetailMovesItem.class);
     }
 
     @Test
     void pokemonDetailMovesVersionGroupDetails() {
-        var original = new PokemonDetailMovesVersionGroupDetails(null, null, null);
-        assertSerializesSymmetrical(original, PokemonDetailMovesVersionGroupDetails.class);
+        var original = new PokemonDetailMovesItemVersionGroupDetailsItem(null, null, null);
+        assertSerializesSymmetrical(original, PokemonDetailMovesItemVersionGroupDetailsItem.class);
     }
 
     @Test
     void pokemonDetailPastAbilities() {
-        var original = new PokemonDetailPastAbilities(null, null);
-        assertSerializesSymmetrical(original, PokemonDetailPastAbilities.class);
+        var original = new PokemonDetailPastAbilitiesItem(null, null);
+        assertSerializesSymmetrical(original, PokemonDetailPastAbilitiesItem.class);
     }
 
     @Test
     void pokemonDetailPastTypes() {
-        var original = new PokemonDetailPastTypes(null, null);
-        assertSerializesSymmetrical(original, PokemonDetailPastTypes.class);
+        var original = new PokemonDetailPastTypesItem(null, null);
+        assertSerializesSymmetrical(original, PokemonDetailPastTypesItem.class);
     }
 
     @Test
     void pokemonDetailTypes() {
-        var original = new PokemonDetailTypes(null, null);
-        assertSerializesSymmetrical(original, PokemonDetailTypes.class);
+        var original = new PokemonDetailTypesItem(null, null);
+        assertSerializesSymmetrical(original, PokemonDetailTypesItem.class);
     }
 
     @Test
@@ -1335,15 +1043,11 @@ class JsonSerializationTest {
 
     @Test
     void pokemonFormDetailFormNames() {
-        var original = new PokemonFormDetailFormNames(null, null);
-        assertSerializesSymmetrical(original, PokemonFormDetailFormNames.class);
+        var original = new PokemonFormDetailFormNamesItem(null, null);
+        assertSerializesSymmetrical(original, PokemonFormDetailFormNamesItem.class);
     }
 
-    @Test
-    void pokemonFormSummary() {
-        var original = new PokemonFormSummary(null, null);
-        assertSerializesSymmetrical(original, PokemonFormSummary.class);
-    }
+    
 
     @Test
     void pokemonGameIndex() {
@@ -1357,17 +1061,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokemonHabitatDetail.class);
     }
 
-    @Test
-    void pokemonHabitatName() {
-        var original = new PokemonHabitatName(null, null);
-        assertSerializesSymmetrical(original, PokemonHabitatName.class);
-    }
+    
 
-    @Test
-    void pokemonHabitatSummary() {
-        var original = new PokemonHabitatSummary(null, null);
-        assertSerializesSymmetrical(original, PokemonHabitatSummary.class);
-    }
+    
 
     @Test
     void pokemonShapeDetail() {
@@ -1377,21 +1073,13 @@ class JsonSerializationTest {
 
     @Test
     void pokemonShapeDetailAwesomeNames() {
-        var original = new PokemonShapeDetailAwesomeNames(null, null);
-        assertSerializesSymmetrical(original, PokemonShapeDetailAwesomeNames.class);
+        var original = new PokemonShapeDetailAwesomeNamesItem(null, null);
+        assertSerializesSymmetrical(original, PokemonShapeDetailAwesomeNamesItem.class);
     }
 
-    @Test
-    void pokemonShapeSummary() {
-        var original = new PokemonShapeSummary(null, null);
-        assertSerializesSymmetrical(original, PokemonShapeSummary.class);
-    }
+    
 
-    @Test
-    void pokemonSpeciesDescription() {
-        var original = new PokemonSpeciesDescription(null, null);
-        assertSerializesSymmetrical(original, PokemonSpeciesDescription.class);
-    }
+    
 
     @Test
     void pokemonSpeciesDetail() {
@@ -1401,20 +1089,20 @@ class JsonSerializationTest {
 
     @Test
     void pokemonSpeciesDetailGenera() {
-        var original = new PokemonSpeciesDetailGenera(null, null);
-        assertSerializesSymmetrical(original, PokemonSpeciesDetailGenera.class);
+        var original = new PokemonSpeciesDetailGeneraItem(null, null);
+        assertSerializesSymmetrical(original, PokemonSpeciesDetailGeneraItem.class);
     }
 
     @Test
     void pokemonSpeciesDetailPalParkEncounters() {
-        var original = new PokemonSpeciesDetailPalParkEncounters(null, null, null);
-        assertSerializesSymmetrical(original, PokemonSpeciesDetailPalParkEncounters.class);
+        var original = new PokemonSpeciesDetailPalParkEncountersItem(null, null, null);
+        assertSerializesSymmetrical(original, PokemonSpeciesDetailPalParkEncountersItem.class);
     }
 
     @Test
     void pokemonSpeciesDetailVarieties() {
-        var original = new PokemonSpeciesDetailVarieties(null, null);
-        assertSerializesSymmetrical(original, PokemonSpeciesDetailVarieties.class);
+        var original = new PokemonSpeciesDetailVarietiesItem(null, null);
+        assertSerializesSymmetrical(original, PokemonSpeciesDetailVarietiesItem.class);
     }
 
     @Test
@@ -1423,11 +1111,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokemonSpeciesFlavorText.class);
     }
 
-    @Test
-    void pokemonSpeciesSummary() {
-        var original = new PokemonSpeciesSummary(null, null);
-        assertSerializesSymmetrical(original, PokemonSpeciesSummary.class);
-    }
+    
 
     @Test
     void pokemonStat() {
@@ -1435,11 +1119,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokemonStat.class);
     }
 
-    @Test
-    void pokemonSummary() {
-        var original = new PokemonSummary(null, null);
-        assertSerializesSymmetrical(original, PokemonSummary.class);
-    }
+    
 
     @Test
     void regionDetail() {
@@ -1447,17 +1127,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, RegionDetail.class);
     }
 
-    @Test
-    void regionName() {
-        var original = new RegionName(null, null);
-        assertSerializesSymmetrical(original, RegionName.class);
-    }
+    
 
-    @Test
-    void regionSummary() {
-        var original = new RegionSummary(null, null);
-        assertSerializesSymmetrical(original, RegionSummary.class);
-    }
+    
 
     @Test
     void statDetail() {
@@ -1465,17 +1137,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, StatDetail.class);
     }
 
-    @Test
-    void statName() {
-        var original = new StatName(null, null);
-        assertSerializesSymmetrical(original, StatName.class);
-    }
+    
 
-    @Test
-    void statSummary() {
-        var original = new StatSummary(null, null);
-        assertSerializesSymmetrical(original, StatSummary.class);
-    }
+    
 
     @Test
     void superContestEffectDetail() {
@@ -1483,17 +1147,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, SuperContestEffectDetail.class);
     }
 
-    @Test
-    void superContestEffectFlavorText() {
-        var original = new SuperContestEffectFlavorText(null, null);
-        assertSerializesSymmetrical(original, SuperContestEffectFlavorText.class);
-    }
+    
 
-    @Test
-    void superContestEffectSummary() {
-        var original = new SuperContestEffectSummary(null);
-        assertSerializesSymmetrical(original, SuperContestEffectSummary.class);
-    }
+    
 
     @Test
     void typeDetail() {
@@ -1509,33 +1165,21 @@ class JsonSerializationTest {
 
     @Test
     void typeDetailPastDamageRelations() {
-        var original = new TypeDetailPastDamageRelations(null, null);
-        assertSerializesSymmetrical(original, TypeDetailPastDamageRelations.class);
+        var original = new TypeDetailPastDamageRelationsItem(null, null);
+        assertSerializesSymmetrical(original, TypeDetailPastDamageRelationsItem.class);
     }
 
     @Test
     void typeDetailPokemon() {
-        var original = new TypeDetailPokemon(null, null);
-        assertSerializesSymmetrical(original, TypeDetailPokemon.class);
+        var original = new TypeDetailPokemonItem(null, null);
+        assertSerializesSymmetrical(original, TypeDetailPokemonItem.class);
     }
 
-    @Test
-    void typeDetailSprites() {
-        var original = new TypeDetailSprites(null);
-        assertSerializesSymmetrical(original, TypeDetailSprites.class);
-    }
+    
 
-    @Test
-    void typeGameIndex() {
-        var original = new TypeGameIndex(null, null);
-        assertSerializesSymmetrical(original, TypeGameIndex.class);
-    }
+    
 
-    @Test
-    void typeSummary() {
-        var original = new TypeSummary(null, null);
-        assertSerializesSymmetrical(original, TypeSummary.class);
-    }
+    
 
     @Test
     void versionDetail() {
@@ -1549,22 +1193,10 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, VersionGroupDetail.class);
     }
 
-    @Test
-    void versionGroupSummary() {
-        var original = new VersionGroupSummary(null, null);
-        assertSerializesSymmetrical(original, VersionGroupSummary.class);
-    }
+    
 
-    @Test
-    void versionName() {
-        var original = new VersionName(null, null);
-        assertSerializesSymmetrical(original, VersionName.class);
-    }
+    
 
-    @Test
-    void versionSummary() {
-        var original = new VersionSummary(null, null);
-        assertSerializesSymmetrical(original, VersionSummary.class);
-    }
+    
 
 }

@@ -1,0 +1,21 @@
+openapi: 3.0.1
+info:
+  title: Inline allOf external urls
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    ExternalUrlObject:
+      type: object
+      properties:
+        spotify:
+          type: string
+    AlbumBase:
+      type: object
+      required:
+        - external_urls
+      properties:
+        external_urls:
+          allOf:
+            - $ref: "#/components/schemas/ExternalUrlObject"
+          description: Known external URLs for this album.

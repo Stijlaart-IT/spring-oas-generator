@@ -14,13 +14,6 @@ public record OneOfDescriptor(
         variants = List.copyOf(variants);
     }
 
-    @Override
-    public List<String> dependencies() {
-        return variants.stream()
-                .map(OneOfVariant::modelName)
-                .toList();
-    }
-
     public record OneOfVariant(String modelName, String discriminatorValue) {
         public OneOfVariant {
             Objects.requireNonNull(modelName);

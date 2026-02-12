@@ -1,6 +1,8 @@
 package nl.stijlaartit.restclient;
 
 import nl.stijlaartit.generator.engine.Generator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -10,6 +12,8 @@ import java.nio.file.Path;
 
 @SpringBootApplication
 public class RestClientGeneratorApplication implements CommandLineRunner {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RestClientGeneratorApplication.class);
 
     public static void main(String[] args) {
         SpringApplication.run(RestClientGeneratorApplication.class, args);
@@ -21,10 +25,14 @@ public class RestClientGeneratorApplication implements CommandLineRunner {
             System.err.println("Usage: <openapi-spec-file> <output-path> <output-package>");
             System.exit(1);
         }
-
         String specFile = args[0];
         String outputPath = args[1];
         String outputPackage = args[2];
+        LOG.info("Generating with arguments: ");
+        LOG.info("- spec file: [{}]", specFile);
+        LOG.info("- output path [{}]", outputPath);
+        LOG.info("- output package [{}]", outputPackage);
+
         Path specPath = Path.of(specFile);
         if (!Files.isRegularFile(specPath)) {
             System.err.println("Spec file does not exist or is not a regular file: " + specPath);

@@ -17,9 +17,4 @@ public record EnumDescriptor(
         enumValues = List.copyOf(enumValues);
         implementsTypes = List.copyOf(implementsTypes);
     }
-
-    @Override
-    public List<String> dependencies() {
-        return implementsTypes;
-    }
 }

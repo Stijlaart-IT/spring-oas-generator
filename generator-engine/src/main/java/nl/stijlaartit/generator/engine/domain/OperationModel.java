@@ -1,45 +1,40 @@
 package nl.stijlaartit.generator.engine.domain;
 
 import nl.stijlaartit.generator.engine.model.TypeDescriptor;
+import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class OperationModel {
-    private String name;
+    private OperationName name;
     private HttpMethod method;
     private String path;
-    private final List<ParameterModel> parameters = new ArrayList<>();
-    private TypeDescriptor requestBody;
-    private TypeDescriptor responseType;
-    private boolean deprecated;
+    private final List<ParameterModel> parameters;
+    @Nullable
+    private final TypeDescriptor requestBody;
+    @Nullable
+    private final TypeDescriptor responseType;
+    private final boolean deprecated;
 
-    public OperationModel() {
-    }
-
-    public OperationModel(String name, HttpMethod method, String path,
+    public OperationModel(OperationName name,
+                          HttpMethod method,
+                          String path,
                           List<ParameterModel> parameters,
-                          TypeDescriptor requestBody,
-                          TypeDescriptor responseType,
+                          @Nullable TypeDescriptor requestBody,
+                          @Nullable TypeDescriptor responseType,
                           boolean deprecated) {
         this.name = Objects.requireNonNull(name);
         this.method = Objects.requireNonNull(method);
         this.path = Objects.requireNonNull(path);
-        if (parameters != null) {
-            this.parameters.addAll(parameters);
-        }
+        this.parameters = List.copyOf(parameters);
         this.requestBody = requestBody;
         this.responseType = responseType;
         this.deprecated = deprecated;
     }
 
-    public String getName() {
+    public OperationName getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = Objects.requireNonNull(name);
     }
 
     public HttpMethod getMethod() {
@@ -62,27 +57,17 @@ public class OperationModel {
         return parameters;
     }
 
+    @Nullable
     public TypeDescriptor getRequestBody() {
         return requestBody;
     }
 
-    public void setRequestBody(TypeDescriptor requestBody) {
-        this.requestBody = requestBody;
-    }
-
+    @Nullable
     public TypeDescriptor getResponseType() {
         return responseType;
     }
 
-    public void setResponseType(TypeDescriptor responseType) {
-        this.responseType = responseType;
-    }
-
     public boolean isDeprecated() {
         return deprecated;
-    }
-
-    public void setDeprecated(boolean deprecated) {
-        this.deprecated = deprecated;
     }
 }

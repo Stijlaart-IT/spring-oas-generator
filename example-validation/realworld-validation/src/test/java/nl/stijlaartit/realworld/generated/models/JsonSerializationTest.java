@@ -43,7 +43,7 @@ class JsonSerializationTest {
 
     @Test
     void genericErrorModel() {
-        var original = new GenericErrorModel(new NewComment("can't be empty"));
+        var original = new GenericErrorModel(new GenericErrorModelErrors(List.of("can't be empty")));
         assertSerializesSymmetrical(original, GenericErrorModel.class);
     }
 

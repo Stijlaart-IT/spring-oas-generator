@@ -1,7 +1,5 @@
 package nl.stijlaartit.generator.engine.model;
 
-import nl.stijlaartit.generator.engine.model.TypeDescriptor;
-
 import java.util.Objects;
 
 public record FieldDescriptor(

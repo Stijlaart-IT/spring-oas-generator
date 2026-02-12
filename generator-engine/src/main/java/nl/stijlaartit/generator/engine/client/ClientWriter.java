@@ -10,11 +10,15 @@ import nl.stijlaartit.generator.engine.domain.ApiFile;
 import nl.stijlaartit.generator.engine.domain.GenerationFileWriter;
 import nl.stijlaartit.generator.engine.domain.HttpMethod;
 import nl.stijlaartit.generator.engine.domain.OperationModel;
+import nl.stijlaartit.generator.engine.domain.OperationName;
 import nl.stijlaartit.generator.engine.domain.ParameterLocation;
 import nl.stijlaartit.generator.engine.domain.ParameterModel;
 import nl.stijlaartit.generator.engine.domain.WriteReport;
 import nl.stijlaartit.generator.engine.model.JavaIdentifierUtils;
+import nl.stijlaartit.generator.engine.model.TypeDescriptor;
 import nl.stijlaartit.generator.engine.model.TypeNameResolver;
+import nl.stijlaartit.generator.engine.naming.NamingUtil;
+import nl.stijlaartit.generator.engine.naming.OperationIdNaming;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
@@ -83,7 +87,7 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
     }
 
     private MethodSpec toMethodSpec(OperationModel operation) {
-        String methodName = JavaIdentifierUtils.sanitize(toCamelCase(operation.getName()));
+        String methodName = methodNameFromOperationName(operation.getName());
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
@@ -112,6 +116,13 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
         return methodBuilder.build();
     }
 
+    private String methodNameFromOperationName(OperationName name) {
+        return JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(switch (name) {
+            case OperationName.Id id -> id.value();
+            case OperationName.PathAndMethod pathAndMethod -> OperationIdNaming.fallbackOperationId(pathAndMethod.method(), pathAndMethod.path());
+        }));
+    }
+
     private AnnotationSpec exchangeAnnotation(HttpMethod method, String path) {
         ClassName annotationType = switch (method) {
             case GET -> GET_EXCHANGE;
@@ -132,7 +143,7 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
             case HEADER -> REQUEST_HEADER;
         };
 
-        String javaName = JavaIdentifierUtils.sanitize(toCamelCase(param.getName()));
+        String javaName = JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(param.getName()));
 
         AnnotationSpec.Builder annotationBuilder = AnnotationSpec.builder(annotation);
         if (!javaName.equals(param.getName())) {
@@ -141,7 +152,7 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
         if (param.getLocation() == ParameterLocation.QUERY) {
             if (!param.isRequired()) {
                 annotationBuilder.addMember("required", "$L", false);
-            } else if (!(param.getType() instanceof nl.stijlaartit.generator.engine.model.TypeDescriptor.ListType)) {
+            } else if (!(param.getType() instanceof TypeDescriptor.ListType)) {
                 annotationBuilder.addMember("required", "$L", true);
             }
         }
@@ -156,28 +167,6 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
         }
 
         return paramBuilder.addAnnotation(annotationBuilder.build()).build();
-    }
-
-    private static String toCamelCase(String input) {
-        if (input == null || input.isEmpty()) {
-            return input;
-        }
-        StringBuilder result = new StringBuilder();
-        boolean capitalizeNext = false;
-        for (int i = 0; i < input.length(); i++) {
-            char c = input.charAt(i);
-            if (c == '_' || c == '-') {
-                capitalizeNext = true;
-            } else if (capitalizeNext) {
-                result.append(Character.toUpperCase(c));
-                capitalizeNext = false;
-            } else if (i == 0) {
-                result.append(Character.toLowerCase(c));
-            } else {
-                result.append(c);
-            }
-        }
-        return result.toString();
     }
 
     private Path writePackageInfo(Path outputDirectory) throws IOException {

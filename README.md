@@ -14,6 +14,21 @@ This project is a Maven multi-module build for OpenAPI-related source generation
 - **spring-boot-openapi-generator-client-webclient**
   - Placeholder module for WebClient-focused client generation/runtime support.
 
+## Flow
+
+### Phases:
+* OpenAPI parsing: Transform a YML or JSON to a intractable OpenAPI object. This should only yield valid OpenAPI objects, otherwise an exception is thrown.
+* Schema Registry: Registry containing all schemas in the OAS with relations to the parent schemas (required for contextual code generation).
+* Schema Model: 
+
+### Dependencies
+ * OpenAPI parsing -> Schema Registry
+ * Schema Registry -> Type Resolver
+ * Type Resolver -> Model Resolver
+ * Model Resolver -> Model Writer
+ * Type Resolver -> Client Resolver
+ * Client Resolver -> Client Writer
+ 
 ## Examples
 
 To download the example OpenAPI specs, run:

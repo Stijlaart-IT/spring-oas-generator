@@ -8,9 +8,9 @@ import java.util.Objects;
 /**
  * Structural signature of an enum schema, used to deduplicate anonymous enums.
  */
-record EnumSignature(String type, String format, List<String> values) {
+public record EnumSignature(String type, String format, List<String> values) {
 
-    static EnumSignature of(Schema<?> schema) {
+    public static EnumSignature of(Schema<?> schema) {
         String type = Objects.toString(schema.getType(), "string");
         String format = schema.getFormat();
         List<String> values = schema.getEnum().stream()

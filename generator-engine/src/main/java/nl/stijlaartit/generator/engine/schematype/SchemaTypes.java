@@ -1,0 +1,46 @@
+package nl.stijlaartit.generator.engine.schematype;
+
+import io.swagger.v3.oas.models.media.Schema;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+public final class SchemaTypes {
+
+    private final List<SchemaType> types;
+
+    public SchemaTypes(List<SchemaType> types) {
+        this.types = List.copyOf(types);
+    }
+
+    public List<GeneratedSchemaType> generated() {
+        List<GeneratedSchemaType> generated = new ArrayList<>();
+        for (SchemaType type : types) {
+            if (type instanceof GeneratedSchemaType generatedType) {
+                generated.add(generatedType);
+            }
+        }
+        return List.copyOf(generated);
+    }
+
+    public Map<String, GeneratedSchemaType> generatedByName() {
+        Map<String, GeneratedSchemaType> resolved = new LinkedHashMap<>();
+        for (GeneratedSchemaType generatedType : generated()) {
+            resolved.put(generatedType.name(), generatedType);
+        }
+        return resolved;
+    }
+
+    public SchemaType resolveFromSchema(Schema<?> schema) {
+        for (SchemaType type : types) {
+            for (var instance : type.instances()) {
+                if (instance.getSchema() == schema) {
+                    return type;
+                }
+            }
+        }
+        throw new IllegalStateException("Could not find schema in schema types");
+    }
+}
