@@ -25,6 +25,12 @@ java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0
   "$PROJECT_DIR/example-validation/session-validation/src/main/java" \
   "nl.stijlaartit.session.generated"
 
+echo "Generating inline request body sources..."
+java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0.0.1-SNAPSHOT.jar" \
+  "$PROJECT_DIR/examples/inline-request-body.json" \
+  "$PROJECT_DIR/example-validation/inline-request-body-validation/src/main/java" \
+  "nl.stijlaartit.inlinerequestbody.generated"
+
 echo "Generating spotify sources..."
 java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0.0.1-SNAPSHOT.jar" \
   "$PROJECT_DIR/examples/spotify.yml" \

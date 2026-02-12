@@ -74,27 +74,29 @@ public class ModelResolver implements Resolver<OpenAPI> {
 
         if (openAPI.getPaths() != null) {
             for (var pathEntry : openAPI.getPaths().entrySet()) {
-                resolveOperationSchemas(pathEntry.getValue());
+                resolveOperationSchemas(pathEntry.getKey(), pathEntry.getValue());
             }
         }
 
         context.addFiles(List.copyOf(models.values()));
     }
 
-    private void resolveOperationSchemas(io.swagger.v3.oas.models.PathItem pathItem) {
-        resolveOperationSchema(pathItem.getGet());
-        resolveOperationSchema(pathItem.getPost());
-        resolveOperationSchema(pathItem.getPut());
-        resolveOperationSchema(pathItem.getDelete());
-        resolveOperationSchema(pathItem.getPatch());
+    private void resolveOperationSchemas(String path, io.swagger.v3.oas.models.PathItem pathItem) {
+        resolveOperationSchema(path, io.swagger.v3.oas.models.PathItem.HttpMethod.GET, pathItem.getGet());
+        resolveOperationSchema(path, io.swagger.v3.oas.models.PathItem.HttpMethod.POST, pathItem.getPost());
+        resolveOperationSchema(path, io.swagger.v3.oas.models.PathItem.HttpMethod.PUT, pathItem.getPut());
+        resolveOperationSchema(path, io.swagger.v3.oas.models.PathItem.HttpMethod.DELETE, pathItem.getDelete());
+        resolveOperationSchema(path, io.swagger.v3.oas.models.PathItem.HttpMethod.PATCH, pathItem.getPatch());
     }
 
-    private void resolveOperationSchema(io.swagger.v3.oas.models.Operation operation) {
+    private void resolveOperationSchema(String path,
+                                        io.swagger.v3.oas.models.PathItem.HttpMethod method,
+                                        io.swagger.v3.oas.models.Operation operation) {
         if (operation == null) {
             return;
         }
 
-        String operationId = operation.getOperationId();
+        String operationId = resolveOperationId(operation.getOperationId(), method, path);
         String baseName = toPascalCase(operationId);
         if (baseName == null || baseName.isBlank()) {
             baseName = "Operation";
@@ -112,6 +114,27 @@ public class ModelResolver implements Resolver<OpenAPI> {
                 resolveInlineSchema(baseName + "Response", responseSchema);
             }
         }
+    }
+
+    private static String resolveOperationId(String operationId,
+                                             io.swagger.v3.oas.models.PathItem.HttpMethod method,
+                                             String path) {
+        if (operationId != null && !operationId.isBlank()) {
+            return operationId;
+        }
+        return fallbackOperationId(method, path);
+    }
+
+    private static String fallbackOperationId(io.swagger.v3.oas.models.PathItem.HttpMethod method, String path) {
+        String normalized = path == null ? "" : path;
+        normalized = normalized.replace("{", "").replace("}", "");
+        normalized = normalized.replaceAll("[^A-Za-z0-9]+", "_");
+        normalized = normalized.replaceAll("^_+|_+$", "");
+        String methodPrefix = method != null ? method.name().toLowerCase() : "operation";
+        if (normalized.isBlank()) {
+            return methodPrefix;
+        }
+        return methodPrefix + "_" + normalized;
     }
 
     private Schema<?> resolveContentSchema(io.swagger.v3.oas.models.media.Content content) {

@@ -366,6 +366,45 @@ class ModelResolverTest {
             assertTrue(models.stream().anyMatch(m -> m.getName().equals("SaveAlbumsUserRequest")));
             assertTrue(models.stream().anyMatch(m -> m.getName().equals("SaveAlbumsUserResponse")));
         }
+
+        @Test
+        void usesFallbackOperationIdForInlineSchemas() {
+            Schema<?> requestItemSchema = new ObjectSchema()
+                    .addProperty("itemType", new StringSchema());
+            Schema<?> requestSchema = new ArraySchema().items(requestItemSchema);
+            RequestBody requestBody = new RequestBody()
+                    .content(new Content()
+                            .addMediaType("application/json",
+                                    new MediaType().schema(requestSchema)));
+
+            Schema<?> responseItemSchema = new ObjectSchema()
+                    .addProperty("itemType", new StringSchema());
+            Schema<?> responseSchema = new ArraySchema().items(responseItemSchema);
+            ApiResponses responses = new ApiResponses()
+                    .addApiResponse("200", new ApiResponse()
+                            .content(new Content()
+                                    .addMediaType("application/json",
+                                            new MediaType().schema(responseSchema))));
+
+            OpenAPI openAPI = openApiWithOperation(
+                    "/v1/records/{recordId}/items", "put", null,
+                    requestBody, new ApiResponses()
+            );
+            openAPI.getPaths().addPathItem(
+                    "/v1/records/{recordId}/missing-items",
+                    new PathItem().get(new Operation().responses(responses))
+            );
+
+            GenerationContext context = new GenerationContext();
+            resolver.resolve(openAPI, context);
+
+            List<ModelFile> models = context.getFiles(ModelFile.class);
+
+            assertTrue(models.stream().anyMatch(m -> m.getName()
+                    .equals("PutV1RecordsRecordIdItemsRequestItem")));
+            assertTrue(models.stream().anyMatch(m -> m.getName()
+                    .equals("GetV1RecordsRecordIdMissingItemsResponseItem")));
+        }
     }
 
     @Nested
