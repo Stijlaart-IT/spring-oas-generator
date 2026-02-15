@@ -16,17 +16,14 @@ public class TypeNameResolver {
     }
 
     public TypeName resolve(TypeDescriptor type) {
-        if (type instanceof TypeDescriptor.SimpleType st) {
-            return resolveQualifiedName(st.qualifiedName());
-        } else if (type instanceof TypeDescriptor.ComplexType ct) {
-            return ClassName.get(modelsPackage, ct.modelName());
-        } else if (type instanceof TypeDescriptor.ListType lt) {
-            return ParameterizedTypeName.get(ClassName.get(List.class), resolve(lt.elementType()));
-        } else if (type instanceof TypeDescriptor.MapType mt) {
-            return ParameterizedTypeName.get(
-                    ClassName.get(Map.class), ClassName.get(String.class), resolve(mt.valueType()));
-        }
-        throw new IllegalArgumentException("Unknown TypeDescriptor: " + type);
+        return switch (type) {
+            case TypeDescriptor.SimpleType(String qualifiedName) -> resolveQualifiedName(qualifiedName);
+            case TypeDescriptor.ComplexType(String modelName) -> ClassName.get(modelsPackage, modelName);
+            case TypeDescriptor.ListType(TypeDescriptor elementType) ->
+                    ParameterizedTypeName.get(ClassName.get(List.class), resolve(elementType));
+            case TypeDescriptor.MapType(TypeDescriptor valueType) -> ParameterizedTypeName.get(
+                    ClassName.get(Map.class), ClassName.get(String.class), resolve(valueType));
+        };
     }
 
     private TypeName resolveQualifiedName(String qualifiedName) {

@@ -26,24 +26,24 @@ class UnionModelWriter {
     }
 
     JavaFile toJavaFile(UnionModelFile model) {
-        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(model.getName())
+        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(model.name())
                 .addModifiers(Modifier.PUBLIC);
 
-        if (model.getDiscriminatorProperty() != null && !model.getDiscriminatorProperty().isBlank()) {
+        if (model.discriminatorProperty() != null && !model.discriminatorProperty().isBlank()) {
             interfaceBuilder.addAnnotation(AnnotationSpec.builder(JSON_TYPE_INFO)
                     .addMember("use", "$T.Id.NAME", JSON_TYPE_INFO)
                     .addMember("include", "$T.As.PROPERTY", JSON_TYPE_INFO)
-                    .addMember("property", "$S", model.getDiscriminatorProperty())
+                    .addMember("property", "$S", model.discriminatorProperty())
                     .addMember("visible", "$L", true)
                     .build());
 
             CodeBlock.Builder subTypes = CodeBlock.builder().add("{\n");
-            var variants = model.getVariants();
+            var variants = model.variants();
             for (int i = 0; i < variants.size(); i++) {
                 OneOfVariant variant = variants.get(i);
                 AnnotationSpec.Builder typeBuilder = AnnotationSpec.builder(JSON_SUB_TYPES_TYPE)
-                        .addMember("value", "$T.class", ClassName.get(modelsPackage, variant.getModelName()));
-                String discriminatorValue = variant.getDiscriminatorValue();
+                        .addMember("value", "$T.class", ClassName.get(modelsPackage, variant.modelName()));
+                String discriminatorValue = variant.discriminatorValue();
                 if (discriminatorValue != null && !discriminatorValue.isBlank()) {
                     typeBuilder.addMember("name", "$S", discriminatorValue);
                 }

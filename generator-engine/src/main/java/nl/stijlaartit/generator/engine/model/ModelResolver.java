@@ -20,6 +20,7 @@ import nl.stijlaartit.generator.engine.schematype.RefSchemaType;
 import nl.stijlaartit.generator.engine.schematype.SchemaType;
 import nl.stijlaartit.generator.engine.schematype.SchemaTypes;
 import nl.stijlaartit.generator.engine.schematype.UnionSchemaType;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -91,7 +92,7 @@ public class ModelResolver {
     }
 
     private ModelFile createModelFileForEnumSchemaType(EnumSchemaType enumSchemaType) {
-        Schema<?> schema = enumSchemaType.instances().isEmpty() ? null : enumSchemaType.instances().getFirst().getSchema();
+        Schema<?> schema = enumSchemaType.instances().isEmpty() ? null : enumSchemaType.instances().getFirst().schema();
 
         List<String> values = schema != null && schema.getEnum() != null
                 ? schema.getEnum().stream().map(String::valueOf).toList()
@@ -102,14 +103,13 @@ public class ModelResolver {
 
     private ModelFile createModelFileForUnionSchemaType(UnionSchemaType unionSchemaType,
                                                         SchemaTypes schemaTypes2) {
-        Schema<?> schema = unionSchemaType.instances().isEmpty() ? null : unionSchemaType.instances().getFirst().getSchema();
+        Schema<?> schema = unionSchemaType.instances().isEmpty() ? null : unionSchemaType.instances().getFirst().schema();
 
         String discriminator = resolveDiscriminatorProperty(schema);
         List<OneOfVariant> variants = new ArrayList<>();
         List<SchemaInstance> variantInstances = unionSchemaType.variantInstances();
-        for (int i = 0; i < variantInstances.size(); i++) {
-            SchemaInstance variantInstance = variantInstances.get(i);
-            Schema<?> variantSchema = variantInstance.getSchema();
+        for (SchemaInstance variantInstance : variantInstances) {
+            Schema<?> variantSchema = variantInstance.schema();
             String variantName = resolveVariantName(variantSchema, schemaTypes2);
             String discriminatorValue = resolveDiscriminatorValue(variantSchema, discriminator);
             variants.add(new OneOfVariant(variantName, discriminatorValue));
@@ -142,7 +142,8 @@ public class ModelResolver {
         throw new IllegalStateException("Unable to resolve variant name for schema " + variantSchema);
     }
 
-    private String resolveDiscriminatorProperty(Schema<?> schema) {
+    @Nullable
+    private String resolveDiscriminatorProperty(@Nullable Schema<?> schema) {
         if (schema == null) {
             return null;
         }
@@ -156,7 +157,8 @@ public class ModelResolver {
         return inferDiscriminatorProperty(variants);
     }
 
-    private String resolveDiscriminatorValue(Schema<?> variant, String discriminatorProperty) {
+    @Nullable
+    private String resolveDiscriminatorValue(Schema<?> variant, @Nullable String discriminatorProperty) {
         if (discriminatorProperty == null || discriminatorProperty.isBlank()) {
             return null;
         }
@@ -168,12 +170,13 @@ public class ModelResolver {
         }
         Schema<?> resolvedProperty = resolveRefSchema(discriminatorSchema);
         if (resolvedProperty.getEnum() != null && resolvedProperty.getEnum().size() == 1) {
-            return String.valueOf(resolvedProperty.getEnum().get(0));
+            return String.valueOf(resolvedProperty.getEnum().getFirst());
         }
         return null;
     }
 
-    private String inferDiscriminatorProperty(List<Schema> variants) {
+    @Nullable
+    private String inferDiscriminatorProperty(@Nullable List<Schema> variants) {
         if (variants == null || variants.isEmpty()) {
             return null;
         }
@@ -246,11 +249,12 @@ public class ModelResolver {
         return resolved != null ? resolved : schema;
     }
 
+    @Nullable
     private Schema<?> resolveComponentSchema(String refName) {
         for (SchemaInstance instance : registry.getInstances()) {
-            if (instance.getParent() instanceof SchemaParent.ComponentParent parent) {
-                if (parent.componentName().equals(refName)) {
-                    return instance.getSchema();
+            if (instance.parent() instanceof SchemaParent.ComponentParent(String componentName)) {
+                if (componentName.equals(refName)) {
+                    return instance.schema();
                 }
             }
         }

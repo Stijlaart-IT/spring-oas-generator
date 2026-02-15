@@ -20,7 +20,7 @@ public class EnumModel implements ModelFile {
     }
 
     @Override
-    public String getName() {
+    public String name() {
         return name;
     }
 

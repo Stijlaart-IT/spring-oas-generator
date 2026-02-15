@@ -64,7 +64,7 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
         report.recordFile(writePackageInfo(outputDirectory));
         for (ApiFile client : clients) {
             write(client, outputDirectory);
-            report.recordFile(clientPath(outputDirectory, client.getName()));
+            report.recordFile(clientPath(outputDirectory, client.name()));
         }
         return report;
     }
@@ -74,7 +74,7 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
     }
 
     JavaFile toJavaFile(ApiFile client) {
-        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(client.getName())
+        TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(client.name())
                 .addModifiers(Modifier.PUBLIC);
 
         for (OperationModel operation : client.getOperations()) {
@@ -87,28 +87,28 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
     }
 
     private MethodSpec toMethodSpec(OperationModel operation) {
-        String methodName = methodNameFromOperationName(operation.getName());
+        String methodName = methodNameFromOperationName(operation.name());
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addAnnotation(exchangeAnnotation(operation.getMethod(), operation.getPath()));
+                .addAnnotation(exchangeAnnotation(operation.method(), operation.path()));
 
-        if (operation.isDeprecated()) {
+        if (operation.deprecated()) {
             methodBuilder.addAnnotation(Deprecated.class);
         }
 
-        if (operation.getResponseType() != null) {
-            methodBuilder.returns(typeNameResolver.resolve(operation.getResponseType()));
+        if (operation.responseType() != null) {
+            methodBuilder.returns(typeNameResolver.resolve(operation.responseType()));
         }
 
-        for (ParameterModel param : operation.getParameters()) {
+        for (ParameterModel param : operation.parameters()) {
             methodBuilder.addParameter(toParameterSpec(param));
         }
 
-        if (operation.getRequestBody() != null) {
+        if (operation.requestBody() != null) {
             methodBuilder.addParameter(
                     ParameterSpec.builder(
-                            typeNameResolver.resolve(operation.getRequestBody()), "body"
+                            typeNameResolver.resolve(operation.requestBody()), "body"
                     ).addAnnotation(REQUEST_BODY).build()
             );
         }
@@ -137,32 +137,32 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
     }
 
     private ParameterSpec toParameterSpec(ParameterModel param) {
-        ClassName annotation = switch (param.getLocation()) {
+        ClassName annotation = switch (param.location()) {
             case PATH -> PATH_VARIABLE;
             case QUERY -> REQUEST_PARAM;
             case HEADER -> REQUEST_HEADER;
         };
 
-        String javaName = JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(param.getName()));
+        String javaName = JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(param.name()));
 
         AnnotationSpec.Builder annotationBuilder = AnnotationSpec.builder(annotation);
-        if (!javaName.equals(param.getName())) {
-            annotationBuilder.addMember("value", "$S", param.getName());
+        if (!javaName.equals(param.name())) {
+            annotationBuilder.addMember("value", "$S", param.name());
         }
-        if (param.getLocation() == ParameterLocation.QUERY) {
-            if (!param.isRequired()) {
+        if (param.location() == ParameterLocation.QUERY) {
+            if (!param.required()) {
                 annotationBuilder.addMember("required", "$L", false);
-            } else if (!(param.getType() instanceof TypeDescriptor.ListType)) {
+            } else if (!(param.type() instanceof TypeDescriptor.ListType)) {
                 annotationBuilder.addMember("required", "$L", true);
             }
         }
 
         ParameterSpec.Builder paramBuilder = ParameterSpec.builder(
-                typeNameResolver.resolve(param.getType()),
+                typeNameResolver.resolve(param.type()),
                 javaName
         );
 
-        if (param.getLocation() == ParameterLocation.QUERY && !param.isRequired()) {
+        if (param.location() == ParameterLocation.QUERY && !param.required()) {
             paramBuilder.addAnnotation(AnnotationSpec.builder(NULLABLE).build());
         }
 

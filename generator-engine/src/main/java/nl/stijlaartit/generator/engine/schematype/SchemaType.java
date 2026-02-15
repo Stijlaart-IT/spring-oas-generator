@@ -10,6 +10,6 @@ public sealed interface SchemaType permits JavaSchemaType, GeneratedSchemaType, 
     List<SchemaInstance> instances();
 
     default Schema<?> schema() {
-        return instances().getFirst().getSchema();
+        return instances().getFirst().schema();
     }
 }

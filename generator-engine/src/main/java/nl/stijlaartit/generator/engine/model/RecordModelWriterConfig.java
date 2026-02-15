@@ -1,23 +1,14 @@
 package nl.stijlaartit.generator.engine.model;
 
-public final class RecordModelWriterConfig {
-    private final boolean generateBuilders;
-    private final boolean disableBuilderStrictMode;
-
-    public RecordModelWriterConfig(boolean generateBuilders, boolean disableBuilderStrictMode) {
-        this.generateBuilders = generateBuilders;
-        this.disableBuilderStrictMode = disableBuilderStrictMode;
-    }
+public record RecordModelWriterConfig(BuilderMode builderMode) {
 
     public static RecordModelWriterConfig defaultConfig() {
-        return new RecordModelWriterConfig(true, false);
+        return new RecordModelWriterConfig(BuilderMode.STRICT);
     }
 
-    public boolean generateBuilders() {
-        return generateBuilders;
-    }
-
-    public boolean disableBuilderStrictMode() {
-        return disableBuilderStrictMode;
+    public enum BuilderMode {
+        DISABLED,
+        STRICT,
+        RELAXED
     }
 }

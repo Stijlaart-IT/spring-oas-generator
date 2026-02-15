@@ -25,18 +25,10 @@ public final class SchemaTypes {
         return List.copyOf(generated);
     }
 
-    public Map<String, GeneratedSchemaType> generatedByName() {
-        Map<String, GeneratedSchemaType> resolved = new LinkedHashMap<>();
-        for (GeneratedSchemaType generatedType : generated()) {
-            resolved.put(generatedType.name(), generatedType);
-        }
-        return resolved;
-    }
-
     public SchemaType resolveFromSchema(Schema<?> schema) {
         for (SchemaType type : types) {
             for (var instance : type.instances()) {
-                if (instance.getSchema() == schema) {
+                if (instance.schema() == schema) {
                     return type;
                 }
             }

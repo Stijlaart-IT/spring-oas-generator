@@ -2,7 +2,7 @@ package nl.stijlaartit.generator.engine.model;
 
 import java.util.Objects;
 
-public sealed interface TypeDescriptor {
+public sealed interface TypeDescriptor permits TypeDescriptor.ComplexType, TypeDescriptor.ListType, TypeDescriptor.MapType, TypeDescriptor.SimpleType {
 
     record SimpleType(String qualifiedName) implements TypeDescriptor {
         public SimpleType {

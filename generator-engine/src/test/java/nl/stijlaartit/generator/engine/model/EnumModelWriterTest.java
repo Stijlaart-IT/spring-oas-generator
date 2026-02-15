@@ -72,10 +72,10 @@ class EnumModelWriterTest {
             if (!(model instanceof UnionModelFile unionModel)) {
                 continue;
             }
-            for (OneOfVariant variant : unionModel.getVariants()) {
+            for (OneOfVariant variant : unionModel.variants()) {
                 implementsByModel
-                        .computeIfAbsent(variant.getModelName(), key -> new ArrayList<>())
-                        .add(unionModel.getName());
+                        .computeIfAbsent(variant.modelName(), key -> new ArrayList<>())
+                        .add(unionModel.name());
             }
         }
         for (Map.Entry<String, List<String>> entry : implementsByModel.entrySet()) {

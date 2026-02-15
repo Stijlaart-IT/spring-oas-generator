@@ -35,8 +35,8 @@ class SchemaRegistryTest {
 
         SchemaInstance instance = findBySchema(registry, user);
         assertNotNull(instance);
-        assertTrue(instance.getParent() instanceof SchemaParent.ComponentParent);
-        assertEquals("User", ((SchemaParent.ComponentParent) instance.getParent()).componentName());
+        assertTrue(instance.parent() instanceof SchemaParent.ComponentParent);
+        assertEquals("User", ((SchemaParent.ComponentParent) instance.parent()).componentName());
     }
 
     @Test
@@ -53,9 +53,9 @@ class SchemaRegistryTest {
 
         SchemaInstance addressInstance = findBySchema(registry, address);
         assertNotNull(addressInstance);
-        assertTrue(addressInstance.getParent() instanceof SchemaParent.SchemaInstanceParent);
-        SchemaInstance parent = ((SchemaParent.SchemaInstanceParent) addressInstance.getParent()).parent();
-        assertSame(user, parent.getSchema());
+        assertTrue(addressInstance.parent() instanceof SchemaParent.SchemaInstanceParent);
+        SchemaInstance parent = ((SchemaParent.SchemaInstanceParent) addressInstance.parent()).parent();
+        assertSame(user, parent.schema());
     }
 
     @Test
@@ -143,8 +143,8 @@ class SchemaRegistryTest {
 
         SchemaInstance instance = findBySchema(registry, requestSchema);
         assertNotNull(instance);
-        assertTrue(instance.getParent() instanceof SchemaParent.OperationRequestParent);
-        assertSame(operation, ((SchemaParent.OperationRequestParent) instance.getParent()).operation());
+        assertTrue(instance.parent() instanceof SchemaParent.OperationRequestParent);
+        assertSame(operation, ((SchemaParent.OperationRequestParent) instance.parent()).operation());
     }
 
     @Test
@@ -163,9 +163,9 @@ class SchemaRegistryTest {
 
         SchemaInstance instance = findBySchema(registry, responseSchema);
         assertNotNull(instance);
-        assertTrue(instance.getParent() instanceof SchemaParent.OperationResponseParent);
+        assertTrue(instance.parent() instanceof SchemaParent.OperationResponseParent);
         SchemaParent.OperationResponseParent parent =
-                (SchemaParent.OperationResponseParent) instance.getParent();
+                (SchemaParent.OperationResponseParent) instance.parent();
         assertSame(operation, parent.operation());
         assertEquals("404", parent.statusCode());
     }
@@ -221,7 +221,7 @@ class SchemaRegistryTest {
 
     private static SchemaInstance findBySchema(SchemaRegistry registry, Schema<?> schema) {
         return registry.getInstances().stream()
-                .filter(instance -> instance.getSchema() == schema)
+                .filter(instance -> instance.schema() == schema)
                 .findFirst()
                 .orElse(null);
     }

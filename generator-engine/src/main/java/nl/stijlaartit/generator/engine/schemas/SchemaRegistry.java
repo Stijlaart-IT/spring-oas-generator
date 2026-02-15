@@ -288,7 +288,7 @@ public final class SchemaRegistry {
     @NonNull
     public SchemaInstance instanceForSchema(Schema<?> schema) {
         return instances.stream()
-                .filter(i -> i.getSchema().equals(schema))
+                .filter(i -> i.schema().equals(schema))
                 .findFirst()
                 .orElseThrow();
     }

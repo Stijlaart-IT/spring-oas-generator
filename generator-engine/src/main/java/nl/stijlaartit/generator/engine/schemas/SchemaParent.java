@@ -17,8 +17,7 @@ public sealed interface SchemaParent permits
             SchemaRelation.OneOfRelation,
             SchemaRelation.AllOfRelation,
             SchemaRelation.AnyOfRelation,
-            SchemaRelation.AdditionalPropertiesRelation,
-            SchemaRelation.OtherRelation {
+            SchemaRelation.AdditionalPropertiesRelation {
 
         record PropertyRelation(String propertyName) implements SchemaRelation {
         }
@@ -36,9 +35,6 @@ public sealed interface SchemaParent permits
         }
 
         record AdditionalPropertiesRelation() implements SchemaRelation {
-        }
-
-        record OtherRelation(String description) implements SchemaRelation {
         }
     }
 

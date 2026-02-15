@@ -27,7 +27,7 @@ class RecordModelWriterTest {
     void generatesRecordWithSingleField() {
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("name", "name",
-                        TypeDescriptor.simple("java.lang.String"), true)
+                        TypeDescriptor.simple("java.lang.String"), true, false, false)
         ));
 
         String source = writer.toJavaFile(model, Map.of()).toString();
@@ -41,9 +41,9 @@ class RecordModelWriterTest {
     void generatesRecordWithMultipleFields() {
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("name", "name",
-                        TypeDescriptor.simple("java.lang.String"), true),
+                        TypeDescriptor.simple("java.lang.String"), true, false, false),
                 new FieldModel("age", "age",
-                        TypeDescriptor.simple("java.lang.Integer"), false)
+                        TypeDescriptor.simple("java.lang.Integer"), false, false, false)
         ));
 
         String source = writer.toJavaFile(model, Map.of()).toString();
@@ -56,7 +56,7 @@ class RecordModelWriterTest {
     void addsJsonPropertyWhenNamesDisagree() {
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("firstName", "first_name",
-                        TypeDescriptor.simple("java.lang.String"), true)
+                        TypeDescriptor.simple("java.lang.String"), true, false, false)
         ));
 
         String source = writer.toJavaFile(model, Map.of()).toString();
@@ -70,7 +70,7 @@ class RecordModelWriterTest {
     void addsJsonPropertyWhenNamesMatch() {
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("name", "name",
-                        TypeDescriptor.simple("java.lang.String"), true)
+                        TypeDescriptor.simple("java.lang.String"), true, false, false)
         ));
 
         String source = writer.toJavaFile(model, Map.of()).toString();
@@ -96,9 +96,9 @@ class RecordModelWriterTest {
     void addsJsonIncludeForRequiredPropertyOnly() {
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("name", "name",
-                        TypeDescriptor.simple("java.lang.String"), true),
+                        TypeDescriptor.simple("java.lang.String"), true, false, false),
                 new FieldModel("nickname", "nickname",
-                        TypeDescriptor.simple("java.lang.String"), false)
+                        TypeDescriptor.simple("java.lang.String"), false, false, false)
         ));
 
         String source = writer.toJavaFile(model, Map.of()).toString();
@@ -112,7 +112,7 @@ class RecordModelWriterTest {
     void resolvesComplexTypeFromModelsPackage() {
         RecordModel model = new RecordModel("Owner", List.of(
                 new FieldModel("pet", "pet",
-                        TypeDescriptor.complex("Pet"), true)
+                        TypeDescriptor.complex("Pet"), true, false, false)
         ));
 
         String source = writer.toJavaFile(model, Map.of()).toString();
@@ -124,7 +124,7 @@ class RecordModelWriterTest {
     void resolvesListType() {
         RecordModel model = new RecordModel("Pet", List.of(
                 new FieldModel("tags", "tags",
-                        TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), false)
+                        TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), false, false, false)
         ));
 
         String source = writer.toJavaFile(model, Map.of()).toString();
@@ -136,7 +136,7 @@ class RecordModelWriterTest {
     void resolvesMapType() {
         RecordModel model = new RecordModel("Config", List.of(
                 new FieldModel("metadata", "metadata",
-                        TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")), false)
+                        TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")), false, false, false)
         ));
 
         String source = writer.toJavaFile(model, Map.of()).toString();
@@ -148,7 +148,7 @@ class RecordModelWriterTest {
     void resolvesListOfComplexType() {
         RecordModel model = new RecordModel("Pet", List.of(
                 new FieldModel("tags", "tags",
-                        TypeDescriptor.list(TypeDescriptor.complex("Tag")), false)
+                        TypeDescriptor.list(TypeDescriptor.complex("Tag")), false, false, false)
         ));
 
         String source = writer.toJavaFile(model, Map.of()).toString();
@@ -165,6 +165,7 @@ class RecordModelWriterTest {
                         "value",
                         TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object")),
                         true,
+                        true,
                         true
                 ))
         );
@@ -180,7 +181,7 @@ class RecordModelWriterTest {
     void recordImplementsInterfaceWhenListedInUnionVariants() {
         RecordModel model = new RecordModel("TrackObject", List.of(
                 new FieldModel("name", "name",
-                        TypeDescriptor.simple("java.lang.String"), true)
+                        TypeDescriptor.simple("java.lang.String"), true, false, false)
         ));
         UnionModelFile union = new UnionModelFile(
                 "QueueObjectCurrentlyPlaying",
@@ -198,7 +199,7 @@ class RecordModelWriterTest {
     void generatesBuilderByDefault() {
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("name", "name",
-                        TypeDescriptor.simple("java.lang.String"), true)
+                        TypeDescriptor.simple("java.lang.String"), true, false, false)
         ));
 
         String source = writer.toJavaFile(model, Map.of()).toString();
@@ -232,7 +233,7 @@ class RecordModelWriterTest {
     void builderStrictModeCanBeDisabled() {
         RecordModelWriter relaxedWriter = new RecordModelWriter(
                 "com.example.models",
-                new RecordModelWriterConfig(true, true)
+                new RecordModelWriterConfig(RecordModelWriterConfig.BuilderMode.RELAXED)
         );
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("name", "name",
@@ -252,10 +253,10 @@ class RecordModelWriterTest {
             if (!(model instanceof UnionModelFile unionModel)) {
                 continue;
             }
-            for (OneOfVariant variant : unionModel.getVariants()) {
+            for (OneOfVariant variant : unionModel.variants()) {
                 implementsByModel
-                        .computeIfAbsent(variant.getModelName(), key -> new ArrayList<>())
-                        .add(unionModel.getName());
+                        .computeIfAbsent(variant.modelName(), key -> new ArrayList<>())
+                        .add(unionModel.name());
             }
         }
         for (Map.Entry<String, List<String>> entry : implementsByModel.entrySet()) {

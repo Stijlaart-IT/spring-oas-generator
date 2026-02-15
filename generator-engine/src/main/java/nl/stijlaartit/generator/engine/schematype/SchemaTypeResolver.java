@@ -121,10 +121,10 @@ public final class SchemaTypeResolver {
 
     private boolean isComponentSchema(List<SchemaInstance> instances) {
         for (SchemaInstance instance : instances) {
-            if (instance.getParent() instanceof SchemaParent.ComponentParent) {
+            if (instance.parent() instanceof SchemaParent.ComponentParent) {
                 return true;
             }
-            if (instance.getParent() instanceof SchemaParent.ComponentParameterParent) {
+            if (instance.parent() instanceof SchemaParent.ComponentParameterParent) {
                 return true;
             }
         }
@@ -133,13 +133,13 @@ public final class SchemaTypeResolver {
 
     private boolean isOperationSchema(List<SchemaInstance> instances) {
         for (SchemaInstance instance : instances) {
-            if (instance.getParent() instanceof SchemaParent.OperationRequestParent) {
+            if (instance.parent() instanceof SchemaParent.OperationRequestParent) {
                 return true;
             }
-            if (instance.getParent() instanceof SchemaParent.OperationResponseParent) {
+            if (instance.parent() instanceof SchemaParent.OperationResponseParent) {
                 return true;
             }
-            if (instance.getParent() instanceof SchemaParent.OperationParameterParent) {
+            if (instance.parent() instanceof SchemaParent.OperationParameterParent) {
                 return true;
             }
         }
@@ -210,7 +210,7 @@ public final class SchemaTypeResolver {
 
     private String resolveName(List<SchemaInstance> instances, String inlineName) {
         for (SchemaInstance instance : instances) {
-            if (instance.getParent() instanceof SchemaParent.ComponentParent(String componentName)) {
+            if (instance.parent() instanceof SchemaParent.ComponentParent(String componentName)) {
                 return validateName(toPascalCase(componentName));
             }
         }

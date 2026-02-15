@@ -23,12 +23,12 @@ class InlineAllOfExternalUrlsTest {
     void modelResolverUsesRefTypeForSingleAllOfProperty() {
         List<ModelFile> models = resolveModels();
 
-        assertTrue(models.stream().noneMatch(model -> model.getName().equals("AlbumBaseExternalUrls")));
+        assertTrue(models.stream().noneMatch(model -> model.name().equals("AlbumBaseExternalUrls")));
 
         RecordModel albumBase = findRecord(models, "AlbumBase");
         FieldModel externalUrls = findField(albumBase, "externalUrls");
-        assertTrue(externalUrls.getType() instanceof TypeDescriptor.ComplexType);
-        TypeDescriptor.ComplexType type = (TypeDescriptor.ComplexType) externalUrls.getType();
+        assertInstanceOf(TypeDescriptor.ComplexType.class, externalUrls.type());
+        TypeDescriptor.ComplexType type = (TypeDescriptor.ComplexType) externalUrls.type();
         assertEquals("ExternalUrlObject", type.modelName());
     }
 
@@ -67,14 +67,14 @@ class InlineAllOfExternalUrlsTest {
         return models.stream()
                 .filter(model -> model instanceof RecordModel)
                 .map(model -> (RecordModel) model)
-                .filter(model -> model.getName().equals(name))
+                .filter(model -> model.name().equals(name))
                 .findFirst()
                 .orElseThrow();
     }
 
     private FieldModel findField(RecordModel model, String name) {
-        return model.getFields().stream()
-                .filter(field -> field.getName().equals(name))
+        return model.fields().stream()
+                .filter(field -> field.name().equals(name))
                 .findFirst()
                 .orElseThrow();
     }

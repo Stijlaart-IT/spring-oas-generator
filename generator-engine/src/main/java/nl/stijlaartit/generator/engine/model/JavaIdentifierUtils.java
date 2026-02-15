@@ -22,7 +22,7 @@ public final class JavaIdentifierUtils {
     }
 
     public static String sanitize(String name) {
-        if (name == null || name.isBlank()) {
+        if (name.isBlank()) {
             return "value";
         }
 

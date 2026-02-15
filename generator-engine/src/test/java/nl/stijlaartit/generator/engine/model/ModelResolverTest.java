@@ -67,7 +67,7 @@ class ModelResolverTest {
         List<ModelFile> models = resolveModels(openAPI);
 
         assertEquals(1, models.size());
-        assertEquals("PostUsersRequest", models.get(0).getName());
+        assertEquals("PostUsersRequest", models.get(0).name());
     }
 
     @Test
@@ -96,7 +96,7 @@ class ModelResolverTest {
         List<ModelFile> models = resolveModels(openAPI);
 
         assertEquals(1, models.size());
-        assertEquals("PostEnumRequest", models.get(0).getName());
+        assertEquals("PostEnumRequest", models.get(0).name());
     }
 
     @Test
@@ -112,7 +112,7 @@ class ModelResolverTest {
         List<ModelFile> models = resolveModels(openAPI);
 
         assertEquals(3, models.size());
-        assertTrue(models.stream().anyMatch(model -> model.getName().equals("Wrapper")));
-        assertEquals(3, models.stream().map(ModelFile::getName).distinct().count());
+        assertTrue(models.stream().anyMatch(model -> model.name().equals("Wrapper")));
+        assertEquals(3, models.stream().map(ModelFile::name).distinct().count());
     }
 }

@@ -18,7 +18,7 @@ public class ApiFile implements GenerationFile {
     }
 
     @Override
-    public String getName() {
+    public String name() {
         return name;
     }
 

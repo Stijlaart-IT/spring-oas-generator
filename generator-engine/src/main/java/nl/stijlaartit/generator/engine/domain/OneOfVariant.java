@@ -1,21 +1,14 @@
 package nl.stijlaartit.generator.engine.domain;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Objects;
 
-public class OneOfVariant {
-    private final String modelName;
-    private final String discriminatorValue;
-
-    public OneOfVariant(String modelName, String discriminatorValue) {
+public record OneOfVariant(String modelName,
+                           @Nullable
+                           String discriminatorValue) {
+    public OneOfVariant(String modelName, @Nullable String discriminatorValue) {
         this.modelName = Objects.requireNonNull(modelName);
         this.discriminatorValue = discriminatorValue;
-    }
-
-    public String getModelName() {
-        return modelName;
-    }
-
-    public String getDiscriminatorValue() {
-        return discriminatorValue;
     }
 }

@@ -29,10 +29,10 @@ class EnumModelWriter {
     }
 
     JavaFile toJavaFile(EnumModel model, Map<String, List<String>> implementsByModel) {
-        TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(model.getName())
+        TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(model.name())
                 .addModifiers(Modifier.PUBLIC);
 
-        for (String interfaceName : implementsByModel.getOrDefault(model.getName(), List.of())) {
+        for (String interfaceName : implementsByModel.getOrDefault(model.name(), List.of())) {
             enumBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName));
         }
 
@@ -77,9 +77,9 @@ class EnumModelWriter {
             enumBuilder.addMethod(MethodSpec.methodBuilder("fromValue")
                     .addAnnotation(jsonCreator)
                     .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                    .returns(ClassName.get(modelsPackage, model.getName()))
+                    .returns(ClassName.get(modelsPackage, model.name()))
                     .addParameter(valueType, "value")
-                    .beginControlFlow("for ($T candidate : values())", ClassName.get(modelsPackage, model.getName()))
+                    .beginControlFlow("for ($T candidate : values())", ClassName.get(modelsPackage, model.name()))
                     .beginControlFlow("if ($T.equals(candidate.value, value))", Objects.class)
                     .addStatement("return candidate")
                     .endControlFlow()
@@ -112,7 +112,7 @@ class EnumModelWriter {
     }
 
     private static String toEnumConstantName(String value) {
-        if (value == null || value.isBlank()) {
+        if (value.isBlank()) {
             return "EMPTY";
         }
         boolean negative = value.startsWith("-");

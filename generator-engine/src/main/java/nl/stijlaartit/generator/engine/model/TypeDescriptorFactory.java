@@ -13,6 +13,7 @@ import nl.stijlaartit.generator.engine.schematype.MapSchemaType;
 import nl.stijlaartit.generator.engine.schematype.RefSchemaType;
 import nl.stijlaartit.generator.engine.schematype.SchemaType;
 import nl.stijlaartit.generator.engine.schematype.SchemaTypes;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -26,7 +27,8 @@ public final class TypeDescriptorFactory {
         this.registry = Objects.requireNonNull(registry);
     }
 
-    public TypeDescriptor build(Schema<?> schema) {
+
+    public TypeDescriptor build(@Nullable Schema<?> schema) {
         if (schema == null) {
             return TypeDescriptor.simple("java.lang.Object");
         }
@@ -41,32 +43,37 @@ public final class TypeDescriptorFactory {
         }
 
         SchemaType schemaType = resolveSchemaType(schema);
-        if (schemaType instanceof GeneratedSchemaType generated) {
-            return TypeDescriptor.complex(generated.name());
-        }
-        if (schemaType instanceof ListSchemaType listType) {
-            TypeDescriptor elementType = build(listType.itemInstance().getSchema());
-            return TypeDescriptor.list(elementType);
-        }
-        if (schemaType instanceof MapSchemaType mapType) {
-            TypeDescriptor valueType = build(mapType.valueInstance().getSchema());
-            return TypeDescriptor.map(valueType);
-        }
-        if (schemaType instanceof RefSchemaType refType) {
-            String refName = extractRefName(refType.ref());
-            Schema<?> resolved = resolveComponentSchema(refName);
-            if (resolved != null) {
-                return build(resolved);
+        switch (schemaType) {
+            case GeneratedSchemaType generated -> {
+                return TypeDescriptor.complex(generated.name());
             }
-            return TypeDescriptor.complex(NamingUtil.toPascalCase(refName));
-        }
-        if (schemaType instanceof JavaSchemaType) {
-            return resolvePrimitiveType(schema);
+            case ListSchemaType listType -> {
+                TypeDescriptor elementType = build(listType.itemInstance().schema());
+                return TypeDescriptor.list(elementType);
+            }
+            case MapSchemaType mapType -> {
+                TypeDescriptor valueType = build(mapType.valueInstance().schema());
+                return TypeDescriptor.map(valueType);
+            }
+            case RefSchemaType refType -> {
+                String refName = extractRefName(refType.ref());
+                Schema<?> resolved = resolveComponentSchema(refName);
+                if (resolved != null) {
+                    return build(resolved);
+                }
+                return TypeDescriptor.complex(NamingUtil.toPascalCase(refName));
+            }
+            case JavaSchemaType ignored -> {
+                return resolvePrimitiveType(schema);
+            }
+            case null, default -> {
+            }
         }
 
         return resolvePrimitiveType(schema);
     }
 
+    @Nullable
     private SchemaType resolveSchemaType(Schema<?> schema) {
         try {
             return schemaTypes.resolveFromSchema(schema);
@@ -75,11 +82,12 @@ public final class TypeDescriptorFactory {
         }
     }
 
+    @Nullable
     private Schema<?> resolveComponentSchema(String refName) {
         for (SchemaInstance instance : registry.getInstances()) {
-            if (instance.getParent() instanceof SchemaParent.ComponentParent parent) {
-                if (parent.componentName().equals(refName)) {
-                    return instance.getSchema();
+            if (instance.parent() instanceof SchemaParent.ComponentParent(String componentName)) {
+                if (componentName.equals(refName)) {
+                    return instance.schema();
                 }
             }
         }
@@ -111,7 +119,7 @@ public final class TypeDescriptorFactory {
         };
     }
 
-    private TypeDescriptor mapStringType(String format) {
+    private TypeDescriptor mapStringType(@Nullable String format) {
         if (format == null) {
             return TypeDescriptor.simple("java.lang.String");
         }

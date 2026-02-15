@@ -4,21 +4,8 @@ import nl.stijlaartit.generator.engine.schemas.SchemaInstance;
 
 import java.util.List;
 
-public class EmptySchemaType implements JavaSchemaType {
-    private final List<SchemaInstance> instances;
-
+public record EmptySchemaType(List<SchemaInstance> instances) implements JavaSchemaType {
     public EmptySchemaType(List<SchemaInstance> instances) {
         this.instances = List.copyOf(instances);
-    }
-
-
-    @Override
-    public String javaTypeName() {
-        return "java.lang.Object";
-    }
-
-    @Override
-    public List<SchemaInstance> instances() {
-        return instances;
     }
 }

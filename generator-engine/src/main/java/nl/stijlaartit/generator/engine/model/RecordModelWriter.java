@@ -42,44 +42,44 @@ class RecordModelWriter {
     JavaFile toJavaFile(RecordModel model, Map<String, List<String>> implementsByModel) {
         MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder();
 
-        for (FieldModel field : model.getFields()) {
+        for (FieldModel field : model.fields()) {
             ParameterSpec.Builder paramBuilder = ParameterSpec.builder(
-                    typeNameResolver.resolve(field.getType()),
-                    field.getName()
+                    typeNameResolver.resolve(field.type()),
+                    field.name()
             );
 
-            if (field.isNullable()) {
+            if (field.nullable()) {
                 paramBuilder.addAnnotation(AnnotationSpec.builder(NULLABLE).build());
             }
 
             AnnotationSpec.Builder jsonProperty = AnnotationSpec.builder(JSON_PROPERTY)
-                    .addMember("required", "$L", field.isRequired());
-            if (!field.getName().equals(field.getJsonName())) {
-                jsonProperty.addMember("value", "$S", field.getJsonName());
+                    .addMember("required", "$L", field.required());
+            if (!field.name().equals(field.jsonName())) {
+                jsonProperty.addMember("value", "$S", field.jsonName());
             }
             paramBuilder.addAnnotation(jsonProperty.build());
 
-            if (field.isRequired()) {
+            if (field.required()) {
                 paramBuilder.addAnnotation(AnnotationSpec.builder(JSON_INCLUDE)
                         .addMember("value", "$T.ALWAYS", JSON_INCLUDE_INCLUDE)
                         .build());
             }
-            if (field.isJsonValue()) {
+            if (field.jsonValue()) {
                 paramBuilder.addAnnotation(AnnotationSpec.builder(JSON_VALUE).build());
             }
 
             constructorBuilder.addParameter(paramBuilder.build());
         }
 
-        TypeSpec.Builder recordBuilder = TypeSpec.recordBuilder(model.getName())
+        TypeSpec.Builder recordBuilder = TypeSpec.recordBuilder(model.name())
                 .addModifiers(Modifier.PUBLIC)
                 .recordConstructor(constructorBuilder.build());
 
-        for (String interfaceName : implementsByModel.getOrDefault(model.getName(), List.of())) {
+        for (String interfaceName : implementsByModel.getOrDefault(model.name(), List.of())) {
             recordBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName));
         }
 
-        if (config.generateBuilders()) {
+        if (config.builderMode() != RecordModelWriterConfig.BuilderMode.DISABLED) {
             recordBuilder.addMethod(builderMethod(model));
             recordBuilder.addType(builderType(model));
         }
@@ -90,7 +90,7 @@ class RecordModelWriter {
     }
 
     private MethodSpec builderMethod(RecordModel model) {
-        ClassName builderType = ClassName.get(modelsPackage, model.getName(), "Builder");
+        ClassName builderType = ClassName.get(modelsPackage, model.name(), "Builder");
         return MethodSpec.methodBuilder("builder")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(builderType)
@@ -102,11 +102,11 @@ class RecordModelWriter {
         TypeSpec.Builder builder = TypeSpec.classBuilder("Builder")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL);
 
-        ClassName builderType = ClassName.get(modelsPackage, model.getName(), "Builder");
-        for (FieldModel field : model.getFields()) {
+        ClassName builderType = ClassName.get(modelsPackage, model.name(), "Builder");
+        for (FieldModel field : model.fields()) {
             builder.addField(FieldSpec.builder(
-                            typeNameResolver.resolve(field.getType()),
-                            field.getName(),
+                            typeNameResolver.resolve(field.type()),
+                            field.name(),
                             Modifier.PRIVATE)
                     .build());
             builder.addMethod(builderSetter(builderType, field));
@@ -117,30 +117,30 @@ class RecordModelWriter {
     }
 
     private MethodSpec builderSetter(ClassName builderType, FieldModel field) {
-        var typeName = typeNameResolver.resolve(field.getType());
-        return MethodSpec.methodBuilder(field.getName())
+        var typeName = typeNameResolver.resolve(field.type());
+        return MethodSpec.methodBuilder(field.name())
                 .addModifiers(Modifier.PUBLIC)
                 .returns(builderType)
-                .addParameter(typeName, field.getName())
-                .addStatement("this.$N = $N", field.getName(), field.getName())
+                .addParameter(typeName, field.name())
+                .addStatement("this.$N = $N", field.name(), field.name())
                 .addStatement("return this")
                 .build();
     }
 
     private MethodSpec builderBuildMethod(RecordModel model) {
-        ClassName recordType = ClassName.get(modelsPackage, model.getName());
+        ClassName recordType = ClassName.get(modelsPackage, model.name());
         CodeBlock.Builder args = CodeBlock.builder();
-        boolean strictMode = !config.disableBuilderStrictMode();
-        for (int i = 0; i < model.getFields().size(); i++) {
-            FieldModel field = model.getFields().get(i);
+        boolean strictMode = config.builderMode() == RecordModelWriterConfig.BuilderMode.STRICT;
+        for (int i = 0; i < model.fields().size(); i++) {
+            FieldModel field = model.fields().get(i);
             if (i > 0) {
                 args.add(", ");
             }
-            boolean requireNonNull = strictMode && !field.isNullable();
+            boolean requireNonNull = strictMode && !field.nullable();
             if (requireNonNull) {
-                args.add("$T.requireNonNull($N, $S)", Objects.class, field.getName(), field.getName());
+                args.add("$T.requireNonNull($N, $S)", Objects.class, field.name(), field.name());
             } else {
-                args.add("$N", field.getName());
+                args.add("$N", field.name());
             }
         }
         return MethodSpec.methodBuilder("build")

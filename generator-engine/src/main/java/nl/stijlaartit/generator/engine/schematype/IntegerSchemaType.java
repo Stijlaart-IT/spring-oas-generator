@@ -4,21 +4,9 @@ import nl.stijlaartit.generator.engine.schemas.SchemaInstance;
 
 import java.util.List;
 
-public final class IntegerSchemaType implements JavaSchemaType {
-
-    private final List<SchemaInstance> instances;
+public record IntegerSchemaType(List<SchemaInstance> instances) implements JavaSchemaType {
 
     public IntegerSchemaType(List<SchemaInstance> instances) {
         this.instances = List.copyOf(instances);
-    }
-
-    @Override
-    public List<SchemaInstance> instances() {
-        return instances;
-    }
-
-    @Override
-    public String javaTypeName() {
-        return "java.lang.Integer";
     }
 }

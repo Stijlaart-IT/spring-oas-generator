@@ -8,7 +8,6 @@ class JavaIdentifierUtilsTest {
 
     @Test
     void sanitizesNullAndBlankToDefault() {
-        assertEquals("value", JavaIdentifierUtils.sanitize(null));
         assertEquals("value", JavaIdentifierUtils.sanitize(""));
         assertEquals("value", JavaIdentifierUtils.sanitize("   "));
     }

@@ -81,23 +81,23 @@ public final class NamingUtil {
     private static PathName resolvePathToComponent(SchemaInstance instance) {
         List<String> segments = new ArrayList<>();
         SchemaInstance current = instance;
-        while (current.getParent() instanceof SchemaParent.SchemaInstanceParent(
+        while (current.parent() instanceof SchemaParent.SchemaInstanceParent(
                 SchemaInstance parent, SchemaParent.SchemaRelation relation
         )) {
-            String segment = resolveSegment(relation, current.getJsonPath());
+            String segment = resolveSegment(relation, current.jsonPath());
             if (segment != null && !segment.isBlank()) {
                 segments.add(segment);
             }
             current = parent;
         }
-        if (current.getParent() instanceof SchemaParent.ComponentParent(String componentName)) {
+        if (current.parent() instanceof SchemaParent.ComponentParent(String componentName)) {
             if (segments.isEmpty()) {
                 return null;
             }
             Collections.reverse(segments);
             return new PathName(toPascalCase(componentName), segments);
         }
-        if (current.getParent() instanceof SchemaParent.ComponentParameterParent(String parameterName)) {
+        if (current.parent() instanceof SchemaParent.ComponentParameterParent(String parameterName)) {
             Collections.reverse(segments);
             return new PathName(toPascalCase(parameterName) + "Parameter", segments);
         }
@@ -108,17 +108,17 @@ public final class NamingUtil {
         List<String> segments = new ArrayList<>();
         SchemaInstance current = instance;
         int depth = 0;
-        while (current.getParent() instanceof SchemaParent.SchemaInstanceParent(
+        while (current.parent() instanceof SchemaParent.SchemaInstanceParent(
                 SchemaInstance parent, SchemaParent.SchemaRelation relation
         )) {
-            String segment = resolveSegment(relation, current.getJsonPath());
+            String segment = resolveSegment(relation, current.jsonPath());
             if (segment != null && !segment.isBlank()) {
                 segments.add(segment);
             }
             current = parent;
             depth++;
         }
-        if (current.getParent() instanceof SchemaParent.OperationRequestParent(
+        if (current.parent() instanceof SchemaParent.OperationRequestParent(
                 Operation operation, PathItem.HttpMethod method, String path
         )) {
             String base = toPascalCase(resolveOperationId(
@@ -129,7 +129,7 @@ public final class NamingUtil {
             Collections.reverse(segments);
             return new PathName(base, segments);
         }
-        if (current.getParent() instanceof SchemaParent.OperationResponseParent responseParent) {
+        if (current.parent() instanceof SchemaParent.OperationResponseParent responseParent) {
             String base = toPascalCase(resolveOperationId(
                     responseParent.operation(), responseParent.method(), responseParent.path())) + "Response";
             if (segments.isEmpty() && depth > 0) {
@@ -138,7 +138,7 @@ public final class NamingUtil {
             Collections.reverse(segments);
             return new PathName(base, segments);
         }
-        if (current.getParent() instanceof SchemaParent.OperationParameterParent(
+        if (current.parent() instanceof SchemaParent.OperationParameterParent(
                 Operation operation, PathItem.HttpMethod method, String path, String parameterName, String parameterIn
         )) {
             String operationId = resolveOperationId(
@@ -172,9 +172,6 @@ public final class NamingUtil {
             case SchemaParent.SchemaRelation.AllOfRelation ignored -> null;
             case SchemaParent.SchemaRelation.AnyOfRelation ignored -> null;
             case SchemaParent.SchemaRelation.AdditionalPropertiesRelation ignored -> "AdditionalProperties";
-            case SchemaParent.SchemaRelation.OtherRelation otherRelation ->
-                    throw new IllegalStateException("Unsupported schema relation: "
-                            + otherRelation.description() + " at " + currentPath);
         };
     }
 

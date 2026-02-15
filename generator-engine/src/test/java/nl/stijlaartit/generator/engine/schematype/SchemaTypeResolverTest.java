@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -60,7 +61,7 @@ class SchemaTypeResolverTest {
         assertTrue(type instanceof ListSchemaType);
         ListSchemaType listType = (ListSchemaType) type;
         assertNotNull(listType.itemInstance());
-        assertTrue(listType.itemInstance().getSchema() instanceof StringSchema);
+        assertTrue(listType.itemInstance().schema() instanceof StringSchema);
     }
 
     @Test
@@ -109,8 +110,8 @@ class SchemaTypeResolverTest {
 
         UnionSchemaType unionType = (UnionSchemaType) type;
         assertEquals(2, unionType.variantInstances().size());
-        assertTrue(unionType.variantInstances().stream().anyMatch(instance -> instance.getSchema() instanceof StringSchema));
-        assertTrue(unionType.variantInstances().stream().anyMatch(instance -> instance.getSchema() instanceof IntegerSchema));
+        assertTrue(unionType.variantInstances().stream().anyMatch(instance -> instance.schema() instanceof StringSchema));
+        assertTrue(unionType.variantInstances().stream().anyMatch(instance -> instance.schema() instanceof IntegerSchema));
     }
 
     @Test
@@ -134,7 +135,8 @@ class SchemaTypeResolverTest {
         schemas.put("User", new ObjectSchema().addProperties("id", new StringSchema()));
 
         SchemaTypes types = resolveMultiple(schemas);
-        Map<String, GeneratedSchemaType> generated = types.generatedByName();
+        Map<String, GeneratedSchemaType> generated = types.generated().stream()
+                .collect(Collectors.toMap(GeneratedSchemaType::name, type -> type));
 
         assertTrue(generated.containsKey("User"));
         assertTrue(generated.containsKey("User2"));
