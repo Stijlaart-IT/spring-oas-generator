@@ -4,7 +4,9 @@ import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
+import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.ParameterSpec;
+import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import nl.stijlaartit.generator.engine.domain.ApiFile;
 import nl.stijlaartit.generator.engine.domain.GenerationFileWriter;
@@ -25,6 +27,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
 public class ClientWriter implements GenerationFileWriter<ApiFile> {
 
@@ -49,13 +52,21 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
             "org.springframework.web.bind.annotation", "RequestBody");
     private static final ClassName NULLABLE =
             ClassName.get("org.jspecify.annotations", "Nullable");
+    private static final ClassName MONO =
+            ClassName.get("reactor.core.publisher", "Mono");
 
     private final TypeNameResolver typeNameResolver;
     private final String clientPackage;
+    private final ClientWriterConfig config;
 
     public ClientWriter(String clientPackage, String modelsPackage) {
+        this(clientPackage, modelsPackage, ClientWriterConfig.defaultConfig());
+    }
+
+    public ClientWriter(String clientPackage, String modelsPackage, ClientWriterConfig config) {
         this.clientPackage = clientPackage;
         this.typeNameResolver = new TypeNameResolver(modelsPackage);
+        this.config = Objects.requireNonNull(config, "config");
     }
 
     @Override
@@ -97,9 +108,7 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
             methodBuilder.addAnnotation(Deprecated.class);
         }
 
-        if (operation.responseType() != null) {
-            methodBuilder.returns(typeNameResolver.resolve(operation.responseType()));
-        }
+        methodBuilder.returns(resolveReturnType(operation));
 
         for (ParameterModel param : operation.parameters()) {
             methodBuilder.addParameter(toParameterSpec(param));
@@ -114,6 +123,22 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
         }
 
         return methodBuilder.build();
+    }
+
+    private TypeName resolveReturnType(OperationModel operation) {
+        if (operation.responseType() == null) {
+            if (config.ioMode() == ClientWriterConfig.IoMode.REACTIVE) {
+                return ParameterizedTypeName.get(MONO, ClassName.get(Void.class));
+            }
+            return TypeName.VOID;
+        }
+
+        TypeName baseType = typeNameResolver.resolve(operation.responseType());
+        if (config.ioMode() == ClientWriterConfig.IoMode.REACTIVE) {
+            TypeName boxed = baseType.isPrimitive() ? baseType.box() : baseType;
+            return ParameterizedTypeName.get(MONO, boxed);
+        }
+        return baseType;
     }
 
     private String methodNameFromOperationName(OperationName name) {

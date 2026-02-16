@@ -58,6 +58,27 @@ class ClientWriterTest {
     }
 
     @Test
+    void wrapsResponseTypeInMonoWhenReactive() {
+        ClientWriter reactiveWriter = new ClientWriter(
+                "com.example.client",
+                "com.example.models",
+                new ClientWriterConfig(ClientWriterConfig.IoMode.REACTIVE)
+        );
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel(OperationName.id("addPet"), HttpMethod.POST,
+                        "/pet", List.of(),
+                        TypeDescriptor.complex("Pet"),
+                        TypeDescriptor.complex("Pet"),
+                        false)
+        ));
+
+        String source = reactiveWriter.toJavaFile(client).toString();
+
+        assertTrue(source.contains("Mono<Pet> addPet("));
+        assertTrue(source.contains("import reactor.core.publisher.Mono;"));
+    }
+
+    @Test
     void generatesVoidReturnForNoResponseBody() {
         ApiFile client = new ApiFile("PetApi", List.of(
                 new OperationModel(OperationName.id("deletePet"), HttpMethod.DELETE,
@@ -73,6 +94,29 @@ class ClientWriterTest {
 
         assertTrue(source.contains("@DeleteExchange(\"/pet/{petId}\")"));
         assertTrue(source.contains("void deletePet("));
+    }
+
+    @Test
+    void wrapsVoidReturnTypeInMonoWhenReactive() {
+        ClientWriter reactiveWriter = new ClientWriter(
+                "com.example.client",
+                "com.example.models",
+                new ClientWriterConfig(ClientWriterConfig.IoMode.REACTIVE)
+        );
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel(OperationName.id("deletePet"), HttpMethod.DELETE,
+                        "/pet/{petId}",
+                        List.of(new ParameterModel("petId",
+                                ParameterLocation.PATH,
+                                TypeDescriptor.simple("java.lang.Long"), true)),
+                        null, null,
+                        false)
+        ));
+
+        String source = reactiveWriter.toJavaFile(client).toString();
+
+        assertTrue(source.contains("Mono<Void> deletePet("));
+        assertTrue(source.contains("import reactor.core.publisher.Mono;"));
     }
 
     @Test
