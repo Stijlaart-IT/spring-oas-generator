@@ -16,7 +16,7 @@ import javax.lang.model.element.Modifier;
 import java.io.IOException;
 import java.nio.file.Path;
 
-final class NullWrapperWriter {
+public final class NullWrapperWriter {
     private static final ClassName JSON_VALUE =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonValue");
     private static final ClassName JSON_DESERIALIZE =
@@ -38,15 +38,15 @@ final class NullWrapperWriter {
 
     private final String modelsPackage;
 
-    NullWrapperWriter(String modelsPackage) {
+    public NullWrapperWriter(String modelsPackage) {
         this.modelsPackage = modelsPackage;
     }
 
-    void write(Path outputDirectory) throws IOException {
+    public void write(Path outputDirectory) throws IOException {
         toJavaFile().writeTo(outputDirectory);
     }
 
-    JavaFile toJavaFile() {
+    public JavaFile toJavaFile() {
         ClassName nullWrapper = ClassName.get(modelsPackage, "NullWrapper");
         ClassName deserializer = ClassName.get(modelsPackage, "NullWrapper", "Deserializer");
         TypeVariableName typeVar = TypeVariableName.get("T");

@@ -122,20 +122,6 @@ class ClientWriterTest {
         assertTrue(source.contains("import reactor.core.publisher.Mono;"));
     }
 
-    @Test
-    void addsGeneratedAnnotationToPackageInfo(@TempDir Path tempDir) throws Exception {
-        writer.writeAll(List.of(), tempDir);
-        Path packageInfo = tempDir.resolve("com/example/client/package-info.java");
-        String source = Files.readString(packageInfo);
-
-        assertTrue(source.contains("value = \"" + GeneratedAnnotation.VALUE + "\""));
-        Pattern pattern = Pattern.compile(
-                "@(?:javax\\.annotation\\.processing\\.)?Generated\\(\\s*value = \".+?\"\\s*,\\s*date = \"\\d{4}-\\d{2}-\\d{2}T[^\"]+\"\\s*\\)",
-                Pattern.DOTALL
-        );
-        assertTrue(pattern.matcher(source).find());
-    }
-
     private static void assertGeneratedAnnotation(String source) {
         assertTrue(source.contains("value = \"" + GeneratedAnnotation.VALUE + "\""));
         Pattern pattern = Pattern.compile(

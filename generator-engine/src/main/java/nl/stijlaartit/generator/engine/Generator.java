@@ -14,6 +14,8 @@ import nl.stijlaartit.generator.engine.model.RecordModelWriterConfig;
 import nl.stijlaartit.generator.engine.model.TypeDescriptorFactory;
 import nl.stijlaartit.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.generator.engine.schematype.SchemaTypeResolver;
+import nl.stijlaartit.generator.engine.utility.UtilityResolver;
+import nl.stijlaartit.generator.engine.utility.UtilityWriter;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -52,11 +54,15 @@ public class Generator {
         final var modelWriter = new ModelWriter(modelsPackage, RecordModelWriterConfig.defaultConfig());
         final var clientResolver = new ClientResolver(typeDescriptorFactory);
         final var clientWriter = new ClientWriter(clientPackage, modelsPackage);
+        final var utilityResolver = new UtilityResolver(modelsPackage, clientPackage);
+        final var utilityWriter = new UtilityWriter();
 
         final var modelFiles = modelResolver.resolve(schemaTypes);
         final var clientFiles = clientResolver.resolve(openAPI);
+        final var utilityFiles = utilityResolver.resolve(modelFiles, clientFiles);
         writeAspect("model", modelWriter, modelFiles, outputDirectory);
         writeAspect("client", clientWriter, clientFiles, outputDirectory);
+        writeAspect("utility", utilityWriter, utilityFiles, outputDirectory);
     }
 
     private static <T extends GenerationFile> void writeAspect(String aspectId, GenerationFileWriter<T> writer, List<T> files, Path output)

@@ -25,7 +25,6 @@ import nl.stijlaartit.generator.engine.naming.OperationIdNaming;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -75,7 +74,6 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
     @Override
     public WriteReport writeAll(List<ApiFile> clients, Path outputDirectory) throws IOException {
         WriteReport report = new WriteReport();
-        report.recordFile(writePackageInfo(outputDirectory));
         for (ApiFile client : clients) {
             write(client, outputDirectory);
             report.recordFile(clientPath(outputDirectory, client.name()));
@@ -214,24 +212,8 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
         return paramBuilder.addAnnotation(annotationBuilder.build()).build();
     }
 
-    private Path writePackageInfo(Path outputDirectory) throws IOException {
-        Path packageDir = outputDirectory.resolve(clientPackage.replace('.', '/'));
-        Files.createDirectories(packageDir);
-        Path packageInfo = packageDir.resolve("package-info.java");
-        Files.writeString(packageInfo, packageInfoSource(clientPackage));
-        return packageInfo;
-    }
-
     private Path clientPath(Path outputDirectory, String clientName) {
         return outputDirectory.resolve(clientPackage.replace('.', '/'))
                 .resolve(clientName + ".java");
-    }
-
-    private static String packageInfoSource(String packageName) {
-        return GeneratedAnnotation.sourceLine() + "\n"
-                + "@NullMarked\n"
-                + "package " + packageName + ";\n\n"
-                + "import javax.annotation.processing.Generated;\n"
-                + "import org.jspecify.annotations.NullMarked;\n";
     }
 }
