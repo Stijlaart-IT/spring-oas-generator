@@ -28,6 +28,7 @@ class RecordModelWriter {
             ClassName.get("com.fasterxml.jackson.annotation", "JsonInclude", "Include");
     private static final ClassName NULLABLE =
             ClassName.get("org.jspecify.annotations", "Nullable");
+    private static final String NULL_WRAPPER_NAME = "NullWrapper";
 
     private final TypeNameResolver typeNameResolver;
     private final String modelsPackage;
@@ -43,12 +44,13 @@ class RecordModelWriter {
         MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder();
 
         for (FieldModel field : model.fields()) {
+            var fieldType = resolveFieldType(field);
             ParameterSpec.Builder paramBuilder = ParameterSpec.builder(
-                    typeNameResolver.resolve(field.type()),
+                    fieldType,
                     field.name()
             );
 
-            if (field.nullable()) {
+            if (field.nullable() || !field.required()) {
                 paramBuilder.addAnnotation(AnnotationSpec.builder(NULLABLE).build());
             }
 
@@ -59,11 +61,13 @@ class RecordModelWriter {
             }
             paramBuilder.addAnnotation(jsonProperty.build());
 
+            AnnotationSpec.Builder jsonInclude = AnnotationSpec.builder(JSON_INCLUDE);
             if (field.required()) {
-                paramBuilder.addAnnotation(AnnotationSpec.builder(JSON_INCLUDE)
-                        .addMember("value", "$T.ALWAYS", JSON_INCLUDE_INCLUDE)
-                        .build());
+                jsonInclude.addMember("value", "$T.ALWAYS", JSON_INCLUDE_INCLUDE);
+            } else {
+                jsonInclude.addMember("value", "$T.NON_NULL", JSON_INCLUDE_INCLUDE);
             }
+            paramBuilder.addAnnotation(jsonInclude.build());
             if (field.jsonValue()) {
                 paramBuilder.addAnnotation(AnnotationSpec.builder(JSON_VALUE).build());
             }
@@ -105,11 +109,15 @@ class RecordModelWriter {
         ClassName builderType = ClassName.get(modelsPackage, model.name(), "Builder");
         for (FieldModel field : model.fields()) {
             builder.addField(FieldSpec.builder(
-                            typeNameResolver.resolve(field.type()),
+                            resolveFieldType(field),
                             field.name(),
                             Modifier.PRIVATE)
+                    .addAnnotation(AnnotationSpec.builder(NULLABLE).build())
                     .build());
             builder.addMethod(builderSetter(builderType, field));
+            if (isNullWrapperField(field)) {
+                builder.addMethod(builderNullWrapperValueSetter(builderType, field));
+            }
         }
 
         builder.addMethod(builderBuildMethod(model));
@@ -117,12 +125,31 @@ class RecordModelWriter {
     }
 
     private MethodSpec builderSetter(ClassName builderType, FieldModel field) {
-        var typeName = typeNameResolver.resolve(field.type());
+        var typeName = resolveFieldType(field);
+        ParameterSpec.Builder parameter = ParameterSpec.builder(typeName, field.name());
+        if (!field.required() || field.nullable()) {
+            parameter.addAnnotation(AnnotationSpec.builder(NULLABLE).build());
+        }
+        MethodSpec.Builder builder = MethodSpec.methodBuilder(field.name())
+                .addModifiers(Modifier.PUBLIC)
+                .returns(builderType)
+                .addParameter(parameter.build());
+        return builder
+                .addStatement("this.$N = $N", field.name(), field.name())
+                .addStatement("return this")
+                .build();
+    }
+
+    private MethodSpec builderNullWrapperValueSetter(ClassName builderType, FieldModel field) {
+        var wrappedType = typeNameResolver.resolve(field.type());
+        ParameterSpec.Builder parameter = ParameterSpec.builder(wrappedType, field.name())
+                .addAnnotation(AnnotationSpec.builder(NULLABLE).build());
         return MethodSpec.methodBuilder(field.name())
                 .addModifiers(Modifier.PUBLIC)
                 .returns(builderType)
-                .addParameter(typeName, field.name())
-                .addStatement("this.$N = $N", field.name(), field.name())
+                .addParameter(parameter.build())
+                .addStatement("this.$N = new $T<>($N)", field.name(),
+                        ClassName.get(modelsPackage, NULL_WRAPPER_NAME), field.name())
                 .addStatement("return this")
                 .build();
     }
@@ -136,7 +163,7 @@ class RecordModelWriter {
             if (i > 0) {
                 args.add(", ");
             }
-            boolean requireNonNull = strictMode && !field.nullable();
+            boolean requireNonNull = strictMode && field.required() && !field.nullable();
             if (requireNonNull) {
                 args.add("$T.requireNonNull($N, $S)", Objects.class, field.name(), field.name());
             } else {
@@ -148,5 +175,20 @@ class RecordModelWriter {
                 .returns(recordType)
                 .addStatement("return new $T($L)", recordType, args.build())
                 .build();
+    }
+
+    private com.palantir.javapoet.TypeName resolveFieldType(FieldModel field) {
+        var baseType = typeNameResolver.resolve(field.type());
+        if (isNullWrapperField(field)) {
+            return com.palantir.javapoet.ParameterizedTypeName.get(
+                    ClassName.get(modelsPackage, NULL_WRAPPER_NAME),
+                    baseType
+            );
+        }
+        return baseType;
+    }
+
+    private boolean isNullWrapperField(FieldModel field) {
+        return !field.required() && field.nullable();
     }
 }

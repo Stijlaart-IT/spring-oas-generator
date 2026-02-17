@@ -30,6 +30,7 @@
         <module>realworld-validation</module>
         <module>session-validation</module>
         <module>inline-request-body-validation</module>
+        <module>variants-validation</module>
     </modules>
 
     <dependencyManagement>

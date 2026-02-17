@@ -13,6 +13,7 @@ rm -rf \
   "$PROJECT_DIR/example-validation/realworld-validation/src/main/java/nl/stijlaartit/realworld/generated" \
   "$PROJECT_DIR/example-validation/session-validation/src/main/java/nl/stijlaartit/session/generated" \
   "$PROJECT_DIR/example-validation/inline-request-body-validation/src/main/java/nl/stijlaartit/inlinerequestbody/generated" \
+  "$PROJECT_DIR/example-validation/variants-validation/src/main/java/nl/stijlaartit/variants/generated" \
   "$PROJECT_DIR/example-validation/spotify-validation/src/main/java/nl/stijlaartit/spotify/generated" \
   "$PROJECT_DIR/example-validation/pokeapi-validation/src/main/java/nl/stijlaartit/pokeapi/generated" \
   "$PROJECT_DIR/example-validation/petstore-validation-maven-plugin/target/generated-sources/nl/stijlaartit/petstore/generated"
@@ -40,6 +41,12 @@ java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0
   "$PROJECT_DIR/examples/inline-request-body.json" \
   "$PROJECT_DIR/example-validation/inline-request-body-validation/src/main/java" \
   "nl.stijlaartit.inlinerequestbody.generated"
+
+echo "Generating variants sources..."
+java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0.0.1-SNAPSHOT.jar" \
+  "$PROJECT_DIR/examples/variants.yml" \
+  "$PROJECT_DIR/example-validation/variants-validation/src/main/java" \
+  "nl.stijlaartit.variants.generated"
 
 echo "Generating spotify sources..."
 java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0.0.1-SNAPSHOT.jar" \

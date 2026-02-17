@@ -9,8 +9,6 @@ import nl.stijlaartit.petstore.generated.models.Category;
 import nl.stijlaartit.petstore.generated.models.Pet;
 import nl.stijlaartit.petstore.generated.models.PetStatus;
 import nl.stijlaartit.petstore.generated.models.Tag;
-import okhttp3.Headers;
-import okhttp3.HttpUrl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -18,14 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.ResourceAccessException;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 public class IntegrationTest {
@@ -77,7 +73,7 @@ public class IntegrationTest {
         assertThat(request.getMethod()).isEqualTo("POST");
         assertThat(request.getHeaders().get("Content-Type")).isEqualTo("application/json");
         assertThat(request.getUrl().encodedPath()).isEqualTo("/pet");
-        assertThat(request.getBody().utf8()).isEqualTo("{\"id\":null,\"name\":\"Name\",\"category\":{\"id\":1,\"name\":\"Name\"},\"photoUrls\":[],\"tags\":[],\"status\":\"available\"}");
+        assertThat(request.getBody().utf8()).isEqualTo("{\"name\":\"Name\",\"category\":{\"id\":1,\"name\":\"Name\"},\"photoUrls\":[],\"tags\":[],\"status\":\"available\"}");
     }
 
     @Test
@@ -100,6 +96,6 @@ public class IntegrationTest {
         assertThat(request.getMethod()).isEqualTo("POST");
         assertThat(request.getHeaders().get("Content-Type")).isEqualTo("application/json");
         assertThat(request.getUrl().encodedPath()).isEqualTo("/pet");
-        assertThat(request.getBody().utf8()).isEqualTo("{\"id\":null,\"name\":\"Name\",\"category\":{\"id\":1,\"name\":\"Name\"},\"photoUrls\":[],\"tags\":[],\"status\":\"available\"}");
+        assertThat(request.getBody().utf8()).isEqualTo("{\"name\":\"Name\",\"category\":{\"id\":1,\"name\":\"Name\"},\"photoUrls\":[],\"tags\":[],\"status\":\"available\"}");
     }
 }

@@ -1,0 +1,23 @@
+openapi: 3.0.2
+info:
+  title: Variants Example
+  version: 0.0.0
+components:
+  schemas:
+    RequiredAndNullable:
+      type: object
+      required:
+        - requiredNullable
+        - requiredNonNullable
+      properties:
+        requiredNullable:
+          type: string
+          nullable: true
+        requiredNonNullable:
+          type: string
+        optionalNullable:
+          type: string
+          nullable: true
+        optionalNonNullable:
+          type: string
+paths: {}

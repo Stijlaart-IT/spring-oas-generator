@@ -2,6 +2,7 @@ package nl.stijlaartit.generator.engine.model;
 
 import com.palantir.javapoet.JavaFile;
 import nl.stijlaartit.generator.engine.domain.EnumModel;
+import nl.stijlaartit.generator.engine.domain.FieldModel;
 import nl.stijlaartit.generator.engine.domain.GenerationFileWriter;
 import nl.stijlaartit.generator.engine.domain.ModelFile;
 import nl.stijlaartit.generator.engine.domain.RecordModel;
@@ -23,18 +24,23 @@ public class ModelWriter implements GenerationFileWriter<ModelFile> {
     private final RecordModelWriter recordModelWriter;
     private final EnumModelWriter enumModelWriter;
     private final UnionModelWriter unionModelWriter;
+    private final NullWrapperWriter nullWrapperWriter;
 
     public ModelWriter(String modelsPackage, RecordModelWriterConfig recordModelWriterConfig) {
         this.modelsPackage = modelsPackage;
         this.recordModelWriter = new RecordModelWriter(modelsPackage, recordModelWriterConfig);
         this.enumModelWriter = new EnumModelWriter(modelsPackage);
         this.unionModelWriter = new UnionModelWriter(modelsPackage);
+        this.nullWrapperWriter = new NullWrapperWriter(modelsPackage);
     }
 
     @Override
     public WriteReport writeAll(List<ModelFile> models, Path outputDirectory) throws IOException {
         WriteReport report = new WriteReport();
         report.recordFile(writePackageInfo(outputDirectory));
+        if (requiresNullWrapper(models)) {
+            report.recordFile(writeNullWrapper(outputDirectory));
+        }
         Map<String, List<String>> implementsByModel = resolveImplementsByModel(models);
         for (ModelFile model : models) {
             write(model, outputDirectory, implementsByModel);
@@ -69,10 +75,30 @@ public class ModelWriter implements GenerationFileWriter<ModelFile> {
                 .resolve(modelName + ".java");
     }
 
+    private Path writeNullWrapper(Path outputDirectory) throws IOException {
+        nullWrapperWriter.write(outputDirectory);
+        return outputDirectory.resolve(modelsPackage.replace('.', '/'))
+                .resolve("NullWrapper.java");
+    }
+
     private static String packageInfoSource(String packageName) {
         return "@NullMarked\n"
                 + "package " + packageName + ";\n\n"
                 + "import org.jspecify.annotations.NullMarked;\n";
+    }
+
+
+    private static boolean requiresNullWrapper(List<ModelFile> models) {
+        for (ModelFile model : models) {
+            if (model instanceof RecordModel recordModel) {
+                for (FieldModel field : recordModel.fields()) {
+                    if (!field.required() && field.nullable()) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private static Map<String, List<String>> resolveImplementsByModel(List<ModelFile> models) {

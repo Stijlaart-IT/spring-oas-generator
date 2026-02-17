@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -149,9 +148,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, AudioAnalysisObject.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void audioFeaturesObject() {
@@ -240,7 +239,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, CopyrightObject.class);
     }
 
-    
+
 
     @Test
     void createPlaylistRequest() {
@@ -286,7 +285,8 @@ class JsonSerializationTest {
 
     @Test
     void deviceObject() {
-        var original = new DeviceObject("value", true, true, true, "value", "value", 1, true);
+        var original = new DeviceObject(new NullWrapper<>("value"), true, true, true, "value", "value",
+                new NullWrapper<>(1), true);
         assertSerializesSymmetrical(original, DeviceObject.class);
     }
 
@@ -360,7 +360,7 @@ class JsonSerializationTest {
 
     @Test
     void followersObject() {
-        var original = new FollowersObject("value", 1);
+        var original = new FollowersObject(new NullWrapper<>("value"), 1);
         assertSerializesSymmetrical(original, FollowersObject.class);
     }
 
@@ -492,13 +492,14 @@ class JsonSerializationTest {
 
     @Test
     void playlistObject() {
-        var original = new PlaylistObject(true, "value", null, "value", "value", List.of(), "value", null, true, "value", null, "value", "value", null);
+        var original = new PlaylistObject(true, new NullWrapper<>("value"), null, "value", "value", List.of(),
+                "value", null, true, "value", null, "value", "value", null);
         assertSerializesSymmetrical(original, PlaylistObject.class);
     }
 
     @Test
     void playlistOwnerObject() {
-        var original = new PlaylistOwnerObject(null, "value", "value", null, "value", "value");
+        var original = new PlaylistOwnerObject(null, "value", "value", null, "value", new NullWrapper<>("value"));
         assertSerializesSymmetrical(original, PlaylistOwnerObject.class);
     }
 
@@ -528,7 +529,8 @@ class JsonSerializationTest {
 
     @Test
     void publicUserObject() {
-        var original = new PublicUserObject("value", null, null, "value", "value", List.of(), null, "value");
+        var original = new PublicUserObject(new NullWrapper<>("value"), null, null, "value", "value", List.of(),
+                null, "value");
         assertSerializesSymmetrical(original, PublicUserObject.class);
     }
 
@@ -550,7 +552,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, RecommendationsObject.class);
     }
 
-    
+
 
     @Test
     void removeEpisodesUserRequest() {
@@ -558,7 +560,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, RemoveEpisodesUserRequest.class);
     }
 
-    
+
 
     @Test
     void removeTracksPlaylistRequest() {
@@ -566,9 +568,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, RemoveTracksPlaylistRequest.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void reorderOrReplacePlaylistsTracksRequest() {
@@ -606,7 +608,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, SaveTracksUserRequest.class);
     }
 
-    
+
 
     @Test
     void savedAlbumObject() {
@@ -638,7 +640,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, SavedTrackObject.class);
     }
 
-    
+
 
     @Test
     void sectionObjectMode() {
@@ -646,7 +648,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, SectionObjectMode.class);
     }
 
-    
+
 
     @Test
     void showBase() {
@@ -726,7 +728,8 @@ class JsonSerializationTest {
 
     @Test
     void simplifiedTrackObject() {
-        var original = new SimplifiedTrackObject(List.of(), List.of(), 1, 1, true, null, "value", "value", true, null, null, "value", "value", 1, "value", "value", true);
+        var original = new SimplifiedTrackObject(List.of(), List.of(), 1, 1, true, null, "value", "value", true,
+                null, null, "value", new NullWrapper<>("value"), 1, "value", "value", true);
         assertSerializesSymmetrical(original, SimplifiedTrackObject.class);
     }
 
@@ -736,7 +739,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, StartAUsersPlaybackRequest.class);
     }
 
-    
+
 
     @Test
     void trackObjectType() {

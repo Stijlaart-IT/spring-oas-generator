@@ -49,7 +49,8 @@ class RecordModelWriterTest {
         String source = writer.toJavaFile(model, Map.of()).toString();
 
         assertTrue(source.contains("String name"));
-        assertFalse(source.contains("@Nullable Integer age"));
+        assertTrue(source.contains("@Nullable"));
+        assertTrue(source.contains("Integer age"));
     }
 
     @Test
@@ -88,7 +89,7 @@ class RecordModelWriterTest {
         String source = writer.toJavaFile(model, Map.of()).toString();
 
         assertTrue(source.contains("@Nullable"));
-        assertTrue(source.contains("Integer age"));
+        assertTrue(source.contains("NullWrapper<Integer> age"));
         assertTrue(source.contains("import org.jspecify.annotations.Nullable;"));
     }
 
@@ -105,6 +106,7 @@ class RecordModelWriterTest {
 
         assertTrue(source.contains("@JsonInclude("));
         assertTrue(source.contains("Include.ALWAYS"));
+        assertTrue(source.contains("Include.NON_NULL"));
         assertTrue(source.contains("@JsonProperty(required = false)"));
     }
 
@@ -224,7 +226,7 @@ class RecordModelWriterTest {
         String source = writer.toJavaFile(model, Map.of()).toString();
 
         assertTrue(source.contains("Objects.requireNonNull(name"));
-        assertTrue(source.contains("Objects.requireNonNull(age"));
+        assertFalse(source.contains("Objects.requireNonNull(age"));
         assertFalse(source.contains("Objects.requireNonNull(nickname"));
         assertFalse(source.contains("Objects.requireNonNull(bio"));
     }
