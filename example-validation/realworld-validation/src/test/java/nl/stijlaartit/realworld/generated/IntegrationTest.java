@@ -1,4 +1,4 @@
-package nl.stijlaartit.realworld.generated.models;
+package nl.stijlaartit.realworld.generated;
 
 import nl.stijlaartit.realworld.generated.client.ArticlesApi;
 import nl.stijlaartit.realworld.generated.client.CommentsApi;

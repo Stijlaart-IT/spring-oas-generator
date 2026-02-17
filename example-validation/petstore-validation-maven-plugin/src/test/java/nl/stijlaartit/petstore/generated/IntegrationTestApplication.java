@@ -1,4 +1,4 @@
-package nl.stijlaartit.petstore.generated.models;
+package nl.stijlaartit.petstore.generated;
 
 import nl.stijlaartit.petstore.generated.client.PetApi;
 import nl.stijlaartit.petstore.generated.client.StoreApi;

@@ -1,8 +1,11 @@
-package nl.stijlaartit.petstore.generated.models;
+package nl.stijlaartit.petstore.generated;
 
 import nl.stijlaartit.petstore.generated.client.PetApi;
 import nl.stijlaartit.petstore.generated.client.StoreApi;
 import nl.stijlaartit.petstore.generated.client.UserApi;
+import nl.stijlaartit.petstore.generated.models.Category;
+import nl.stijlaartit.petstore.generated.models.Pet;
+import nl.stijlaartit.petstore.generated.models.PetStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

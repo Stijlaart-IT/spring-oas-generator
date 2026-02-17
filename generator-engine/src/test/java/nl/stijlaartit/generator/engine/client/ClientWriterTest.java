@@ -58,6 +58,22 @@ class ClientWriterTest {
     }
 
     @Test
+    void generatesResponseEntityVariantForResponseBody() {
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel(OperationName.id("addPet"), HttpMethod.POST,
+                        "/pet", List.of(),
+                        TypeDescriptor.complex("Pet"),
+                        TypeDescriptor.complex("Pet"),
+                        false)
+        ));
+
+        String source = writer.toJavaFile(client).toString();
+
+        assertTrue(source.contains("ResponseEntity<Pet> addPetResponseEntity("));
+        assertTrue(source.contains("import org.springframework.http.ResponseEntity;"));
+    }
+
+    @Test
     void wrapsResponseTypeInMonoWhenReactive() {
         ClientWriter reactiveWriter = new ClientWriter(
                 "com.example.client",
@@ -79,6 +95,28 @@ class ClientWriterTest {
     }
 
     @Test
+    void wrapsResponseEntityInMonoWhenReactive() {
+        ClientWriter reactiveWriter = new ClientWriter(
+                "com.example.client",
+                "com.example.models",
+                new ClientWriterConfig(ClientWriterConfig.IoMode.REACTIVE)
+        );
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel(OperationName.id("addPet"), HttpMethod.POST,
+                        "/pet", List.of(),
+                        TypeDescriptor.complex("Pet"),
+                        TypeDescriptor.complex("Pet"),
+                        false)
+        ));
+
+        String source = reactiveWriter.toJavaFile(client).toString();
+
+        assertTrue(source.contains("Mono<ResponseEntity<Pet>> addPetResponseEntity("));
+        assertTrue(source.contains("import org.springframework.http.ResponseEntity;"));
+        assertTrue(source.contains("import reactor.core.publisher.Mono;"));
+    }
+
+    @Test
     void generatesVoidReturnForNoResponseBody() {
         ApiFile client = new ApiFile("PetApi", List.of(
                 new OperationModel(OperationName.id("deletePet"), HttpMethod.DELETE,
@@ -96,6 +134,23 @@ class ClientWriterTest {
         assertTrue(source.contains("void deletePet("));
     }
 
+    @Test
+    void generatesResponseEntityVariantForVoidReturn() {
+        ApiFile client = new ApiFile("PetApi", List.of(
+                new OperationModel(OperationName.id("deletePet"), HttpMethod.DELETE,
+                        "/pet/{petId}",
+                        List.of(new ParameterModel("petId",
+                                ParameterLocation.PATH,
+                                TypeDescriptor.simple("java.lang.Long"), true)),
+                        null, null,
+                        false)
+        ));
+
+        String source = writer.toJavaFile(client).toString();
+
+        assertTrue(source.contains("ResponseEntity<Void> deletePetResponseEntity("));
+        assertTrue(source.contains("import org.springframework.http.ResponseEntity;"));
+    }
     @Test
     void wrapsVoidReturnTypeInMonoWhenReactive() {
         ClientWriter reactiveWriter = new ClientWriter(

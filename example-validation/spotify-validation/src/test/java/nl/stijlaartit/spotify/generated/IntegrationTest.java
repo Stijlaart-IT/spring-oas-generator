@@ -1,4 +1,4 @@
-package nl.stijlaartit.spotify.generated.models;
+package nl.stijlaartit.spotify.generated;
 
 import nl.stijlaartit.spotify.generated.client.AlbumsApi;
 import nl.stijlaartit.spotify.generated.client.ArtistsApi;

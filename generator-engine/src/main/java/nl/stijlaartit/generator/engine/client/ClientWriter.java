@@ -52,6 +52,8 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
             "org.springframework.web.bind.annotation", "RequestBody");
     private static final ClassName NULLABLE =
             ClassName.get("org.jspecify.annotations", "Nullable");
+    private static final ClassName RESPONSE_ENTITY =
+            ClassName.get("org.springframework.http", "ResponseEntity");
     private static final ClassName MONO =
             ClassName.get("reactor.core.publisher", "Mono");
 
@@ -89,7 +91,8 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
                 .addModifiers(Modifier.PUBLIC);
 
         for (OperationModel operation : client.getOperations()) {
-            interfaceBuilder.addMethod(toMethodSpec(operation));
+            interfaceBuilder.addMethod(toMethodSpec(operation, false));
+            interfaceBuilder.addMethod(toMethodSpec(operation, true));
         }
 
         return JavaFile.builder(clientPackage, interfaceBuilder.build())
@@ -97,8 +100,11 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
                 .build();
     }
 
-    private MethodSpec toMethodSpec(OperationModel operation) {
+    private MethodSpec toMethodSpec(OperationModel operation, boolean responseEntityVariant) {
         String methodName = methodNameFromOperationName(operation.name());
+        if (responseEntityVariant) {
+            methodName = methodName + "ResponseEntity";
+        }
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
@@ -108,7 +114,7 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
             methodBuilder.addAnnotation(Deprecated.class);
         }
 
-        methodBuilder.returns(resolveReturnType(operation));
+        methodBuilder.returns(resolveReturnType(operation, responseEntityVariant));
 
         for (ParameterModel param : operation.parameters()) {
             methodBuilder.addParameter(toParameterSpec(param));
@@ -125,15 +131,27 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
         return methodBuilder.build();
     }
 
-    private TypeName resolveReturnType(OperationModel operation) {
+    private TypeName resolveReturnType(OperationModel operation, boolean responseEntityVariant) {
+        TypeName baseType = operation.responseType() == null
+                ? ClassName.get(Void.class)
+                : typeNameResolver.resolve(operation.responseType());
+
+        if (responseEntityVariant) {
+            TypeName boxed = baseType.isPrimitive() ? baseType.box() : baseType;
+            TypeName entityType = ParameterizedTypeName.get(RESPONSE_ENTITY, boxed);
+            if (config.ioMode() == ClientWriterConfig.IoMode.REACTIVE) {
+                return ParameterizedTypeName.get(MONO, entityType);
+            }
+            return entityType;
+        }
+
         if (operation.responseType() == null) {
             if (config.ioMode() == ClientWriterConfig.IoMode.REACTIVE) {
-                return ParameterizedTypeName.get(MONO, ClassName.get(Void.class));
+                return ParameterizedTypeName.get(MONO, baseType);
             }
             return TypeName.VOID;
         }
 
-        TypeName baseType = typeNameResolver.resolve(operation.responseType());
         if (config.ioMode() == ClientWriterConfig.IoMode.REACTIVE) {
             TypeName boxed = baseType.isPrimitive() ? baseType.box() : baseType;
             return ParameterizedTypeName.get(MONO, boxed);

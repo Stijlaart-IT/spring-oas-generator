@@ -1,4 +1,4 @@
-package nl.stijlaartit.session.generated.models;
+package nl.stijlaartit.session.generated;
 
 import nl.stijlaartit.session.generated.client.AuthApi;
 import org.junit.jupiter.api.Test;

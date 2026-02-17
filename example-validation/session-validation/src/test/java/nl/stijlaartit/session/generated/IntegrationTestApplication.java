@@ -1,8 +1,6 @@
-package nl.stijlaartit.petstore.generated.models;
+package nl.stijlaartit.session.generated;
 
-import nl.stijlaartit.petstore.generated.client.PetApi;
-import nl.stijlaartit.petstore.generated.client.StoreApi;
-import nl.stijlaartit.petstore.generated.client.UserApi;
+import nl.stijlaartit.session.generated.client.AuthApi;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -17,7 +15,6 @@ public class IntegrationTestApplication {
         SpringApplication.run(IntegrationTestApplication.class, args);
     }
 
-
     @Bean
     HttpServiceProxyFactory httpServiceProxyFactory() {
         RestClient restClient = RestClient.create("http://localhost:7777");
@@ -26,18 +23,7 @@ public class IntegrationTestApplication {
     }
 
     @Bean
-    PetApi petApi(HttpServiceProxyFactory factory) {
-        return factory.createClient(PetApi.class);
+    AuthApi authApi(HttpServiceProxyFactory factory) {
+        return factory.createClient(AuthApi.class);
     }
-
-    @Bean
-    StoreApi storeApi(HttpServiceProxyFactory factory) {
-        return factory.createClient(StoreApi.class);
-    }
-
-    @Bean
-    UserApi userApi(HttpServiceProxyFactory factory) {
-        return factory.createClient(UserApi.class);
-    }
-
 }

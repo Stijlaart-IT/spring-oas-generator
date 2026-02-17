@@ -1,4 +1,4 @@
-package nl.stijlaartit.pokeapi.generated.models;
+package nl.stijlaartit.pokeapi.generated;
 
 import nl.stijlaartit.pokeapi.generated.client.BerriesApi;
 import nl.stijlaartit.pokeapi.generated.client.ContestsApi;
