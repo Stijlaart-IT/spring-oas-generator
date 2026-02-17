@@ -8,6 +8,7 @@ import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.TypeSpec;
+import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import nl.stijlaartit.generator.engine.domain.FieldModel;
 import nl.stijlaartit.generator.engine.domain.RecordModel;
 
@@ -77,6 +78,7 @@ class RecordModelWriter {
 
         TypeSpec.Builder recordBuilder = TypeSpec.recordBuilder(model.name())
                 .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(GeneratedAnnotation.spec())
                 .recordConstructor(constructorBuilder.build());
 
         for (String interfaceName : implementsByModel.getOrDefault(model.name(), List.of())) {

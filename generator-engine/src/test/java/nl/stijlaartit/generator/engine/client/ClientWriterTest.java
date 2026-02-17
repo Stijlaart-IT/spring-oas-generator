@@ -7,9 +7,14 @@ import nl.stijlaartit.generator.engine.domain.OperationName;
 import nl.stijlaartit.generator.engine.domain.ParameterLocation;
 import nl.stijlaartit.generator.engine.domain.ParameterModel;
 import nl.stijlaartit.generator.engine.model.TypeDescriptor;
+import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,6 +38,7 @@ class ClientWriterTest {
 
         String source = writer.toJavaFile(client).toString();
 
+        assertGeneratedAnnotation(source);
         assertTrue(source.contains("package com.example.client;"));
         assertTrue(source.contains("interface PetApi"));
         assertTrue(source.contains("@GetExchange(\"/pet/{petId}\")"));
@@ -114,6 +120,29 @@ class ClientWriterTest {
         assertTrue(source.contains("Mono<ResponseEntity<Pet>> addPetResponseEntity("));
         assertTrue(source.contains("import org.springframework.http.ResponseEntity;"));
         assertTrue(source.contains("import reactor.core.publisher.Mono;"));
+    }
+
+    @Test
+    void addsGeneratedAnnotationToPackageInfo(@TempDir Path tempDir) throws Exception {
+        writer.writeAll(List.of(), tempDir);
+        Path packageInfo = tempDir.resolve("com/example/client/package-info.java");
+        String source = Files.readString(packageInfo);
+
+        assertTrue(source.contains("value = \"" + GeneratedAnnotation.VALUE + "\""));
+        Pattern pattern = Pattern.compile(
+                "@(?:javax\\.annotation\\.processing\\.)?Generated\\(\\s*value = \".+?\"\\s*,\\s*date = \"\\d{4}-\\d{2}-\\d{2}T[^\"]+\"\\s*\\)",
+                Pattern.DOTALL
+        );
+        assertTrue(pattern.matcher(source).find());
+    }
+
+    private static void assertGeneratedAnnotation(String source) {
+        assertTrue(source.contains("value = \"" + GeneratedAnnotation.VALUE + "\""));
+        Pattern pattern = Pattern.compile(
+                "@(?:javax\\.annotation\\.processing\\.)?Generated\\(\\s*value = \".+?\"\\s*,\\s*date = \"\\d{4}-\\d{2}-\\d{2}T[^\"]+\"\\s*\\)",
+                Pattern.DOTALL
+        );
+        assertTrue(pattern.matcher(source).find());
     }
 
     @Test

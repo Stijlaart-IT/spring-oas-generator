@@ -5,6 +5,7 @@ import nl.stijlaartit.generator.engine.domain.ModelFile;
 import nl.stijlaartit.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.generator.engine.domain.RecordModel;
 import nl.stijlaartit.generator.engine.domain.UnionModelFile;
+import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,6 +35,7 @@ class RecordModelWriterTest {
         String source = writer.toJavaFile(model, Map.of()).toString();
 
         assertTrue(source.contains("package com.example.models;"));
+        assertGeneratedAnnotation(source);
         assertTrue(source.contains("record User("));
         assertTrue(source.contains("String name"));
     }
@@ -120,6 +123,15 @@ class RecordModelWriterTest {
         String source = writer.toJavaFile(model, Map.of()).toString();
 
         assertTrue(source.contains("Pet pet"));
+    }
+
+    private static void assertGeneratedAnnotation(String source) {
+        assertTrue(source.contains("value = \"" + GeneratedAnnotation.VALUE + "\""));
+        Pattern pattern = Pattern.compile(
+                "@(?:javax\\.annotation\\.processing\\.)?Generated\\(\\s*value = \".+?\"\\s*,\\s*date = \"\\d{4}-\\d{2}-\\d{2}T[^\"]+\"\\s*\\)",
+                Pattern.DOTALL
+        );
+        assertTrue(pattern.matcher(source).find());
     }
 
     @Test

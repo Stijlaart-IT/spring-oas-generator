@@ -5,6 +5,7 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.CodeBlock;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeSpec;
+import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import nl.stijlaartit.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.generator.engine.domain.UnionModelFile;
 
@@ -27,7 +28,8 @@ class UnionModelWriter {
 
     JavaFile toJavaFile(UnionModelFile model) {
         TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(model.name())
-                .addModifiers(Modifier.PUBLIC);
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(GeneratedAnnotation.spec());
 
         if (model.discriminatorProperty() != null && !model.discriminatorProperty().isBlank()) {
             interfaceBuilder.addAnnotation(AnnotationSpec.builder(JSON_TYPE_INFO)

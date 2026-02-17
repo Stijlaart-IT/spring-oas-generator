@@ -7,6 +7,7 @@ import com.palantir.javapoet.FieldSpec;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.TypeSpec;
+import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import nl.stijlaartit.generator.engine.domain.EnumModel;
 import nl.stijlaartit.generator.engine.domain.EnumValueType;
 
@@ -30,7 +31,8 @@ class EnumModelWriter {
 
     JavaFile toJavaFile(EnumModel model, Map<String, List<String>> implementsByModel) {
         TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(model.name())
-                .addModifiers(Modifier.PUBLIC);
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(GeneratedAnnotation.spec());
 
         for (String interfaceName : implementsByModel.getOrDefault(model.name(), List.of())) {
             enumBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName));

@@ -5,6 +5,7 @@ import nl.stijlaartit.generator.engine.domain.EnumValueType;
 import nl.stijlaartit.generator.engine.domain.ModelFile;
 import nl.stijlaartit.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.generator.engine.domain.UnionModelFile;
+import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -12,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,6 +31,7 @@ class EnumModelWriterTest {
 
         String source = writer.toJavaFile(model, Map.of()).toString();
 
+        assertGeneratedAnnotation(source);
         assertTrue(source.contains("enum PetStatus"));
         assertTrue(source.contains("@JsonProperty(\"available\")"));
         assertTrue(source.contains("@JsonProperty(\"pending\")"));
@@ -64,6 +67,15 @@ class EnumModelWriterTest {
 
         assertTrue(source.contains("enum Mode"));
         assertTrue(source.contains("implements ModeWrapper"));
+    }
+
+    private static void assertGeneratedAnnotation(String source) {
+        assertTrue(source.contains("value = \"" + GeneratedAnnotation.VALUE + "\""));
+        Pattern pattern = Pattern.compile(
+                "@(?:javax\\.annotation\\.processing\\.)?Generated\\(\\s*value = \".+?\"\\s*,\\s*date = \"\\d{4}-\\d{2}-\\d{2}T[^\"]+\"\\s*\\)",
+                Pattern.DOTALL
+        );
+        assertTrue(pattern.matcher(source).find());
     }
 
     private static Map<String, List<String>> implementsByModel(List<ModelFile> models) {

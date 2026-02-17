@@ -10,6 +10,7 @@ import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeVariableName;
 import com.palantir.javapoet.TypeSpec;
+import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
@@ -60,6 +61,7 @@ final class NullWrapperWriter {
         TypeSpec.Builder wrapper = TypeSpec.recordBuilder("NullWrapper")
                 .addModifiers(Modifier.PUBLIC)
                 .addTypeVariable(typeVar)
+                .addAnnotation(GeneratedAnnotation.spec())
                 .addAnnotation(AnnotationSpec.builder(JSON_DESERIALIZE)
                         .addMember("using", "$T.class", deserializer)
                         .build())

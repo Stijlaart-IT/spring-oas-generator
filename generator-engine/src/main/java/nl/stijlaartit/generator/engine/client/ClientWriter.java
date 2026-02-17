@@ -8,6 +8,7 @@ import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
+import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import nl.stijlaartit.generator.engine.domain.ApiFile;
 import nl.stijlaartit.generator.engine.domain.GenerationFileWriter;
 import nl.stijlaartit.generator.engine.domain.HttpMethod;
@@ -88,7 +89,8 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
 
     JavaFile toJavaFile(ApiFile client) {
         TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(client.name())
-                .addModifiers(Modifier.PUBLIC);
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(GeneratedAnnotation.spec());
 
         for (OperationModel operation : client.getOperations()) {
             interfaceBuilder.addMethod(toMethodSpec(operation, false));
@@ -226,8 +228,10 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
     }
 
     private static String packageInfoSource(String packageName) {
-        return "@NullMarked\n"
+        return GeneratedAnnotation.sourceLine() + "\n"
+                + "@NullMarked\n"
                 + "package " + packageName + ";\n\n"
+                + "import javax.annotation.processing.Generated;\n"
                 + "import org.jspecify.annotations.NullMarked;\n";
     }
 }
