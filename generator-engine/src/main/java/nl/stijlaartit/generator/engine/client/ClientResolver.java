@@ -12,6 +12,7 @@ import nl.stijlaartit.generator.engine.domain.OperationModel;
 import nl.stijlaartit.generator.engine.domain.OperationName;
 import nl.stijlaartit.generator.engine.domain.ParameterLocation;
 import nl.stijlaartit.generator.engine.domain.ParameterModel;
+import nl.stijlaartit.generator.engine.logger.Logger;
 import nl.stijlaartit.generator.engine.model.TypeDescriptor;
 import nl.stijlaartit.generator.engine.model.TypeDescriptorFactory;
 
@@ -22,15 +23,17 @@ import java.util.stream.Collectors;
 
 public class ClientResolver {
 
+    private final Logger logger;
     private final TypeDescriptorFactory typeDescriptorFactory;
 
-    public ClientResolver(TypeDescriptorFactory typeDescriptorFactory) {
+    public ClientResolver(Logger logger, TypeDescriptorFactory typeDescriptorFactory) {
+        this.logger = logger;
         this.typeDescriptorFactory = typeDescriptorFactory;
     }
 
 
     public List<ApiFile> resolve(OpenAPI openAPI) {
-        final var rawOperationResolver = new RawOperationResolver(openAPI);
+        final var rawOperationResolver = new RawOperationResolver(logger, openAPI);
         final var rawOperations = rawOperationResolver.resolve();
 
         List<GeneratableOperation> generatableOperations = new ArrayList<>();

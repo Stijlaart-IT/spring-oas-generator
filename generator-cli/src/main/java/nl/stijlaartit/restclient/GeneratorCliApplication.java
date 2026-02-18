@@ -11,18 +11,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 @SpringBootApplication
-public class RestClientGeneratorApplication implements CommandLineRunner {
+public class GeneratorCliApplication implements CommandLineRunner {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RestClientGeneratorApplication.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GeneratorCliApplication.class);
 
     public static void main(String[] args) {
-        SpringApplication.run(RestClientGeneratorApplication.class, args);
+        SpringApplication.run(GeneratorCliApplication.class, args);
     }
 
     @Override
     public void run(String... args) throws Exception {
         if (args.length < 3) {
-            System.err.println("Usage: <openapi-spec-file> <output-path> <output-package>");
+            LOG.error("Usage: <openapi-spec-file> <output-path> <output-package>");
             System.exit(1);
         }
         String specFile = args[0];
@@ -35,30 +35,31 @@ public class RestClientGeneratorApplication implements CommandLineRunner {
 
         Path specPath = Path.of(specFile);
         if (!Files.isRegularFile(specPath)) {
-            System.err.println("Spec file does not exist or is not a regular file: " + specPath);
+            LOG.error("Spec file does not exist or is not a regular file: " + specPath);
             System.exit(1);
         }
         if (!Files.isReadable(specPath)) {
-            System.err.println("Spec file is not readable: " + specPath);
+            LOG.error("Spec file is not readable: " + specPath);
             System.exit(1);
         }
 
         Path outputDir = Path.of(outputPath);
         if (Files.exists(outputDir) && !Files.isDirectory(outputDir)) {
-            System.err.println("Output path exists but is not a directory: " + outputDir);
+            LOG.error("Output path exists but is not a directory: " + outputDir);
             System.exit(1);
         }
 
         String trimmedPackage = outputPackage != null ? outputPackage.trim() : "";
         if (trimmedPackage.isEmpty()) {
-            System.err.println("Output package must not be empty.");
+            LOG.error("Output package must not be empty.");
             System.exit(1);
         }
         if (!trimmedPackage.matches("[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*")) {
-            System.err.println("Output package is not a valid Java package name: " + outputPackage);
+            LOG.error("Output package is not a valid Java package name: " + outputPackage);
             System.exit(1);
         }
+        final var logger = new Slf4jLogger(LOG);
 
-        new Generator().generate(specPath, outputDir, trimmedPackage);
+        new Generator(logger).generate(specPath, outputDir, trimmedPackage);
     }
 }

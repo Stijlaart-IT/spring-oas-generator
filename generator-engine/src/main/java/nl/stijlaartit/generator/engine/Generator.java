@@ -9,6 +9,7 @@ import nl.stijlaartit.generator.engine.client.ClientWriterConfig;
 import nl.stijlaartit.generator.engine.domain.GenerationFile;
 import nl.stijlaartit.generator.engine.domain.GenerationFileSerializer;
 import nl.stijlaartit.generator.engine.domain.SerializedFile;
+import nl.stijlaartit.generator.engine.logger.Logger;
 import nl.stijlaartit.generator.engine.model.EnumModelWriter;
 import nl.stijlaartit.generator.engine.model.ImplementsByMapping;
 import nl.stijlaartit.generator.engine.model.ModelResolver;
@@ -30,6 +31,12 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class Generator {
+
+    private final Logger logger;
+
+    public Generator(Logger logger) {
+        this.logger = logger;
+    }
 
     public void generate(Path specFile, Path outputDirectory, String outputPackage) throws Exception {
         Objects.requireNonNull(specFile, "specFile");
@@ -58,7 +65,7 @@ public class Generator {
         final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, registry);
 
         final var modelResolver = new ModelResolver(registry);
-        final var clientResolver = new ClientResolver(typeDescriptorFactory);
+        final var clientResolver = new ClientResolver(logger, typeDescriptorFactory);
         final var utilityResolver = new UtilityResolver(modelsPackage, clientPackage);
 
         final var modelFiles = modelResolver.resolve(schemaTypes);

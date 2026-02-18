@@ -26,6 +26,7 @@ public class GenerateMojo extends AbstractMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
+        final var logger = new MavenPluginLogger(getLog());
         Path specPath = openapiSpec != null ? openapiSpec.toPath() : null;
         if (specPath == null) {
             throw new MojoExecutionException("openapiSpec must be provided.");
@@ -52,7 +53,7 @@ public class GenerateMojo extends AbstractMojo {
         Path outputDir = Path.of(project.getBuild().getDirectory(), "generated-sources");
         try {
             Files.createDirectories(outputDir);
-            new Generator().generate(specPath, outputDir, trimmedPackage);
+            new Generator(logger).generate(specPath, outputDir, trimmedPackage);
             project.addCompileSourceRoot(outputDir.toString());
         } catch (Exception ex) {
             throw new MojoExecutionException("Failed to generate sources.", ex);

@@ -6,6 +6,7 @@ import nl.stijlaartit.generator.engine.domain.OperationModel;
 import nl.stijlaartit.generator.engine.domain.OperationName;
 import nl.stijlaartit.generator.engine.domain.ParameterLocation;
 import nl.stijlaartit.generator.engine.domain.ParameterModel;
+import nl.stijlaartit.generator.engine.logger.Logger;
 import nl.stijlaartit.generator.engine.model.TypeDescriptor;
 import nl.stijlaartit.generator.engine.model.TypeDescriptorFactory;
 import nl.stijlaartit.generator.engine.schemas.SchemaRegistry;
@@ -42,7 +43,7 @@ class ClientResolverTest {
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
         SchemaTypes schemaTypes = new SchemaTypeResolver().resolve(registry);
         final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, registry);
-        return new ClientResolver(typeDescriptorFactory).resolve(openAPI);
+        return new ClientResolver(Logger.noOp(), typeDescriptorFactory).resolve(openAPI);
     }
 
     @Nested

@@ -10,6 +10,7 @@ import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import nl.stijlaartit.generator.engine.domain.HttpMethod;
+import nl.stijlaartit.generator.engine.logger.Logger;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -21,9 +22,11 @@ import java.util.Set;
 
 public class RawOperationResolver {
 
+    private final Logger logger;
     private final OpenAPI openAPI;
 
-    public RawOperationResolver(OpenAPI openAPI) {
+    public RawOperationResolver(Logger logger, OpenAPI openAPI) {
+        this.logger = logger;
         this.openAPI = openAPI;
     }
 
@@ -141,7 +144,7 @@ public class RawOperationResolver {
         }
 
         if (responseWithBody != null && successCodes.size() > 1) {
-            System.out.println("[warn] Operation '" + operationId
+            logger.warn("[warn] Operation '" + operationId
                     + "' defines multiple 2xx responses. Using response " + responseWithBodyCode + ".");
         }
 
