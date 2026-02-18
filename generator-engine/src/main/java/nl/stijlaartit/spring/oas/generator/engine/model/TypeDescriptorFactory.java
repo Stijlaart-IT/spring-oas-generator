@@ -1,0 +1,130 @@
+package nl.stijlaartit.spring.oas.generator.engine.model;
+
+import io.swagger.v3.oas.models.media.Schema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.SchemaRef;
+import nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil;
+import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
+import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaParent;
+import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
+import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaUtil;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.GeneratedSchemaType;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.JavaSchemaType;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.ListSchemaType;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.MapSchemaType;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.RefSchemaType;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaType;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypes;
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
+
+public final class TypeDescriptorFactory {
+
+    private final SchemaTypes schemaTypes;
+    private final SchemaRegistry registry;
+
+    public TypeDescriptorFactory(SchemaTypes schemaTypes, SchemaRegistry registry) {
+        this.schemaTypes = Objects.requireNonNull(schemaTypes);
+        this.registry = Objects.requireNonNull(registry);
+    }
+
+
+    public TypeDescriptor build(@Nullable Schema<?> schema) {
+        if (schema == null) {
+            return TypeDescriptor.simple("java.lang.Object");
+        }
+
+        if (schema.get$ref() != null && !schema.get$ref().isBlank()) {
+            final var componentSchemaRef = SchemaRef.parseFromRefValue(schema.get$ref());
+            Schema<?> resolved = resolveComponentSchema(componentSchemaRef);
+            if (resolved != null) {
+                return build(resolved);
+            }
+            return TypeDescriptor.complex(NamingUtil.toPascalCase(componentSchemaRef.name()));
+        }
+
+        SchemaType schemaType = resolveSchemaType(schema);
+        switch (schemaType) {
+            case GeneratedSchemaType generated -> {
+                return TypeDescriptor.complex(generated.name());
+            }
+            case ListSchemaType listType -> {
+                TypeDescriptor elementType = build(listType.itemInstance().schema());
+                return TypeDescriptor.list(elementType);
+            }
+            case MapSchemaType mapType -> {
+                TypeDescriptor valueType = build(mapType.valueInstance().schema());
+                return TypeDescriptor.map(valueType);
+            }
+            case RefSchemaType refType -> {
+                final var componentSchemaRef = SchemaRef.parseFromRefValue(refType.ref());
+                Schema<?> resolved = resolveComponentSchema(componentSchemaRef);
+                if (resolved != null) {
+                    return build(resolved);
+                }
+                return TypeDescriptor.complex(NamingUtil.toPascalCase(componentSchemaRef.name()));
+            }
+            case JavaSchemaType ignored -> {
+                return resolvePrimitiveType(schema);
+            }
+            case null, default -> {
+            }
+        }
+
+        return resolvePrimitiveType(schema);
+    }
+
+    @Nullable
+    private SchemaType resolveSchemaType(Schema<?> schema) {
+        try {
+            return schemaTypes.resolveFromSchema(schema);
+        } catch (IllegalStateException ignored) {
+            return null;
+        }
+    }
+
+    @Nullable
+    private Schema<?> resolveComponentSchema(SchemaRef componentSchemaRef) {
+
+        for (SchemaInstance instance : registry.getInstances()) {
+            if (instance.parent() instanceof SchemaParent.ComponentParent(String componentName)) {
+                if (componentName.equals(componentSchemaRef.name())) {
+                    return instance.schema();
+                }
+            }
+        }
+        return null;
+    }
+
+    private TypeDescriptor resolvePrimitiveType(Schema<?> schema) {
+        String type = SchemaUtil.schemaTypeName(schema);
+        String format = schema.getFormat();
+        return switch (type != null ? type : "") {
+            case "string" -> mapStringType(format);
+            case "integer" -> switch (format != null ? format : "") {
+                case "int64" -> TypeDescriptor.simple("java.lang.Long");
+                case "int32" -> TypeDescriptor.simple("java.lang.Integer");
+                default -> TypeDescriptor.simple("java.lang.Integer");
+            };
+            case "number" -> switch (format != null ? format : "") {
+                case "float" -> TypeDescriptor.simple("java.lang.Float");
+                case "double" -> TypeDescriptor.simple("java.lang.Double");
+                default -> TypeDescriptor.simple("java.math.BigDecimal");
+            };
+            case "boolean" -> TypeDescriptor.simple("java.lang.Boolean");
+            default -> TypeDescriptor.simple("java.lang.Object");
+        };
+    }
+
+    private TypeDescriptor mapStringType(@Nullable String format) {
+        if (format == null) {
+            return TypeDescriptor.simple("java.lang.String");
+        }
+        return switch (format) {
+            case "date" -> TypeDescriptor.simple("java.time.LocalDate");
+            case "date-time" -> TypeDescriptor.simple("java.time.OffsetDateTime");
+            case "uuid" -> TypeDescriptor.simple("java.util.UUID");
+            default -> TypeDescriptor.simple("java.lang.String");
+        };
+    }
+}
