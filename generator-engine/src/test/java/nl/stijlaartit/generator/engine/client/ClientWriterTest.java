@@ -9,11 +9,8 @@ import nl.stijlaartit.generator.engine.domain.ParameterModel;
 import nl.stijlaartit.generator.engine.model.TypeDescriptor;
 import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.util.List;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ClientWriterTest {
 
     private final ClientWriter writer = new ClientWriter(
-            "com.example.client", "com.example.models");
+            "com.example.client", "com.example.models",ClientWriterConfig.defaultConfig());
 
     @Test
     void generatesInterfaceWithGetOperation() {

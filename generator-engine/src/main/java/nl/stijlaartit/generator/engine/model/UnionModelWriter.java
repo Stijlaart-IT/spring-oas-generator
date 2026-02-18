@@ -6,12 +6,15 @@ import com.palantir.javapoet.CodeBlock;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeSpec;
 import nl.stijlaartit.generator.engine.GeneratedAnnotation;
+import nl.stijlaartit.generator.engine.domain.GenerationFile;
+import nl.stijlaartit.generator.engine.domain.GenerationFileSerializer;
 import nl.stijlaartit.generator.engine.domain.OneOfVariant;
+import nl.stijlaartit.generator.engine.domain.SerializedFile;
 import nl.stijlaartit.generator.engine.domain.UnionModelFile;
 
 import javax.lang.model.element.Modifier;
 
-class UnionModelWriter {
+public class UnionModelWriter implements GenerationFileSerializer<UnionModelFile> {
 
     private static final ClassName JSON_TYPE_INFO =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonTypeInfo");
@@ -22,8 +25,18 @@ class UnionModelWriter {
 
     private final String modelsPackage;
 
-    UnionModelWriter(String modelsPackage) {
+    public UnionModelWriter(String modelsPackage) {
         this.modelsPackage = modelsPackage;
+    }
+
+    @Override
+    public SerializedFile serialize(UnionModelFile file) {
+        return new SerializedFile.Ast(modelsPackage, toJavaFile(file));
+    }
+
+    @Override
+    public boolean supports(GenerationFile generationFile) {
+        return generationFile instanceof UnionModelFile;
     }
 
     JavaFile toJavaFile(UnionModelFile model) {

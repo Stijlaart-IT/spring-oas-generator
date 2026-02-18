@@ -4,19 +4,20 @@ import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
-import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.ParameterSpec;
+import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import nl.stijlaartit.generator.engine.domain.ApiFile;
-import nl.stijlaartit.generator.engine.domain.GenerationFileWriter;
+import nl.stijlaartit.generator.engine.domain.GenerationFile;
+import nl.stijlaartit.generator.engine.domain.GenerationFileSerializer;
 import nl.stijlaartit.generator.engine.domain.HttpMethod;
 import nl.stijlaartit.generator.engine.domain.OperationModel;
 import nl.stijlaartit.generator.engine.domain.OperationName;
 import nl.stijlaartit.generator.engine.domain.ParameterLocation;
 import nl.stijlaartit.generator.engine.domain.ParameterModel;
-import nl.stijlaartit.generator.engine.domain.WriteReport;
+import nl.stijlaartit.generator.engine.domain.SerializedFile;
 import nl.stijlaartit.generator.engine.model.JavaIdentifierUtils;
 import nl.stijlaartit.generator.engine.model.TypeDescriptor;
 import nl.stijlaartit.generator.engine.model.TypeNameResolver;
@@ -24,12 +25,9 @@ import nl.stijlaartit.generator.engine.naming.NamingUtil;
 import nl.stijlaartit.generator.engine.naming.OperationIdNaming;
 
 import javax.lang.model.element.Modifier;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
 import java.util.Objects;
 
-public class ClientWriter implements GenerationFileWriter<ApiFile> {
+public class ClientWriter implements GenerationFileSerializer<ApiFile> {
 
     private static final ClassName GET_EXCHANGE = ClassName.get(
             "org.springframework.web.service.annotation", "GetExchange");
@@ -61,10 +59,6 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
     private final String clientPackage;
     private final ClientWriterConfig config;
 
-    public ClientWriter(String clientPackage, String modelsPackage) {
-        this(clientPackage, modelsPackage, ClientWriterConfig.defaultConfig());
-    }
-
     public ClientWriter(String clientPackage, String modelsPackage, ClientWriterConfig config) {
         this.clientPackage = clientPackage;
         this.typeNameResolver = new TypeNameResolver(modelsPackage);
@@ -72,17 +66,13 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
     }
 
     @Override
-    public WriteReport writeAll(List<ApiFile> clients, Path outputDirectory) throws IOException {
-        WriteReport report = new WriteReport();
-        for (ApiFile client : clients) {
-            write(client, outputDirectory);
-            report.recordFile(clientPath(outputDirectory, client.name()));
-        }
-        return report;
+    public SerializedFile serialize(ApiFile file) {
+        return new SerializedFile.Ast(clientPackage, toJavaFile(file));
     }
 
-    public void write(ApiFile client, Path outputDirectory) throws IOException {
-        toJavaFile(client).writeTo(outputDirectory);
+    @Override
+    public boolean supports(GenerationFile generationFile) {
+        return generationFile instanceof ApiFile;
     }
 
     JavaFile toJavaFile(ApiFile client) {
@@ -162,7 +152,8 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
     private String methodNameFromOperationName(OperationName name) {
         return JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(switch (name) {
             case OperationName.Id id -> id.value();
-            case OperationName.PathAndMethod pathAndMethod -> OperationIdNaming.fallbackOperationId(pathAndMethod.method(), pathAndMethod.path());
+            case OperationName.PathAndMethod pathAndMethod ->
+                    OperationIdNaming.fallbackOperationId(pathAndMethod.method(), pathAndMethod.path());
         }));
     }
 
@@ -210,10 +201,5 @@ public class ClientWriter implements GenerationFileWriter<ApiFile> {
         }
 
         return paramBuilder.addAnnotation(annotationBuilder.build()).build();
-    }
-
-    private Path clientPath(Path outputDirectory, String clientName) {
-        return outputDirectory.resolve(clientPackage.replace('.', '/'))
-                .resolve(clientName + ".java");
     }
 }

@@ -1,25 +1,20 @@
 package nl.stijlaartit.generator.engine.model;
 
+import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import nl.stijlaartit.generator.engine.domain.EnumModel;
 import nl.stijlaartit.generator.engine.domain.EnumValueType;
-import nl.stijlaartit.generator.engine.domain.ModelFile;
 import nl.stijlaartit.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.generator.engine.domain.UnionModelFile;
-import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EnumModelWriterTest {
 
-    private final EnumModelWriter writer = new EnumModelWriter("com.example.models");
+    private final EnumModelWriter writer = new EnumModelWriter("com.example.models", ImplementsByMapping.empty());
 
     @Test
     void generatesEnumWithJsonPropertyValues() {
@@ -29,7 +24,7 @@ class EnumModelWriterTest {
                 "sold"
         ), EnumValueType.STRING);
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertGeneratedAnnotation(source);
         assertTrue(source.contains("enum PetStatus"));
@@ -46,7 +41,7 @@ class EnumModelWriterTest {
                 "1"
         ), EnumValueType.NUMBER);
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("@JsonValue"));
         assertTrue(source.contains("new BigDecimal(\"-1\")"));
@@ -63,7 +58,9 @@ class EnumModelWriterTest {
                 "type"
         );
 
-        String source = writer.toJavaFile(model, implementsByModel(List.of(model, union))).toString();
+
+        String source = new EnumModelWriter("com.example.models", ImplementsByMapping.create(List.of(model, union)))
+                .toJavaFile(model).toString();
 
         assertTrue(source.contains("enum Mode"));
         assertTrue(source.contains("implements ModeWrapper"));
@@ -76,24 +73,5 @@ class EnumModelWriterTest {
                 Pattern.DOTALL
         );
         assertTrue(pattern.matcher(source).find());
-    }
-
-    private static Map<String, List<String>> implementsByModel(List<ModelFile> models) {
-        Map<String, List<String>> implementsByModel = new HashMap<>();
-        for (ModelFile model : models) {
-            if (!(model instanceof UnionModelFile unionModel)) {
-                continue;
-            }
-            for (OneOfVariant variant : unionModel.variants()) {
-                implementsByModel
-                        .computeIfAbsent(variant.modelName(), key -> new ArrayList<>())
-                        .add(unionModel.name());
-            }
-        }
-        for (Map.Entry<String, List<String>> entry : implementsByModel.entrySet()) {
-            List<String> distinct = new ArrayList<>(new LinkedHashSet<>(entry.getValue()));
-            entry.setValue(distinct);
-        }
-        return implementsByModel;
     }
 }

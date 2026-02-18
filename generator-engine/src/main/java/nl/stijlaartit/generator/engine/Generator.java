@@ -5,22 +5,29 @@ import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import nl.stijlaartit.generator.engine.client.ClientResolver;
 import nl.stijlaartit.generator.engine.client.ClientWriter;
+import nl.stijlaartit.generator.engine.client.ClientWriterConfig;
 import nl.stijlaartit.generator.engine.domain.GenerationFile;
-import nl.stijlaartit.generator.engine.domain.GenerationFileWriter;
-import nl.stijlaartit.generator.engine.domain.WriteReport;
+import nl.stijlaartit.generator.engine.domain.GenerationFileSerializer;
+import nl.stijlaartit.generator.engine.domain.SerializedFile;
+import nl.stijlaartit.generator.engine.model.EnumModelWriter;
+import nl.stijlaartit.generator.engine.model.ImplementsByMapping;
 import nl.stijlaartit.generator.engine.model.ModelResolver;
-import nl.stijlaartit.generator.engine.model.ModelWriter;
+import nl.stijlaartit.generator.engine.model.NullWrapperWriter;
+import nl.stijlaartit.generator.engine.model.RecordModelWriter;
 import nl.stijlaartit.generator.engine.model.RecordModelWriterConfig;
 import nl.stijlaartit.generator.engine.model.TypeDescriptorFactory;
+import nl.stijlaartit.generator.engine.model.UnionModelWriter;
 import nl.stijlaartit.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.generator.engine.schematype.SchemaTypeResolver;
+import nl.stijlaartit.generator.engine.utility.PackageInfoWriter;
 import nl.stijlaartit.generator.engine.utility.UtilityResolver;
-import nl.stijlaartit.generator.engine.utility.UtilityWriter;
 
-import java.nio.file.Files;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class Generator {
 
@@ -51,35 +58,45 @@ public class Generator {
         final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, registry);
 
         final var modelResolver = new ModelResolver(registry);
-        final var modelWriter = new ModelWriter(modelsPackage, RecordModelWriterConfig.defaultConfig());
         final var clientResolver = new ClientResolver(typeDescriptorFactory);
-        final var clientWriter = new ClientWriter(clientPackage, modelsPackage);
         final var utilityResolver = new UtilityResolver(modelsPackage, clientPackage);
-        final var utilityWriter = new UtilityWriter();
 
         final var modelFiles = modelResolver.resolve(schemaTypes);
         final var clientFiles = clientResolver.resolve(openAPI);
         final var utilityFiles = utilityResolver.resolve(modelFiles, clientFiles);
-        writeAspect("model", modelWriter, modelFiles, outputDirectory);
-        writeAspect("client", clientWriter, clientFiles, outputDirectory);
-        writeAspect("utility", utilityWriter, utilityFiles, outputDirectory);
+
+        final var generationFiles = new ArrayList<GenerationFile>();
+        generationFiles.addAll(modelFiles);
+        generationFiles.addAll(clientFiles);
+        generationFiles.addAll(utilityFiles);
+
+        ImplementsByMapping implementsByModel = ImplementsByMapping.create(generationFiles);
+        final var serializers = List.of(
+                new RecordModelWriter(modelsPackage, RecordModelWriterConfig.defaultConfig(), implementsByModel),
+                new EnumModelWriter(modelsPackage, implementsByModel),
+                new UnionModelWriter(modelsPackage),
+                new ClientWriter(clientPackage, modelsPackage, ClientWriterConfig.defaultConfig()),
+                new PackageInfoWriter(),
+                new NullWrapperWriter(modelsPackage)
+        );
+
+        final var serializedFiles = new ArrayList<SerializedFile>();
+        for (GenerationFile generationFile : generationFiles) {
+            Optional<GenerationFileSerializer<? extends GenerationFile>> first = serializers.stream().filter(v -> v.supports(generationFile)).findFirst();
+            if (first.isEmpty()) {
+                throw new IllegalArgumentException("No serializer found for " + generationFile.getClass().getSimpleName());
+            }
+
+            GenerationFileSerializer<GenerationFile> generationFileSerializer = (GenerationFileSerializer<GenerationFile>) first.orElseThrow();
+            serializedFiles.add(generationFileSerializer.serialize(generationFile));
+        }
+
+        writeSerializedFiles(outputDirectory, serializedFiles);
     }
 
-    private static <T extends GenerationFile> void writeAspect(String aspectId, GenerationFileWriter<T> writer, List<T> files, Path output)
-            throws java.io.IOException {
-        if (files.isEmpty()) {
-            return;
+    private static void writeSerializedFiles(Path outputDirectory, ArrayList<SerializedFile> serializedFiles) throws IOException {
+        for (SerializedFile serializedFile : serializedFiles) {
+            serializedFile.writeTo(outputDirectory);
         }
-
-        WriteReport report = writer.writeAll(files, output);
-        for (Path filePath : report.getFiles()) {
-            if (!Files.exists(filePath)) {
-                throw new java.io.IOException("Expected generated file to exist: " + filePath);
-            }
-        }
-        String prefix = "[" + aspectId + "] ";
-        System.out.println(prefix + "Wrote " + report.getTotalFiles() + " file(s).");
-        report.getCountsByDirectory().forEach((directory, count) ->
-                System.out.println(prefix + "Wrote " + count + " file(s) to " + directory));
     }
 }

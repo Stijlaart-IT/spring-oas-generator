@@ -1,18 +1,13 @@
 package nl.stijlaartit.generator.engine.model;
 
 import nl.stijlaartit.generator.engine.domain.FieldModel;
-import nl.stijlaartit.generator.engine.domain.ModelFile;
 import nl.stijlaartit.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.generator.engine.domain.RecordModel;
 import nl.stijlaartit.generator.engine.domain.UnionModelFile;
 import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -22,8 +17,17 @@ class RecordModelWriterTest {
 
     private final RecordModelWriter writer = new RecordModelWriter(
             "com.example.models",
-            RecordModelWriterConfig.defaultConfig()
+            RecordModelWriterConfig.defaultConfig(),
+            ImplementsByMapping.empty()
     );
+
+    private RecordModelWriter writerWithImplementsMap(ImplementsByMapping implementsByModel) {
+        return new RecordModelWriter(
+                "com.example.models",
+                RecordModelWriterConfig.defaultConfig(),
+                implementsByModel
+        );
+    }
 
     @Test
     void generatesRecordWithSingleField() {
@@ -32,7 +36,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("package com.example.models;"));
         assertGeneratedAnnotation(source);
@@ -49,7 +53,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.simple("java.lang.Integer"), false, false, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("String name"));
         assertTrue(source.contains("@Nullable"));
@@ -63,7 +67,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("@JsonProperty(required = true"));
         assertTrue(source.contains("value = \"first_name\""));
@@ -77,7 +81,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("@JsonProperty(required = true)"));
     }
@@ -89,7 +93,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.simple("java.lang.Integer"), false, true, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("@Nullable"));
         assertTrue(source.contains("NullWrapper<Integer> age"));
@@ -105,7 +109,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.simple("java.lang.String"), false, false, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("@JsonInclude("));
         assertTrue(source.contains("Include.ALWAYS"));
@@ -120,7 +124,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.complex("Pet"), true, false, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("Pet pet"));
     }
@@ -141,7 +145,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), false, false, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("List<String> tags"));
     }
@@ -153,7 +157,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")), false, false, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("Map<String, Integer> metadata"));
     }
@@ -165,7 +169,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.list(TypeDescriptor.complex("Tag")), false, false, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("List<Tag> tags"));
     }
@@ -184,7 +188,7 @@ class RecordModelWriterTest {
                 ))
         );
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("record SessionResponse"));
         assertTrue(source.contains("@JsonValue"));
@@ -203,7 +207,8 @@ class RecordModelWriterTest {
                 "type"
         );
 
-        String source = writer.toJavaFile(model, implementsByModel(List.of(model, union))).toString();
+        String source = writerWithImplementsMap(ImplementsByMapping.create(List.of(model, union)))
+                .toJavaFile(model).toString();
 
         assertTrue(source.contains("record TrackObject("));
         assertTrue(source.contains("implements QueueObjectCurrentlyPlaying"));
@@ -216,7 +221,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("static Builder builder()"));
         assertTrue(source.contains("class Builder"));
@@ -235,7 +240,7 @@ class RecordModelWriterTest {
                         TypeDescriptor.simple("java.lang.String"), false, true, false)
         ));
 
-        String source = writer.toJavaFile(model, Map.of()).toString();
+        String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("Objects.requireNonNull(name"));
         assertFalse(source.contains("Objects.requireNonNull(age"));
@@ -247,8 +252,10 @@ class RecordModelWriterTest {
     void builderStrictModeCanBeDisabled() {
         RecordModelWriter relaxedWriter = new RecordModelWriter(
                 "com.example.models",
-                new RecordModelWriterConfig(RecordModelWriterConfig.BuilderMode.RELAXED)
+                new RecordModelWriterConfig(RecordModelWriterConfig.BuilderMode.RELAXED),
+                ImplementsByMapping.empty()
         );
+
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false),
@@ -256,27 +263,8 @@ class RecordModelWriterTest {
                         TypeDescriptor.simple("java.lang.Integer"), false, false, false)
         ));
 
-        String source = relaxedWriter.toJavaFile(model, Map.of()).toString();
+        String source = relaxedWriter.toJavaFile(model).toString();
 
         assertFalse(source.contains("Objects.requireNonNull"));
-    }
-
-    private static Map<String, List<String>> implementsByModel(List<ModelFile> models) {
-        Map<String, List<String>> implementsByModel = new HashMap<>();
-        for (ModelFile model : models) {
-            if (!(model instanceof UnionModelFile unionModel)) {
-                continue;
-            }
-            for (OneOfVariant variant : unionModel.variants()) {
-                implementsByModel
-                        .computeIfAbsent(variant.modelName(), key -> new ArrayList<>())
-                        .add(unionModel.name());
-            }
-        }
-        for (Map.Entry<String, List<String>> entry : implementsByModel.entrySet()) {
-            List<String> distinct = new ArrayList<>(new LinkedHashSet<>(entry.getValue()));
-            entry.setValue(distinct);
-        }
-        return implementsByModel;
     }
 }

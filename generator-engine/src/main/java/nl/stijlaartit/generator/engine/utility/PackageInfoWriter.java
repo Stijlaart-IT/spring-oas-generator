@@ -1,21 +1,24 @@
 package nl.stijlaartit.generator.engine.utility;
 
 import nl.stijlaartit.generator.engine.GeneratedAnnotation;
+import nl.stijlaartit.generator.engine.domain.GenerationFile;
+import nl.stijlaartit.generator.engine.domain.GenerationFileSerializer;
 import nl.stijlaartit.generator.engine.domain.PackageInfoFile;
 import nl.stijlaartit.generator.engine.domain.PackageInfoType;
+import nl.stijlaartit.generator.engine.domain.SerializedFile;
+import org.jspecify.annotations.NonNull;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+public class PackageInfoWriter implements GenerationFileSerializer<PackageInfoFile> {
 
-public class PackageInfoWriter {
+    @Override
+    @NonNull
+    public SerializedFile serialize(PackageInfoFile file) {
+        return new SerializedFile.ContentString(file.packageName(), "package-info.java", packageInfoSource(file));
+    }
 
-    public Path write(PackageInfoFile file, Path outputDirectory) throws IOException {
-        Path packageDir = outputDirectory.resolve(file.packageName().replace('.', '/'));
-        Files.createDirectories(packageDir);
-        Path packageInfo = packageDir.resolve("package-info.java");
-        Files.writeString(packageInfo, packageInfoSource(file));
-        return packageInfo;
+    @Override
+    public boolean supports(@NonNull GenerationFile generationFile) {
+        return generationFile instanceof PackageInfoFile;
     }
 
     private static String packageInfoSource(PackageInfoFile file) {

@@ -10,14 +10,15 @@ import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.TypeSpec;
 import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import nl.stijlaartit.generator.engine.domain.FieldModel;
+import nl.stijlaartit.generator.engine.domain.GenerationFile;
+import nl.stijlaartit.generator.engine.domain.GenerationFileSerializer;
 import nl.stijlaartit.generator.engine.domain.RecordModel;
+import nl.stijlaartit.generator.engine.domain.SerializedFile;
 
 import javax.lang.model.element.Modifier;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
-class RecordModelWriter {
+public class RecordModelWriter implements GenerationFileSerializer<RecordModel> {
 
     private static final ClassName JSON_PROPERTY =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonProperty");
@@ -35,13 +36,27 @@ class RecordModelWriter {
     private final String modelsPackage;
     private final RecordModelWriterConfig config;
 
-    RecordModelWriter(String modelsPackage, RecordModelWriterConfig config) {
+    private final ImplementsByMapping implementsByModel;
+
+    public RecordModelWriter(String modelsPackage, RecordModelWriterConfig config, ImplementsByMapping implementsByModel) {
         this.modelsPackage = modelsPackage;
         this.typeNameResolver = new TypeNameResolver(modelsPackage);
         this.config = Objects.requireNonNull(config, "config");
+        this.implementsByModel = implementsByModel;
     }
 
-    JavaFile toJavaFile(RecordModel model, Map<String, List<String>> implementsByModel) {
+    @Override
+    public SerializedFile serialize(RecordModel file) {
+        final var javaFile = toJavaFile(file);
+        return new SerializedFile.Ast(modelsPackage, javaFile);
+    }
+
+    @Override
+    public boolean supports(GenerationFile generationFile) {
+        return generationFile instanceof RecordModel;
+    }
+
+    JavaFile toJavaFile(RecordModel model) {
         MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder();
 
         for (FieldModel field : model.fields()) {
@@ -81,7 +96,7 @@ class RecordModelWriter {
                 .addAnnotation(GeneratedAnnotation.spec())
                 .recordConstructor(constructorBuilder.build());
 
-        for (String interfaceName : implementsByModel.getOrDefault(model.name(), List.of())) {
+        for (String interfaceName : implementsByModel.parentInterfacesForName(model.name())) {
             recordBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName));
         }
 

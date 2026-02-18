@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 
 import java.net.URL;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -37,8 +36,8 @@ class InlineAllOfExternalUrlsTest {
         List<ModelFile> models = resolveModels();
         RecordModel albumBase = findRecord(models, "AlbumBase");
 
-        ModelWriter writer = new ModelWriter("com.example.models", RecordModelWriterConfig.defaultConfig());
-        String source = writer.toJavaFile(albumBase, Map.of()).toString();
+        RecordModelWriter writer = new RecordModelWriter("com.example.models", RecordModelWriterConfig.defaultConfig(), ImplementsByMapping.empty());
+        String source = writer.toJavaFile(albumBase).toString();
 
         assertTrue(source.contains("ExternalUrlObject externalUrls"));
         assertFalse(source.contains("AlbumBaseExternalUrls"));

@@ -10,31 +10,45 @@ import com.palantir.javapoet.TypeSpec;
 import nl.stijlaartit.generator.engine.GeneratedAnnotation;
 import nl.stijlaartit.generator.engine.domain.EnumModel;
 import nl.stijlaartit.generator.engine.domain.EnumValueType;
+import nl.stijlaartit.generator.engine.domain.GenerationFile;
+import nl.stijlaartit.generator.engine.domain.GenerationFileSerializer;
+import nl.stijlaartit.generator.engine.domain.SerializedFile;
 
 import javax.lang.model.element.Modifier;
 import java.math.BigDecimal;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-class EnumModelWriter {
+public class EnumModelWriter implements GenerationFileSerializer<EnumModel> {
 
     private static final ClassName JSON_PROPERTY =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonProperty");
 
     private final String modelsPackage;
+    private final ImplementsByMapping implementsByModel;
 
-    EnumModelWriter(String modelsPackage) {
+    public EnumModelWriter(String modelsPackage, ImplementsByMapping implementsByModel) {
         this.modelsPackage = modelsPackage;
+        this.implementsByModel = implementsByModel;
     }
 
-    JavaFile toJavaFile(EnumModel model, Map<String, List<String>> implementsByModel) {
+    @Override
+    public SerializedFile serialize(EnumModel file) {
+        return new SerializedFile.Ast(modelsPackage, toJavaFile(file));
+    }
+
+    @Override
+    public boolean supports(GenerationFile generationFile) {
+        return generationFile instanceof EnumModel;
+    }
+
+    JavaFile toJavaFile(EnumModel model) {
         TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(model.name())
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(GeneratedAnnotation.spec());
 
-        for (String interfaceName : implementsByModel.getOrDefault(model.name(), List.of())) {
+        for (String interfaceName : implementsByModel.parentInterfacesForName(model.name())) {
             enumBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName));
         }
 

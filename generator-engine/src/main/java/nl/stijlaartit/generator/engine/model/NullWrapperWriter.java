@@ -11,12 +11,16 @@ import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeVariableName;
 import com.palantir.javapoet.TypeSpec;
 import nl.stijlaartit.generator.engine.GeneratedAnnotation;
+import nl.stijlaartit.generator.engine.domain.GenerationFile;
+import nl.stijlaartit.generator.engine.domain.GenerationFileSerializer;
+import nl.stijlaartit.generator.engine.domain.NullWrapperFile;
+import nl.stijlaartit.generator.engine.domain.SerializedFile;
 
 import javax.lang.model.element.Modifier;
 import java.io.IOException;
 import java.nio.file.Path;
 
-public final class NullWrapperWriter {
+public final class NullWrapperWriter implements GenerationFileSerializer<NullWrapperFile> {
     private static final ClassName JSON_VALUE =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonValue");
     private static final ClassName JSON_DESERIALIZE =
@@ -40,6 +44,16 @@ public final class NullWrapperWriter {
 
     public NullWrapperWriter(String modelsPackage) {
         this.modelsPackage = modelsPackage;
+    }
+
+    @Override
+    public SerializedFile serialize(NullWrapperFile file) {
+        return new SerializedFile.Ast(modelsPackage, toJavaFile());
+    }
+
+    @Override
+    public boolean supports(GenerationFile generationFile) {
+        return generationFile instanceof NullWrapperFile;
     }
 
     public void write(Path outputDirectory) throws IOException {
