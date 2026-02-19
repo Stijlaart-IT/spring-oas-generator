@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>nl.stijlaartit</groupId>
-        <artifactId>spring-boot-openapi-generator-parent</artifactId>
+        <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
+        <artifactId>spring-oas-generator-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>generator-engine</artifactId>
+    <artifactId>spring-oas-generator-engine</artifactId>
 
     <dependencies>
         <dependency>

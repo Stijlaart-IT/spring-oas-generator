@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>nl.stijlaartit</groupId>
+        <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
         <artifactId>example-validation-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
@@ -37,8 +37,8 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>nl.stijlaartit</groupId>
-                <artifactId>spring-boot-openapi-generator-maven-plugin</artifactId>
+                <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
+                <artifactId>spring-oas-generator-maven-plugin</artifactId>
                 <version>0.0.1-SNAPSHOT</version>
                 <executions>
                     <execution>

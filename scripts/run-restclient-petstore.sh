@@ -8,7 +8,7 @@ echo "Building generator-cli..."
 mvn -f "$PROJECT_DIR/pom.xml" -pl generator-cli -am package -q -DskipTests
 
 echo "Running generator-cli with petstore spec..."
-java -jar "$PROJECT_DIR/generator-cli/target/spring-boot-openapi-generator-cli-0.0.1-SNAPSHOT.jar" \
+java -jar "$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli-0.0.1-SNAPSHOT.jar" \
   "$PROJECT_DIR/examples/petstore.json" \
   "$PROJECT_DIR/example-validation/petstore-validation/src/main/java" \
   "nl.stijlaartit.petstore.generated"

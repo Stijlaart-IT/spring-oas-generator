@@ -11,15 +11,15 @@
         <relativePath/>
     </parent>
 
-    <groupId>nl.stijlaartit</groupId>
-    <artifactId>spring-boot-openapi-generator-parent</artifactId>
+    <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
+    <artifactId>spring-oas-generator-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
-        <module>generator-engine</module>
-        <module>generator-cli</module>
-        <module>generator-maven-plugin</module>
+        <module>spring-oas-generator-engine</module>
+        <module>spring-oas-generator-cli</module>
+        <module>spring-oas-generator-maven-plugin</module>
     </modules>
 
 
@@ -44,8 +44,8 @@
         <dependencies>
             <!-- Project -->
             <dependency>
-                <groupId>nl.stijlaartit</groupId>
-                <artifactId>generator-engine</artifactId>
+                <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
+                <artifactId>spring-oas-generator-engine</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

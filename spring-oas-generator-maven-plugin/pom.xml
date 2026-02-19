@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>nl.stijlaartit</groupId>
-        <artifactId>spring-boot-openapi-generator-parent</artifactId>
+        <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
+        <artifactId>spring-oas-generator-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>spring-boot-openapi-generator-maven-plugin</artifactId>
+    <artifactId>spring-oas-generator-maven-plugin</artifactId>
     <packaging>maven-plugin</packaging>
 
     <properties>
@@ -37,8 +37,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>nl.stijlaartit</groupId>
-            <artifactId>generator-engine</artifactId>
+            <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
+            <artifactId>spring-oas-generator-engine</artifactId>
         </dependency>
     </dependencies>
 
@@ -52,12 +52,6 @@
                         <id>default-descriptor</id>
                         <goals>
                             <goal>descriptor</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>help-goal</id>
-                        <goals>
-                            <goal>helpmojo</goal>
                         </goals>
                     </execution>
                 </executions>

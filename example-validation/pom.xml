@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>nl.stijlaartit</groupId>
+    <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
     <artifactId>example-validation-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
