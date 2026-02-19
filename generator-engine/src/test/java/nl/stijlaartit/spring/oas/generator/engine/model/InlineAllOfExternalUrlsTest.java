@@ -36,7 +36,7 @@ class InlineAllOfExternalUrlsTest {
         List<ModelFile> models = resolveModels();
         RecordModel albumBase = findRecord(models, "AlbumBase");
 
-        RecordModelWriter writer = new RecordModelWriter("com.example.models", RecordModelWriterConfig.defaultConfig(), ImplementsByMapping.empty());
+        RecordModelSerializer writer = new RecordModelSerializer("com.example.models", RecordModelWriterConfig.defaultConfig(), ImplementsByMapping.empty());
         String source = writer.toJavaFile(albumBase).toString();
 
         assertTrue(source.contains("ExternalUrlObject externalUrls"));

@@ -18,7 +18,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.SerializedFile;
 import javax.lang.model.element.Modifier;
 import java.util.Objects;
 
-public class RecordModelWriter implements GenerationFileSerializer<RecordModel> {
+public class RecordModelSerializer implements GenerationFileSerializer<RecordModel> {
 
     private static final ClassName JSON_PROPERTY =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonProperty");
@@ -38,7 +38,7 @@ public class RecordModelWriter implements GenerationFileSerializer<RecordModel> 
 
     private final ImplementsByMapping implementsByModel;
 
-    public RecordModelWriter(String modelsPackage, RecordModelWriterConfig config, ImplementsByMapping implementsByModel) {
+    public RecordModelSerializer(String modelsPackage, RecordModelWriterConfig config, ImplementsByMapping implementsByModel) {
         this.modelsPackage = modelsPackage;
         this.typeNameResolver = new TypeNameResolver(modelsPackage);
         this.config = Objects.requireNonNull(config, "config");

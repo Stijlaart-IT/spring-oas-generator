@@ -35,17 +35,17 @@ public class GeneratorCliApplication implements CommandLineRunner {
 
         Path specPath = Path.of(specFile);
         if (!Files.isRegularFile(specPath)) {
-            LOG.error("Spec file does not exist or is not a regular file: " + specPath);
+            LOG.error("Spec file does not exist or is not a regular file: {}", specPath);
             System.exit(1);
         }
         if (!Files.isReadable(specPath)) {
-            LOG.error("Spec file is not readable: " + specPath);
+            LOG.error("Spec file is not readable: {}", specPath);
             System.exit(1);
         }
 
         Path outputDir = Path.of(outputPath);
         if (Files.exists(outputDir) && !Files.isDirectory(outputDir)) {
-            LOG.error("Output path exists but is not a directory: " + outputDir);
+            LOG.error("Output path exists but is not a directory: {}", outputDir);
             System.exit(1);
         }
 
@@ -55,7 +55,7 @@ public class GeneratorCliApplication implements CommandLineRunner {
             System.exit(1);
         }
         if (!trimmedPackage.matches("[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)*")) {
-            LOG.error("Output package is not a valid Java package name: " + outputPackage);
+            LOG.error("Output package is not a valid Java package name: {}", outputPackage);
             System.exit(1);
         }
         final var logger = new Slf4jLogger(LOG);

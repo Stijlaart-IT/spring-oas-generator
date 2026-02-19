@@ -84,7 +84,7 @@ public final class NamingUtil {
         while (current.parent() instanceof SchemaParent.SchemaInstanceParent(
                 SchemaInstance parent, SchemaParent.SchemaRelation relation
         )) {
-            String segment = resolveSegment(relation, current.jsonPath());
+            String segment = resolveSegment(relation);
             if (segment != null && !segment.isBlank()) {
                 segments.add(segment);
             }
@@ -111,7 +111,7 @@ public final class NamingUtil {
         while (current.parent() instanceof SchemaParent.SchemaInstanceParent(
                 SchemaInstance parent, SchemaParent.SchemaRelation relation
         )) {
-            String segment = resolveSegment(relation, current.jsonPath());
+            String segment = resolveSegment(relation);
             if (segment != null && !segment.isBlank()) {
                 segments.add(segment);
             }
@@ -164,7 +164,7 @@ public final class NamingUtil {
         return OperationIdNaming.fallbackOperationId(method, path);
     }
 
-    private static String resolveSegment(SchemaParent.SchemaRelation relation, String currentPath) {
+    private static String resolveSegment(SchemaParent.SchemaRelation relation) {
         return switch (relation) {
             case SchemaParent.SchemaRelation.PropertyRelation propertyRelation -> propertyRelation.propertyName();
             case SchemaParent.SchemaRelation.ListItemRelation ignored -> "Item";

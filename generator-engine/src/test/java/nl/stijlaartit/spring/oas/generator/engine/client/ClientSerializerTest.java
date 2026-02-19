@@ -1,7 +1,5 @@
 package nl.stijlaartit.spring.oas.generator.engine.client;
 
-import nl.stijlaartit.spring.oas.generator.engine.client.ClientWriter;
-import nl.stijlaartit.spring.oas.generator.engine.client.ClientWriterConfig;
 import nl.stijlaartit.spring.oas.generator.engine.domain.ApiFile;
 import nl.stijlaartit.spring.oas.generator.engine.domain.HttpMethod;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OperationModel;
@@ -17,9 +15,9 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ClientWriterTest {
+class ClientSerializerTest {
 
-    private final ClientWriter writer = new ClientWriter(
+    private final ClientSerializer writer = new ClientSerializer(
             "com.example.client", "com.example.models", ClientWriterConfig.defaultConfig());
 
     @Test
@@ -80,7 +78,7 @@ class ClientWriterTest {
 
     @Test
     void wrapsResponseTypeInMonoWhenReactive() {
-        ClientWriter reactiveWriter = new ClientWriter(
+        ClientSerializer reactiveWriter = new ClientSerializer(
                 "com.example.client",
                 "com.example.models",
                 new ClientWriterConfig(ClientWriterConfig.IoMode.REACTIVE)
@@ -101,7 +99,7 @@ class ClientWriterTest {
 
     @Test
     void wrapsResponseEntityInMonoWhenReactive() {
-        ClientWriter reactiveWriter = new ClientWriter(
+        ClientSerializer reactiveWriter = new ClientSerializer(
                 "com.example.client",
                 "com.example.models",
                 new ClientWriterConfig(ClientWriterConfig.IoMode.REACTIVE)
@@ -167,7 +165,7 @@ class ClientWriterTest {
     }
     @Test
     void wrapsVoidReturnTypeInMonoWhenReactive() {
-        ClientWriter reactiveWriter = new ClientWriter(
+        ClientSerializer reactiveWriter = new ClientSerializer(
                 "com.example.client",
                 "com.example.models",
                 new ClientWriterConfig(ClientWriterConfig.IoMode.REACTIVE)

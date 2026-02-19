@@ -1,16 +1,15 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
 import nl.stijlaartit.spring.oas.generator.engine.GeneratedAnnotation;
-import nl.stijlaartit.spring.oas.generator.engine.model.NullWrapperWriter;
 import org.junit.jupiter.api.Test;
 
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class NullWrapperWriterTest {
+class NullWrapperSerializerTest {
 
-    private final NullWrapperWriter writer = new NullWrapperWriter("com.example.models");
+    private final NullWrapperSerializer writer = new NullWrapperSerializer("com.example.models");
 
     @Test
     void addsGeneratedAnnotationToNullWrapperRecord() {

@@ -38,7 +38,7 @@ class SchemaRegistryTest {
 
         SchemaInstance instance = findBySchema(registry, user);
         assertNotNull(instance);
-        assertTrue(instance.parent() instanceof SchemaParent.ComponentParent);
+        assertInstanceOf(SchemaParent.ComponentParent.class, instance.parent());
         assertEquals("User", ((SchemaParent.ComponentParent) instance.parent()).componentName());
     }
 
@@ -56,7 +56,7 @@ class SchemaRegistryTest {
 
         SchemaInstance addressInstance = findBySchema(registry, address);
         assertNotNull(addressInstance);
-        assertTrue(addressInstance.parent() instanceof SchemaParent.SchemaInstanceParent);
+        assertInstanceOf(SchemaParent.SchemaInstanceParent.class, addressInstance.parent());
         SchemaInstance parent = ((SchemaParent.SchemaInstanceParent) addressInstance.parent()).parent();
         assertSame(user, parent.schema());
     }
@@ -146,7 +146,7 @@ class SchemaRegistryTest {
 
         SchemaInstance instance = findBySchema(registry, requestSchema);
         assertNotNull(instance);
-        assertTrue(instance.parent() instanceof SchemaParent.OperationRequestParent);
+        assertInstanceOf(SchemaParent.OperationRequestParent.class, instance.parent());
         assertSame(operation, ((SchemaParent.OperationRequestParent) instance.parent()).operation());
     }
 
@@ -166,7 +166,7 @@ class SchemaRegistryTest {
 
         SchemaInstance instance = findBySchema(registry, responseSchema);
         assertNotNull(instance);
-        assertTrue(instance.parent() instanceof SchemaParent.OperationResponseParent);
+        assertInstanceOf(SchemaParent.OperationResponseParent.class, instance.parent());
         SchemaParent.OperationResponseParent parent =
                 (SchemaParent.OperationResponseParent) instance.parent();
         assertSame(operation, parent.operation());

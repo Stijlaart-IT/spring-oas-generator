@@ -39,13 +39,11 @@ class NamingUtilTest {
     void resolvesShortestComponentPath() {
         SchemaInstance root = new SchemaInstance(
                 new StringSchema(),
-                new SchemaParent.ComponentParent("pet"),
-                "#/components/schemas/Pet"
+                new SchemaParent.ComponentParent("pet")
         );
         SchemaInstance child = new SchemaInstance(
                 new StringSchema(),
-                new SchemaParent.SchemaInstanceParent(root, new SchemaParent.SchemaRelation.PropertyRelation("name")),
-                "#/components/schemas/Pet/properties/name"
+                new SchemaParent.SchemaInstanceParent(root, new SchemaParent.SchemaRelation.PropertyRelation("name"))
         );
 
         NamingUtil.PathName path = NamingUtil.findShortestComponentPath(List.of(child));
@@ -66,13 +64,11 @@ class NamingUtilTest {
                         "/pet/{petId}",
                         "petId",
                         "path"
-                ),
-                "#/paths/~1pet~1{petId}/parameters/0"
+                )
         );
         SchemaInstance child = new SchemaInstance(
                 new StringSchema(),
-                new SchemaParent.SchemaInstanceParent(root, new SchemaParent.SchemaRelation.PropertyRelation("name")),
-                "#/paths/~1pet~1{petId}/parameters/0/schema/properties/name"
+                new SchemaParent.SchemaInstanceParent(root, new SchemaParent.SchemaRelation.PropertyRelation("name"))
         );
 
         NamingUtil.PathName path = NamingUtil.findShortestOperationPath(List.of(child));

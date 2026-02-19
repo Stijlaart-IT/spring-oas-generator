@@ -26,7 +26,7 @@ class SchemaTypeResolverTest {
         Schema<?> schema = new StringSchema();
         SchemaType type = resolveSingle(schema, "User");
 
-        assertTrue(type instanceof StringSchemaType);
+        assertInstanceOf(StringSchemaType.class, type);
     }
 
     @Test
@@ -34,7 +34,7 @@ class SchemaTypeResolverTest {
         Schema<?> schema = new IntegerSchema();
         SchemaType type = resolveSingle(schema, "User");
 
-        assertTrue(type instanceof IntegerSchemaType);
+        assertInstanceOf(IntegerSchemaType.class, type);
     }
 
     @Test
@@ -42,7 +42,7 @@ class SchemaTypeResolverTest {
         Schema<?> schema = new NumberSchema();
         SchemaType type = resolveSingle(schema, "User");
 
-        assertTrue(type instanceof DecimalSchemaType);
+        assertInstanceOf(DecimalSchemaType.class, type);
     }
 
     @Test
@@ -50,7 +50,7 @@ class SchemaTypeResolverTest {
         Schema<?> schema = new BooleanSchema();
         SchemaType type = resolveSingle(schema, "User");
 
-        assertTrue(type instanceof BooleanSchemaType);
+        assertInstanceOf(BooleanSchemaType.class, type);
     }
 
     @Test
@@ -58,10 +58,10 @@ class SchemaTypeResolverTest {
         Schema<?> schema = new ArraySchema().items(new StringSchema());
         SchemaType type = resolveSingle(schema, "User");
 
-        assertTrue(type instanceof ListSchemaType);
+        assertInstanceOf(ListSchemaType.class, type);
         ListSchemaType listType = (ListSchemaType) type;
         assertNotNull(listType.itemInstance());
-        assertTrue(listType.itemInstance().schema() instanceof StringSchema);
+        assertInstanceOf(StringSchema.class, listType.itemInstance().schema());
     }
 
     @Test
@@ -69,7 +69,7 @@ class SchemaTypeResolverTest {
         Schema<?> schema = new ObjectSchema().additionalProperties(new StringSchema());
         SchemaType type = resolveSingle(schema, "User");
 
-        assertTrue(type instanceof ObjectSchemaType);
+        assertInstanceOf(ObjectSchemaType.class, type);
         ObjectSchemaType objectType = (ObjectSchemaType) type;
         assertEquals("User", objectType.name());
     }
@@ -79,7 +79,7 @@ class SchemaTypeResolverTest {
         Schema<?> schema = new ObjectSchema();
         SchemaType type = resolveSingle(schema, "User");
 
-        assertTrue(type instanceof ObjectSchemaType);
+        assertInstanceOf(ObjectSchemaType.class, type);
         ObjectSchemaType objectType = (ObjectSchemaType) type;
         assertEquals("User", objectType.name());
     }
@@ -106,7 +106,7 @@ class SchemaTypeResolverTest {
         schema.setOneOf(List.of(new StringSchema(), new IntegerSchema()));
 
         SchemaType type = resolveSingle(schema, "UnionModel");
-        assertTrue(type instanceof UnionSchemaType);
+        assertInstanceOf(UnionSchemaType.class, type);
 
         UnionSchemaType unionType = (UnionSchemaType) type;
         assertEquals(2, unionType.variantInstances().size());

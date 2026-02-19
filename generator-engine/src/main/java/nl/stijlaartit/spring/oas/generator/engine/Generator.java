@@ -4,26 +4,25 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import nl.stijlaartit.spring.oas.generator.engine.client.ClientResolver;
-import nl.stijlaartit.spring.oas.generator.engine.client.ClientWriter;
+import nl.stijlaartit.spring.oas.generator.engine.client.ClientSerializer;
 import nl.stijlaartit.spring.oas.generator.engine.client.ClientWriterConfig;
 import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFile;
 import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFileSerializer;
 import nl.stijlaartit.spring.oas.generator.engine.domain.SerializedFile;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
-import nl.stijlaartit.spring.oas.generator.engine.model.EnumModelWriter;
+import nl.stijlaartit.spring.oas.generator.engine.model.EnumModelSerializer;
 import nl.stijlaartit.spring.oas.generator.engine.model.ImplementsByMapping;
 import nl.stijlaartit.spring.oas.generator.engine.model.ModelResolver;
-import nl.stijlaartit.spring.oas.generator.engine.model.NullWrapperWriter;
-import nl.stijlaartit.spring.oas.generator.engine.model.RecordModelWriter;
+import nl.stijlaartit.spring.oas.generator.engine.model.NullWrapperSerializer;
+import nl.stijlaartit.spring.oas.generator.engine.model.RecordModelSerializer;
 import nl.stijlaartit.spring.oas.generator.engine.model.RecordModelWriterConfig;
 import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
-import nl.stijlaartit.spring.oas.generator.engine.model.UnionModelWriter;
+import nl.stijlaartit.spring.oas.generator.engine.model.UnionModelSerializer;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
-import nl.stijlaartit.spring.oas.generator.engine.utility.PackageInfoWriter;
+import nl.stijlaartit.spring.oas.generator.engine.utility.PackageInfoSerializer;
 import nl.stijlaartit.spring.oas.generator.engine.utility.UtilityResolver;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,12 +83,12 @@ public class Generator {
 
         ImplementsByMapping implementsByModel = ImplementsByMapping.create(generationFiles);
         final var serializers = List.of(
-                new RecordModelWriter(modelsPackage, RecordModelWriterConfig.defaultConfig(), implementsByModel),
-                new EnumModelWriter(modelsPackage, implementsByModel),
-                new UnionModelWriter(modelsPackage),
-                new ClientWriter(clientPackage, modelsPackage, ClientWriterConfig.defaultConfig()),
-                new PackageInfoWriter(),
-                new NullWrapperWriter(modelsPackage)
+                new RecordModelSerializer(modelsPackage, RecordModelWriterConfig.defaultConfig(), implementsByModel),
+                new EnumModelSerializer(modelsPackage, implementsByModel),
+                new UnionModelSerializer(modelsPackage),
+                new ClientSerializer(clientPackage, modelsPackage, ClientWriterConfig.defaultConfig()),
+                new PackageInfoSerializer(),
+                new NullWrapperSerializer(modelsPackage)
         );
 
         final var serializedFiles = new ArrayList<SerializedFile>();
@@ -99,7 +98,9 @@ public class Generator {
                 throw new IllegalArgumentException("No serializer found for " + generationFile.getClass().getSimpleName());
             }
 
+            @SuppressWarnings("unchecked")
             GenerationFileSerializer<GenerationFile> generationFileSerializer = (GenerationFileSerializer<GenerationFile>) first.orElseThrow();
+
             serializedFiles.add(generationFileSerializer.serialize(generationFile));
         }
 

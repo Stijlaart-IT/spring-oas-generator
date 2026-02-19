@@ -14,7 +14,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.UnionModelFile;
 
 import javax.lang.model.element.Modifier;
 
-public class UnionModelWriter implements GenerationFileSerializer<UnionModelFile> {
+public class UnionModelSerializer implements GenerationFileSerializer<UnionModelFile> {
 
     private static final ClassName JSON_TYPE_INFO =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonTypeInfo");
@@ -25,7 +25,7 @@ public class UnionModelWriter implements GenerationFileSerializer<UnionModelFile
 
     private final String modelsPackage;
 
-    public UnionModelWriter(String modelsPackage) {
+    public UnionModelSerializer(String modelsPackage) {
         this.modelsPackage = modelsPackage;
     }
 

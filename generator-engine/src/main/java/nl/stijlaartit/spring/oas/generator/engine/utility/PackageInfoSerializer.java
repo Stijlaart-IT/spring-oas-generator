@@ -8,7 +8,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.PackageInfoType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.SerializedFile;
 import org.jspecify.annotations.NonNull;
 
-public class PackageInfoWriter implements GenerationFileSerializer<PackageInfoFile> {
+public class PackageInfoSerializer implements GenerationFileSerializer<PackageInfoFile> {
 
     @Override
     @NonNull

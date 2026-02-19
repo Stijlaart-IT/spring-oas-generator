@@ -47,14 +47,14 @@ public class ModelResolver {
                 .toList();
     }
 
-    private ModelFile createModelFile(GeneratedSchemaType generatedSchemaType, TypeDescriptorFactory typeDescriptorFactory, SchemaTypes schemaTypes2) {
+    private ModelFile createModelFile(GeneratedSchemaType generatedSchemaType, TypeDescriptorFactory typeDescriptorFactory, SchemaTypes schemaTypes) {
         return switch (generatedSchemaType) {
             case ObjectSchemaType n ->
                     createModelFileForObjectSchemaType(n, typeDescriptorFactory);
             case EnumSchemaType enumSchemaType ->
                     createModelFileForEnumSchemaType(enumSchemaType);
             case UnionSchemaType unionSchemaType ->
-                    createModelFileForUnionSchemaType(unionSchemaType, schemaTypes2);
+                    createModelFileForUnionSchemaType(unionSchemaType, schemaTypes);
         };
     }
 
@@ -91,9 +91,13 @@ public class ModelResolver {
     }
 
     private ModelFile createModelFileForEnumSchemaType(EnumSchemaType enumSchemaType) {
-        Schema<?> schema = enumSchemaType.instances().isEmpty() ? null : enumSchemaType.instances().getFirst().schema();
+        final var  instances = enumSchemaType.instances();
+        if (instances.isEmpty()) {
+            throw new IllegalStateException("Enum schema " + enumSchemaType.name() + " has no instances.");
+        }
+        Schema<?> schema = instances.getFirst().schema();
 
-        List<String> values = schema != null && schema.getEnum() != null
+        List<String> values = schema.getEnum() != null
                 ? schema.getEnum().stream().map(String::valueOf).toList()
                 : List.of();
         EnumValueType valueType = resolveEnumValueType(schema);
@@ -101,7 +105,7 @@ public class ModelResolver {
     }
 
     private ModelFile createModelFileForUnionSchemaType(UnionSchemaType unionSchemaType,
-                                                        SchemaTypes schemaTypes2) {
+                                                        SchemaTypes schemaTypes) {
         Schema<?> schema = unionSchemaType.instances().isEmpty() ? null : unionSchemaType.instances().getFirst().schema();
 
         String discriminator = resolveDiscriminatorProperty(schema);
@@ -109,7 +113,7 @@ public class ModelResolver {
         List<SchemaInstance> variantInstances = unionSchemaType.variantInstances();
         for (SchemaInstance variantInstance : variantInstances) {
             Schema<?> variantSchema = variantInstance.schema();
-            String variantName = resolveVariantName(variantSchema, schemaTypes2);
+            String variantName = resolveVariantName(variantSchema, schemaTypes);
             String discriminatorValue = resolveDiscriminatorValue(variantSchema, discriminator);
             variants.add(new OneOfVariant(variantName, discriminatorValue));
         }
@@ -118,7 +122,7 @@ public class ModelResolver {
     }
 
     private String resolveVariantName(Schema<?> variantSchema,
-                                      SchemaTypes schemaTypes2) {
+                                      SchemaTypes schemaTypes) {
         if (variantSchema.get$ref() != null && !variantSchema.get$ref().isBlank()) {
             final var componentSchemaRef = SchemaRef.parseFromRefValue(variantSchema.get$ref());
             return NamingUtil.toPascalCase(componentSchemaRef.name());
@@ -126,7 +130,7 @@ public class ModelResolver {
 
         SchemaType schemaType;
         try {
-            schemaType = schemaTypes2.resolveFromSchema(variantSchema);
+            schemaType = schemaTypes.resolveFromSchema(variantSchema);
         } catch (IllegalStateException ex) {
             schemaType = null;
         }
@@ -135,7 +139,7 @@ public class ModelResolver {
             return generatedType.name();
         }
 
-        if (schemaType instanceof RefSchemaType refType) {
+        if (schemaType instanceof RefSchemaType) {
             final var componentSchemaRef = SchemaRef.parseFromRefValue(variantSchema.get$ref());
             return NamingUtil.toPascalCase(componentSchemaRef.name());
         }

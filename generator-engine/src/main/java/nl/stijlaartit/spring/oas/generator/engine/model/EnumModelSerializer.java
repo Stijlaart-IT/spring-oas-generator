@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class EnumModelWriter implements GenerationFileSerializer<EnumModel> {
+public class EnumModelSerializer implements GenerationFileSerializer<EnumModel> {
 
     private static final ClassName JSON_PROPERTY =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonProperty");
@@ -28,7 +28,7 @@ public class EnumModelWriter implements GenerationFileSerializer<EnumModel> {
     private final String modelsPackage;
     private final ImplementsByMapping implementsByModel;
 
-    public EnumModelWriter(String modelsPackage, ImplementsByMapping implementsByModel) {
+    public EnumModelSerializer(String modelsPackage, ImplementsByMapping implementsByModel) {
         this.modelsPackage = modelsPackage;
         this.implementsByModel = implementsByModel;
     }

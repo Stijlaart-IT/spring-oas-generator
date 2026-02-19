@@ -17,10 +17,8 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.NullWrapperFile;
 import nl.stijlaartit.spring.oas.generator.engine.domain.SerializedFile;
 
 import javax.lang.model.element.Modifier;
-import java.io.IOException;
-import java.nio.file.Path;
 
-public final class NullWrapperWriter implements GenerationFileSerializer<NullWrapperFile> {
+public final class NullWrapperSerializer implements GenerationFileSerializer<NullWrapperFile> {
     private static final ClassName JSON_VALUE =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonValue");
     private static final ClassName JSON_DESERIALIZE =
@@ -42,7 +40,7 @@ public final class NullWrapperWriter implements GenerationFileSerializer<NullWra
 
     private final String modelsPackage;
 
-    public NullWrapperWriter(String modelsPackage) {
+    public NullWrapperSerializer(String modelsPackage) {
         this.modelsPackage = modelsPackage;
     }
 
@@ -54,10 +52,6 @@ public final class NullWrapperWriter implements GenerationFileSerializer<NullWra
     @Override
     public boolean supports(GenerationFile generationFile) {
         return generationFile instanceof NullWrapperFile;
-    }
-
-    public void write(Path outputDirectory) throws IOException {
-        toJavaFile().writeTo(outputDirectory);
     }
 
     public JavaFile toJavaFile() {

@@ -27,7 +27,7 @@ import nl.stijlaartit.spring.oas.generator.engine.naming.OperationIdNaming;
 import javax.lang.model.element.Modifier;
 import java.util.Objects;
 
-public class ClientWriter implements GenerationFileSerializer<ApiFile> {
+public class ClientSerializer implements GenerationFileSerializer<ApiFile> {
 
     private static final ClassName GET_EXCHANGE = ClassName.get(
             "org.springframework.web.service.annotation", "GetExchange");
@@ -59,7 +59,7 @@ public class ClientWriter implements GenerationFileSerializer<ApiFile> {
     private final String clientPackage;
     private final ClientWriterConfig config;
 
-    public ClientWriter(String clientPackage, String modelsPackage, ClientWriterConfig config) {
+    public ClientSerializer(String clientPackage, String modelsPackage, ClientWriterConfig config) {
         this.clientPackage = clientPackage;
         this.typeNameResolver = new TypeNameResolver(modelsPackage);
         this.config = Objects.requireNonNull(config, "config");

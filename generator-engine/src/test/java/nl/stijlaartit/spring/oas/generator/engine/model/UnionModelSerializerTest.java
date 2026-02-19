@@ -3,7 +3,6 @@ package nl.stijlaartit.spring.oas.generator.engine.model;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.spring.oas.generator.engine.domain.UnionModelFile;
 import nl.stijlaartit.spring.oas.generator.engine.GeneratedAnnotation;
-import nl.stijlaartit.spring.oas.generator.engine.model.UnionModelWriter;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -11,9 +10,9 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class UnionModelWriterTest {
+class UnionModelSerializerTest {
 
-    private final UnionModelWriter writer = new UnionModelWriter("com.example.models");
+    private final UnionModelSerializer writer = new UnionModelSerializer("com.example.models");
 
     @Test
     void generatesOneOfInterfaceWithDiscriminator() {

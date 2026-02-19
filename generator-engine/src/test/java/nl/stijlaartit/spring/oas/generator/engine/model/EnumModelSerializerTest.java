@@ -5,8 +5,6 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.EnumModel;
 import nl.stijlaartit.spring.oas.generator.engine.domain.EnumValueType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.spring.oas.generator.engine.domain.UnionModelFile;
-import nl.stijlaartit.spring.oas.generator.engine.model.EnumModelWriter;
-import nl.stijlaartit.spring.oas.generator.engine.model.ImplementsByMapping;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,9 +12,9 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class EnumModelWriterTest {
+class EnumModelSerializerTest {
 
-    private final EnumModelWriter writer = new EnumModelWriter("com.example.models", ImplementsByMapping.empty());
+    private final EnumModelSerializer writer = new EnumModelSerializer("com.example.models", ImplementsByMapping.empty());
 
     @Test
     void generatesEnumWithJsonPropertyValues() {
@@ -61,7 +59,7 @@ class EnumModelWriterTest {
         );
 
 
-        String source = new EnumModelWriter("com.example.models", ImplementsByMapping.create(List.of(model, union)))
+        String source = new EnumModelSerializer("com.example.models", ImplementsByMapping.create(List.of(model, union)))
                 .toJavaFile(model).toString();
 
         assertTrue(source.contains("enum Mode"));

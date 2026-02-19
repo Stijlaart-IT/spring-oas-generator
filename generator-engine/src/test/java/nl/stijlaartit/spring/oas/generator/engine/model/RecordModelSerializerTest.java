@@ -5,10 +5,6 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
 import nl.stijlaartit.spring.oas.generator.engine.domain.UnionModelFile;
 import nl.stijlaartit.spring.oas.generator.engine.GeneratedAnnotation;
-import nl.stijlaartit.spring.oas.generator.engine.model.ImplementsByMapping;
-import nl.stijlaartit.spring.oas.generator.engine.model.RecordModelWriter;
-import nl.stijlaartit.spring.oas.generator.engine.model.RecordModelWriterConfig;
-import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptor;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -17,16 +13,16 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class RecordModelWriterTest {
+class RecordModelSerializerTest {
 
-    private final RecordModelWriter writer = new RecordModelWriter(
+    private final RecordModelSerializer writer = new RecordModelSerializer(
             "com.example.models",
             RecordModelWriterConfig.defaultConfig(),
             ImplementsByMapping.empty()
     );
 
-    private RecordModelWriter writerWithImplementsMap(ImplementsByMapping implementsByModel) {
-        return new RecordModelWriter(
+    private RecordModelSerializer writerWithImplementsMap(ImplementsByMapping implementsByModel) {
+        return new RecordModelSerializer(
                 "com.example.models",
                 RecordModelWriterConfig.defaultConfig(),
                 implementsByModel
@@ -254,7 +250,7 @@ class RecordModelWriterTest {
 
     @Test
     void builderStrictModeCanBeDisabled() {
-        RecordModelWriter relaxedWriter = new RecordModelWriter(
+        RecordModelSerializer relaxedWriter = new RecordModelSerializer(
                 "com.example.models",
                 new RecordModelWriterConfig(RecordModelWriterConfig.BuilderMode.RELAXED),
                 ImplementsByMapping.empty()

@@ -68,7 +68,7 @@ class ModelResolverTest {
         List<ModelFile> models = resolveModels(openAPI);
 
         assertEquals(1, models.size());
-        assertEquals("PostUsersRequest", models.get(0).name());
+        assertEquals("PostUsersRequest", models.getFirst().name());
     }
 
     @Test
@@ -97,7 +97,7 @@ class ModelResolverTest {
         List<ModelFile> models = resolveModels(openAPI);
 
         assertEquals(1, models.size());
-        assertEquals("PostEnumRequest", models.get(0).name());
+        assertEquals("PostEnumRequest", models.getFirst().name());
     }
 
     @Test

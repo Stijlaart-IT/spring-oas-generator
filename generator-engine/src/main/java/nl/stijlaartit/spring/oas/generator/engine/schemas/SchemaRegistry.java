@@ -9,6 +9,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -94,7 +95,7 @@ public final class SchemaRegistry {
 
         if (operation.getParameters() != null && !operation.getParameters().isEmpty()) {
             String base = appendPath("$.paths", path);
-            base = appendPath(base, method != null ? method.name().toLowerCase() : "operation");
+            base = appendPath(base, method.name().toLowerCase());
             for (int i = 0; i < operation.getParameters().size(); i++) {
                 Parameter parameter = operation.getParameters().get(i);
                 if (parameter == null) {
@@ -112,7 +113,7 @@ public final class SchemaRegistry {
             if (requestSchema != null) {
                 SchemaParent parent = new SchemaParent.OperationRequestParent(operation, method, path);
                 String base = appendPath("$.paths", path);
-                base = appendPath(base, method != null ? method.name().toLowerCase() : "operation");
+                base = appendPath(base, method.name().toLowerCase());
                 base = appendPath(base, "requestBody");
                 base = appendPath(base, "content");
                 base = appendPath(base, "application/json");
@@ -134,7 +135,7 @@ public final class SchemaRegistry {
                 }
                 SchemaParent parent = new SchemaParent.OperationResponseParent(operation, status, method, path);
                 String base = appendPath("$.paths", path);
-                base = appendPath(base, method != null ? method.name().toLowerCase() : "operation");
+                base = appendPath(base, method.name().toLowerCase());
                 base = appendPath(base, "responses");
                 base = appendPath(base, status);
                 base = appendPath(base, "content");
@@ -149,7 +150,7 @@ public final class SchemaRegistry {
                                                   PathItem pathItem,
                                                   List<SchemaInstance> instances,
                                                   IdentityHashMap<Schema<?>, Boolean> visiting) {
-        if (pathItem == null || pathItem.getParameters() == null || pathItem.getParameters().isEmpty()) {
+        if (pathItem.getParameters() == null || pathItem.getParameters().isEmpty()) {
             return;
         }
         String base = appendPath("$.paths", path);
@@ -165,7 +166,8 @@ public final class SchemaRegistry {
         }
     }
 
-    private static Schema<?> resolveContentSchema(Content content) {
+    @Nullable
+    private static Schema<?> resolveContentSchema(@Nullable Content content) {
         if (content == null || content.isEmpty()) {
             return null;
         }
@@ -181,9 +183,6 @@ public final class SchemaRegistry {
                                                String basePath,
                                                List<SchemaInstance> instances,
                                                IdentityHashMap<Schema<?>, Boolean> visiting) {
-        if (parameter == null) {
-            return;
-        }
         if (parameter.getSchema() != null) {
             String jsonPath = appendPath(basePath, "schema");
             collect(parameter.getSchema(), parent, jsonPath, instances, visiting);
@@ -204,15 +203,11 @@ public final class SchemaRegistry {
                                 String jsonPath,
                                 List<SchemaInstance> instances,
                                 IdentityHashMap<Schema<?>, Boolean> visiting) {
-        if (schema == null) {
-            return;
-        }
-
         if (visiting.put(schema, Boolean.TRUE) != null) {
             throw new IllegalStateException("Detected schema cycle during registry collection.");
         }
 
-        SchemaInstance instance = new SchemaInstance(schema, parent, jsonPath);
+        SchemaInstance instance = new SchemaInstance(schema, parent);
         instances.add(instance);
         if (schema.getAllOf() != null) {
             for (int i = 0; i < schema.getAllOf().size(); i++) {
@@ -268,12 +263,6 @@ public final class SchemaRegistry {
     }
 
     private static String appendPath(String base, String segment) {
-        if (base == null || base.isBlank()) {
-            base = "$";
-        }
-        if (segment == null || segment.isBlank()) {
-            return base;
-        }
         if (segment.matches("[A-Za-z_][A-Za-z0-9_]*")) {
             return base + "." + segment;
         }
@@ -285,7 +274,6 @@ public final class SchemaRegistry {
         return base + "[" + index + "]";
     }
 
-    @NonNull
     public SchemaInstance instanceForSchema(Schema<?> schema) {
         return instances.stream()
                 .filter(i -> i.schema().equals(schema))
