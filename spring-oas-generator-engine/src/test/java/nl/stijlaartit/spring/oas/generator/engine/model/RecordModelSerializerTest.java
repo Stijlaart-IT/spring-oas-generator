@@ -34,7 +34,7 @@ class RecordModelSerializerTest {
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -51,7 +51,7 @@ class RecordModelSerializerTest {
                         TypeDescriptor.simple("java.lang.String"), true, false, false),
                 new FieldModel("age", "age",
                         TypeDescriptor.simple("java.lang.Integer"), false, false, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -65,7 +65,7 @@ class RecordModelSerializerTest {
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("firstName", "first_name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -79,7 +79,7 @@ class RecordModelSerializerTest {
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -91,7 +91,7 @@ class RecordModelSerializerTest {
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("age", "age",
                         TypeDescriptor.simple("java.lang.Integer"), false, true, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -107,7 +107,7 @@ class RecordModelSerializerTest {
                         TypeDescriptor.simple("java.lang.String"), true, false, false),
                 new FieldModel("nickname", "nickname",
                         TypeDescriptor.simple("java.lang.String"), false, false, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -122,7 +122,7 @@ class RecordModelSerializerTest {
         RecordModel model = new RecordModel("Owner", List.of(
                 new FieldModel("pet", "pet",
                         TypeDescriptor.complex("Pet"), true, false, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -143,7 +143,7 @@ class RecordModelSerializerTest {
         RecordModel model = new RecordModel("Pet", List.of(
                 new FieldModel("tags", "tags",
                         TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), false, false, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -155,7 +155,7 @@ class RecordModelSerializerTest {
         RecordModel model = new RecordModel("Config", List.of(
                 new FieldModel("metadata", "metadata",
                         TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")), false, false, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -167,11 +167,36 @@ class RecordModelSerializerTest {
         RecordModel model = new RecordModel("Pet", List.of(
                 new FieldModel("tags", "tags",
                         TypeDescriptor.list(TypeDescriptor.complex("Tag")), false, false, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
         assertTrue(source.contains("List<Tag> tags"));
+    }
+
+    @Test
+    void addsAdditionalPropertiesFieldWhenEnabled() {
+        RecordModel model = new RecordModel("Config", List.of(), true);
+
+        String source = writer.toJavaFile(model).toString();
+
+        assertTrue(source.contains("@JsonAnyGetter"));
+        assertTrue(source.contains("@JsonAnySetter"));
+        assertTrue(source.contains("Map<String, Object> additionalProperties"));
+        assertTrue(source.contains("import com.fasterxml.jackson.annotation.JsonAnyGetter;"));
+        assertTrue(source.contains("import com.fasterxml.jackson.annotation.JsonAnySetter;"));
+    }
+
+    @Test
+    void builderIncludesAdditionalPropertiesWhenEnabled() {
+        RecordModel model = new RecordModel("Config", List.of(), true);
+
+        String source = writer.toJavaFile(model).toString();
+
+        assertTrue(source.contains("class Builder"));
+        assertTrue(source.contains("Map<String, Object> additionalProperties"));
+        assertTrue(source.contains("Builder additionalProperties("));
+        assertTrue(source.contains("return new Config(additionalProperties)"));
     }
 
     @Test
@@ -185,7 +210,8 @@ class RecordModelSerializerTest {
                         true,
                         true,
                         true
-                ))
+                )),
+                false
         );
 
         String source = writer.toJavaFile(model).toString();
@@ -200,7 +226,7 @@ class RecordModelSerializerTest {
         RecordModel model = new RecordModel("TrackObject", List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
-        ));
+        ), false);
         UnionModelFile union = new UnionModelFile(
                 "QueueObjectCurrentlyPlaying",
                 List.of(new OneOfVariant("TrackObject", "track")),
@@ -219,7 +245,7 @@ class RecordModelSerializerTest {
         RecordModel model = new RecordModel("User", List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -238,7 +264,7 @@ class RecordModelSerializerTest {
                         TypeDescriptor.simple("java.lang.String"), true, true, false),
                 new FieldModel("bio", "bio",
                         TypeDescriptor.simple("java.lang.String"), false, true, false)
-        ));
+        ), false);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -261,7 +287,7 @@ class RecordModelSerializerTest {
                         TypeDescriptor.simple("java.lang.String"), true, false, false),
                 new FieldModel("age", "age",
                         TypeDescriptor.simple("java.lang.Integer"), false, false, false)
-        ));
+        ), false);
 
         String source = relaxedWriter.toJavaFile(model).toString();
 

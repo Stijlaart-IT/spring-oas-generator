@@ -1,0 +1,26 @@
+package nl.stijlaartit.variants.generated;
+
+import nl.stijlaartit.variants.generated.client.DefaultApi;
+import nl.stijlaartit.variants.generated.models.GetInlineResponseBodyResponseItem;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
+@ExtendWith(MockitoExtension.class)
+public class InlineResponseBodyTest {
+
+    @Mock
+    private DefaultApi defaultApi;
+
+    @Test
+    void shouldHaveGeneratedResponseBody() {
+        // Validates the generated types
+        List<GetInlineResponseBodyResponseItem> result =  defaultApi.getInlineResponseBody();
+        assertThat(result).isNotNull();
+    }
+}

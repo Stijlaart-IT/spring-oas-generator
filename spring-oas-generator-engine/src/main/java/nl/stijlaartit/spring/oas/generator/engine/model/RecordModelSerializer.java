@@ -24,6 +24,10 @@ public class RecordModelSerializer implements GenerationFileSerializer<RecordMod
             ClassName.get("com.fasterxml.jackson.annotation", "JsonProperty");
     private static final ClassName JSON_VALUE =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonValue");
+    private static final ClassName JSON_ANY_GETTER =
+            ClassName.get("com.fasterxml.jackson.annotation", "JsonAnyGetter");
+    private static final ClassName JSON_ANY_SETTER =
+            ClassName.get("com.fasterxml.jackson.annotation", "JsonAnySetter");
     private static final ClassName JSON_INCLUDE =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonInclude");
     private static final ClassName JSON_INCLUDE_INCLUDE =
@@ -31,6 +35,7 @@ public class RecordModelSerializer implements GenerationFileSerializer<RecordMod
     private static final ClassName NULLABLE =
             ClassName.get("org.jspecify.annotations", "Nullable");
     private static final String NULL_WRAPPER_NAME = "NullWrapper";
+    private static final String ADDITIONAL_PROPERTIES_NAME = "additionalProperties";
 
     private final TypeNameResolver typeNameResolver;
     private final String modelsPackage;
@@ -91,6 +96,10 @@ public class RecordModelSerializer implements GenerationFileSerializer<RecordMod
             constructorBuilder.addParameter(paramBuilder.build());
         }
 
+        if (model.additionalProperties()) {
+            constructorBuilder.addParameter(additionalPropertiesParameter());
+        }
+
         TypeSpec.Builder recordBuilder = TypeSpec.recordBuilder(model.name())
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(GeneratedAnnotation.spec())
@@ -135,6 +144,16 @@ public class RecordModelSerializer implements GenerationFileSerializer<RecordMod
             if (isNullWrapperField(field)) {
                 builder.addMethod(builderNullWrapperValueSetter(builderType, field));
             }
+        }
+
+        if (model.additionalProperties()) {
+            builder.addField(FieldSpec.builder(
+                            additionalPropertiesType(),
+                            ADDITIONAL_PROPERTIES_NAME,
+                            Modifier.PRIVATE)
+                    .addAnnotation(AnnotationSpec.builder(NULLABLE).build())
+                    .build());
+            builder.addMethod(builderAdditionalPropertiesSetter(builderType));
         }
 
         builder.addMethod(builderBuildMethod(model));
@@ -187,6 +206,12 @@ public class RecordModelSerializer implements GenerationFileSerializer<RecordMod
                 args.add("$N", field.name());
             }
         }
+        if (model.additionalProperties()) {
+            if (!model.fields().isEmpty()) {
+                args.add(", ");
+            }
+            args.add("$N", ADDITIONAL_PROPERTIES_NAME);
+        }
         return MethodSpec.methodBuilder("build")
                 .addModifiers(Modifier.PUBLIC)
                 .returns(recordType)
@@ -207,5 +232,33 @@ public class RecordModelSerializer implements GenerationFileSerializer<RecordMod
 
     private boolean isNullWrapperField(FieldModel field) {
         return !field.required() && field.nullable();
+    }
+
+    private com.palantir.javapoet.TypeName additionalPropertiesType() {
+        return com.palantir.javapoet.ParameterizedTypeName.get(
+                ClassName.get(java.util.Map.class),
+                ClassName.get(String.class),
+                ClassName.get(Object.class)
+        );
+    }
+
+    private ParameterSpec additionalPropertiesParameter() {
+        return ParameterSpec.builder(additionalPropertiesType(), ADDITIONAL_PROPERTIES_NAME)
+                .addAnnotation(AnnotationSpec.builder(JSON_ANY_GETTER).build())
+                .addAnnotation(AnnotationSpec.builder(JSON_ANY_SETTER).build())
+                .addAnnotation(AnnotationSpec.builder(NULLABLE).build())
+                .build();
+    }
+
+    private MethodSpec builderAdditionalPropertiesSetter(ClassName builderType) {
+        return MethodSpec.methodBuilder(ADDITIONAL_PROPERTIES_NAME)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(builderType)
+                .addParameter(ParameterSpec.builder(additionalPropertiesType(), ADDITIONAL_PROPERTIES_NAME)
+                        .addAnnotation(AnnotationSpec.builder(NULLABLE).build())
+                        .build())
+                .addStatement("this.$N = $N", ADDITIONAL_PROPERTIES_NAME, ADDITIONAL_PROPERTIES_NAME)
+                .addStatement("return this")
+                .build();
     }
 }

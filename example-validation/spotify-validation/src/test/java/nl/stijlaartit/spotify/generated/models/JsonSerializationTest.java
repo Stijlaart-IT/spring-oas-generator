@@ -7,6 +7,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -81,7 +82,7 @@ class JsonSerializationTest {
 
     @Test
     void addTracksToPlaylistRequest() {
-        var original = new AddTracksToPlaylistRequest(List.of(), 1);
+        var original = new AddTracksToPlaylistRequest(List.of(), 1, Map.of());
         assertSerializesSymmetrical(original, AddTracksToPlaylistRequest.class);
     }
 
@@ -200,7 +201,7 @@ class JsonSerializationTest {
 
     @Test
     void changePlaylistDetailsRequest() {
-        var original = new ChangePlaylistDetailsRequest("value", true, true, "value");
+        var original = new ChangePlaylistDetailsRequest("value", true, true, "value", Map.of("additional", "value"));
         assertSerializesSymmetrical(original, ChangePlaylistDetailsRequest.class);
     }
 
@@ -243,7 +244,7 @@ class JsonSerializationTest {
 
     @Test
     void createPlaylistRequest() {
-        var original = new CreatePlaylistRequest("value", true, true, "value");
+        var original = new CreatePlaylistRequest("value", true, true, "value", Map.of("additional", "value"));
         assertSerializesSymmetrical(original, CreatePlaylistRequest.class);
     }
 
@@ -348,13 +349,13 @@ class JsonSerializationTest {
 
     @Test
     void followArtistsUsersRequest() {
-        var original = new FollowArtistsUsersRequest(List.of());
+        var original = new FollowArtistsUsersRequest(List.of(), Map.of("additional", "value"));
         assertSerializesSymmetrical(original, FollowArtistsUsersRequest.class);
     }
 
     @Test
     void followPlaylistRequest() {
-        var original = new FollowPlaylistRequest(true);
+        var original = new FollowPlaylistRequest(true, Map.of("additional", "value"));
         assertSerializesSymmetrical(original, FollowPlaylistRequest.class);
     }
 
@@ -556,7 +557,7 @@ class JsonSerializationTest {
 
     @Test
     void removeEpisodesUserRequest() {
-        var original = new RemoveEpisodesUserRequest(List.of());
+        var original = new RemoveEpisodesUserRequest(List.of(), Map.of("additional", "value"));
         assertSerializesSymmetrical(original, RemoveEpisodesUserRequest.class);
     }
 
@@ -574,7 +575,7 @@ class JsonSerializationTest {
 
     @Test
     void reorderOrReplacePlaylistsTracksRequest() {
-        var original = new ReorderOrReplacePlaylistsTracksRequest(List.of(), 1, 1, 1, "value");
+        var original = new ReorderOrReplacePlaylistsTracksRequest(List.of(), 1, 1, 1, "value", Map.of("additional", "value"));
         assertSerializesSymmetrical(original, ReorderOrReplacePlaylistsTracksRequest.class);
     }
 
@@ -586,13 +587,13 @@ class JsonSerializationTest {
 
     @Test
     void saveAlbumsUserRequest() {
-        var original = new SaveAlbumsUserRequest(List.of());
+        var original = new SaveAlbumsUserRequest(List.of(), Map.of("additional", "value"));
         assertSerializesSymmetrical(original, SaveAlbumsUserRequest.class);
     }
 
     @Test
     void saveEpisodesUserRequest() {
-        var original = new SaveEpisodesUserRequest(List.of());
+        var original = new SaveEpisodesUserRequest(List.of(), Map.of("additional", "value"));
         assertSerializesSymmetrical(original, SaveEpisodesUserRequest.class);
     }
 
@@ -604,7 +605,7 @@ class JsonSerializationTest {
 
     @Test
     void saveTracksUserRequest() {
-        var original = new SaveTracksUserRequest(List.of(), List.of());
+        var original = new SaveTracksUserRequest(List.of(), List.of(), Map.of("additional", "value"));
         assertSerializesSymmetrical(original, SaveTracksUserRequest.class);
     }
 
@@ -735,7 +736,7 @@ class JsonSerializationTest {
 
     @Test
     void startAUsersPlaybackRequest() {
-        var original = new StartAUsersPlaybackRequest("value", List.of(), null, 1);
+        var original = new StartAUsersPlaybackRequest("value", List.of(), null, 1, Map.of("additional", "value"));
         assertSerializesSymmetrical(original, StartAUsersPlaybackRequest.class);
     }
 
@@ -755,13 +756,13 @@ class JsonSerializationTest {
 
     @Test
     void transferAUsersPlaybackRequest() {
-        var original = new TransferAUsersPlaybackRequest(List.of(), true);
+        var original = new TransferAUsersPlaybackRequest(List.of(), true, Map.of("additional", "value"));
         assertSerializesSymmetrical(original, TransferAUsersPlaybackRequest.class);
     }
 
     @Test
     void unfollowArtistsUsersRequest() {
-        var original = new UnfollowArtistsUsersRequest(List.of());
+        var original = new UnfollowArtistsUsersRequest(List.of(), Map.of("additional", "value"));
         assertSerializesSymmetrical(original, UnfollowArtistsUsersRequest.class);
     }
 

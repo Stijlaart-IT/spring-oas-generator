@@ -2,6 +2,41 @@ openapi: 3.0.2
 info:
   title: Variants Example
   version: 0.0.0
+paths:
+  /inline-request-body:
+    put:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required:
+                  - itemName
+                properties:
+                  itemName:
+                    type: string
+      responses:
+        "204":
+          description: No Content
+  /inline-response-body:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - name
+                  properties:
+                    name:
+                      type: string
+          description: "Ok"
 components:
   schemas:
     RequiredAndNullable:
@@ -20,4 +55,17 @@ components:
           nullable: true
         optionalNonNullable:
           type: string
-paths: {}
+    AdditionalPropertiesWithOtherProperties:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+      additionalProperties: true
+    AdditionalPropertiesEmptyObject:
+      type: object
+      additionalProperties: {}
+    AdditionalPropertiesTrue:
+      type: object
+      additionalProperties: true

@@ -28,8 +28,6 @@
         <module>petstore-validation</module>
         <module>petstore-validation-maven-plugin</module>
         <module>realworld-validation</module>
-        <module>session-validation</module>
-        <module>inline-request-body-validation</module>
         <module>variants-validation</module>
     </modules>
 

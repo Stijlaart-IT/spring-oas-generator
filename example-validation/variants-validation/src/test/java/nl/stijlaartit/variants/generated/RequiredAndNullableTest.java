@@ -1,5 +1,7 @@
-package nl.stijlaartit.variants.generated.models;
+package nl.stijlaartit.variants.generated;
 
+import nl.stijlaartit.variants.generated.models.NullWrapper;
+import nl.stijlaartit.variants.generated.models.RequiredAndNullable;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

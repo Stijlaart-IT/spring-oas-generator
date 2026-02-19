@@ -62,16 +62,8 @@ public class ModelResolver {
                                                            TypeDescriptorFactory typeDescriptorFactory) {
         Schema<?> schema = objectSchemaType.schema();
 
-        if (isAdditionalPropertiesObject(schema)) {
-            TypeDescriptor valueType;
-            if (schema.getAdditionalProperties() instanceof Schema<?> additional) {
-                valueType = TypeDescriptor.map(typeDescriptorFactory.build(additional));
-            } else {
-                valueType = TypeDescriptor.map(TypeDescriptor.simple("java.lang.Object"));
-            }
-            FieldModel field = new FieldModel("value", "value", valueType, true, true, false);
-            return new RecordModel(objectSchemaType.name(), List.of(field));
-        }
+        boolean additionalProperties = schema.getAdditionalProperties() instanceof Schema<?>
+                || Boolean.TRUE.equals(schema.getAdditionalProperties());
 
         Set<String> requiredProperties = collectRequired(schema);
         final var fields = collectProperties(schema)
@@ -87,7 +79,7 @@ public class ModelResolver {
                 })
                 .toList();
 
-        return new RecordModel(objectSchemaType.name(), fields);
+        return new RecordModel(objectSchemaType.name(), fields, additionalProperties);
     }
 
     private ModelFile createModelFileForEnumSchemaType(EnumSchemaType enumSchemaType) {
