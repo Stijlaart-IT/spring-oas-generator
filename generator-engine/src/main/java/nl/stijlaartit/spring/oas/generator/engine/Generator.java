@@ -60,8 +60,10 @@ public class Generator {
         }
 
         final var registry = SchemaRegistry.resolve(openAPI);
+        logger.info("Found [" + registry.getInstances().size() + "] schema(s)");
         final var schemaTypeResolver = new SchemaTypeResolver();
         final var schemaTypes = schemaTypeResolver.resolve(registry);
+        logger.info("Found [" + schemaTypes.types().size() + "] distinct schema(s)");
         final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, registry);
 
         final var modelResolver = new ModelResolver(registry);
@@ -69,8 +71,11 @@ public class Generator {
         final var utilityResolver = new UtilityResolver(modelsPackage, clientPackage);
 
         final var modelFiles = modelResolver.resolve(schemaTypes);
+        logger.info("Found [" + modelFiles.size() + "] model(s) to generate");
         final var clientFiles = clientResolver.resolve(openAPI);
+        logger.info("Found [" + clientFiles.size() + "] client(s) to generate");
         final var utilityFiles = utilityResolver.resolve(modelFiles, clientFiles);
+        logger.info("Found [" + utilityFiles.size() + "] utility(s) to generate");
 
         final var generationFiles = new ArrayList<GenerationFile>();
         generationFiles.addAll(modelFiles);
@@ -98,12 +103,12 @@ public class Generator {
             serializedFiles.add(generationFileSerializer.serialize(generationFile));
         }
 
-        writeSerializedFiles(outputDirectory, serializedFiles);
-    }
+        logger.info("Serialized [" + serializedFiles.size() + "] file(s)");
 
-    private static void writeSerializedFiles(Path outputDirectory, ArrayList<SerializedFile> serializedFiles) throws IOException {
         for (SerializedFile serializedFile : serializedFiles) {
-            serializedFile.writeTo(outputDirectory);
+            Path outputPath = serializedFile.writeTo(outputDirectory);
+            logger.debug("Wrote to [" + outputPath + "]");
         }
+
     }
 }

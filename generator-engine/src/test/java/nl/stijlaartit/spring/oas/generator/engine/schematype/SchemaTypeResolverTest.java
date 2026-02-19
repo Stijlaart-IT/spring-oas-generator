@@ -10,18 +10,6 @@ import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.BooleanSchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.DecimalSchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.EnumSchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.GeneratedSchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.IntegerSchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.ListSchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.ObjectSchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypes;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.StringSchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.UnionSchemaType;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -108,7 +96,7 @@ class SchemaTypeResolverTest {
                 "State", enumB
         ));
 
-        long enumCount = types.generated().stream().filter(EnumSchemaType.class::isInstance).count();
+        long enumCount = types.generatedSchemaTypes().stream().filter(EnumSchemaType.class::isInstance).count();
         assertEquals(2, enumCount);
     }
 
@@ -147,7 +135,7 @@ class SchemaTypeResolverTest {
         schemas.put("User", new ObjectSchema().addProperties("id", new StringSchema()));
 
         SchemaTypes types = resolveMultiple(schemas);
-        Map<String, GeneratedSchemaType> generated = types.generated().stream()
+        Map<String, GeneratedSchemaType> generated = types.generatedSchemaTypes().stream()
                 .collect(Collectors.toMap(GeneratedSchemaType::name, type -> type));
 
         assertTrue(generated.containsKey("User"));

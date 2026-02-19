@@ -13,7 +13,11 @@ public final class SchemaTypes {
         this.types = List.copyOf(types);
     }
 
-    public List<GeneratedSchemaType> generated() {
+    public List<SchemaType> types() {
+        return types;
+    }
+
+    public List<GeneratedSchemaType> generatedSchemaTypes() {
         List<GeneratedSchemaType> generated = new ArrayList<>();
         for (SchemaType type : types) {
             if (type instanceof GeneratedSchemaType generatedType) {

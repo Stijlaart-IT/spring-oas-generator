@@ -39,13 +39,11 @@ public class ModelResolver {
         this.registry = Objects.requireNonNull(registry);
     }
 
-    public List<ModelFile> resolve(SchemaTypes schemaTypes2) {
-        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes2, registry);
-
-        final var typesToGenerate = schemaTypes2.generated();
-        return typesToGenerate
+    public List<ModelFile> resolve(SchemaTypes schemaTypes) {
+        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, registry);
+        return schemaTypes.generatedSchemaTypes()
                 .stream()
-                .map(generatedSchemaType -> createModelFile(generatedSchemaType, typeDescriptorFactory, schemaTypes2))
+                .map(generatedSchemaType -> createModelFile(generatedSchemaType, typeDescriptorFactory, schemaTypes))
                 .toList();
     }
 
