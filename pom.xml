@@ -4,12 +4,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <properties>
-        <java.version>21</java.version>
-        <javapoet.version>0.11.0</javapoet.version>
-        <swagger-parser.version>2.1.24</swagger-parser.version>
-    </properties>
-
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -22,8 +16,40 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <modules>
+        <module>generator-engine</module>
+        <module>generator-cli</module>
+        <module>generator-maven-plugin</module>
+    </modules>
+
+
+    <properties>
+        <!-- Language -->
+        <java.version>21</java.version>
+
+        <!-- Dependencies -->
+        <javapoet.version>0.11.0</javapoet.version>
+        <swagger-parser.version>2.1.38</swagger-parser.version>
+        <!-- > Patch for transitive dependency of swagger-parser -->
+        <rhino.version>1.7.15.1</rhino.version>
+
+        <!-- Maven Plugin -->
+        <maven-plugin-api.version>3.9.6</maven-plugin-api.version>
+        <maven-project.version>2.2.1</maven-project.version>
+        <maven-plugin-annotations.version>3.13.1</maven-plugin-annotations.version>
+        <maven-plugin-plugin.version>3.13.1</maven-plugin-plugin.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
+            <!-- Project -->
+            <dependency>
+                <groupId>nl.stijlaartit</groupId>
+                <artifactId>generator-engine</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Dependencies -->
             <dependency>
                 <groupId>com.palantir.javapoet</groupId>
                 <artifactId>javapoet</artifactId>
@@ -35,16 +61,42 @@
                 <version>${swagger-parser.version}</version>
             </dependency>
             <dependency>
-                <groupId>nl.stijlaartit</groupId>
-                <artifactId>generator-engine</artifactId>
-                <version>${project.version}</version>
+                <groupId>org.mozilla</groupId>
+                <artifactId>rhino</artifactId>
+                <version>${rhino.version}</version>
+            </dependency>
+
+            <!-- Maven Plugin Dependencies -->
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-plugin-api</artifactId>
+                <version>${maven-plugin-api.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-project</artifactId>
+                <version>${maven-project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven.plugin-tools</groupId>
+                <artifactId>maven-plugin-annotations</artifactId>
+                <version>${maven-plugin-annotations.version}</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
-    <modules>
-        <module>generator-engine</module>
-        <module>generator-cli</module>
-        <module>generator-maven-plugin</module>
-    </modules>
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-plugin-plugin</artifactId>
+                    <version>${maven-plugin-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 </project>
