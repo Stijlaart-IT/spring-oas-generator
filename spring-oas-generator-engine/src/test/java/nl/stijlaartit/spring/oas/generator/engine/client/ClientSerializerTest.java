@@ -8,6 +8,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.ParameterLocation;
 import nl.stijlaartit.spring.oas.generator.engine.domain.ParameterModel;
 import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptor;
 import nl.stijlaartit.spring.oas.generator.engine.GeneratedAnnotation;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -29,7 +30,7 @@ class ClientSerializerTest {
                                 ParameterLocation.PATH,
                                 TypeDescriptor.simple("java.lang.Long"), true)),
                         null,
-                        TypeDescriptor.complex("Pet"),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
                         false)
         ));
 
@@ -48,8 +49,8 @@ class ClientSerializerTest {
         ApiFile client = new ApiFile("PetApi", List.of(
                 new OperationModel(OperationName.id("addPet"), HttpMethod.POST,
                         "/pet", List.of(),
-                        TypeDescriptor.complex("Pet"),
-                        TypeDescriptor.complex("Pet"),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
                         false)
         ));
 
@@ -65,8 +66,8 @@ class ClientSerializerTest {
         ApiFile client = new ApiFile("PetApi", List.of(
                 new OperationModel(OperationName.id("addPet"), HttpMethod.POST,
                         "/pet", List.of(),
-                        TypeDescriptor.complex("Pet"),
-                        TypeDescriptor.complex("Pet"),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
                         false)
         ));
 
@@ -86,8 +87,8 @@ class ClientSerializerTest {
         ApiFile client = new ApiFile("PetApi", List.of(
                 new OperationModel(OperationName.id("addPet"), HttpMethod.POST,
                         "/pet", List.of(),
-                        TypeDescriptor.complex("Pet"),
-                        TypeDescriptor.complex("Pet"),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
                         false)
         ));
 
@@ -107,8 +108,8 @@ class ClientSerializerTest {
         ApiFile client = new ApiFile("PetApi", List.of(
                 new OperationModel(OperationName.id("addPet"), HttpMethod.POST,
                         "/pet", List.of(),
-                        TypeDescriptor.complex("Pet"),
-                        TypeDescriptor.complex("Pet"),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
                         false)
         ));
 
@@ -195,7 +196,7 @@ class ClientSerializerTest {
                                 ParameterLocation.QUERY,
                                 TypeDescriptor.simple("java.lang.String"), true)),
                         null,
-                        TypeDescriptor.list(TypeDescriptor.complex("Pet")),
+                        TypeDescriptor.list(TypeDescriptor.complex(new JavaTypeName.Generated("Pet"))),
                         false)
         ));
 
@@ -275,8 +276,8 @@ class ClientSerializerTest {
                         false),
                 new OperationModel(OperationName.id("placeOrder"), HttpMethod.POST,
                         "/store/order", List.of(),
-                        TypeDescriptor.complex("Order"),
-                        TypeDescriptor.complex("Order"),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Order")),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Order")),
                         false)
         ));
 
@@ -291,8 +292,8 @@ class ClientSerializerTest {
         ApiFile client = new ApiFile("PetApi", List.of(
                 new OperationModel(OperationName.id("updatePet"), HttpMethod.PUT,
                         "/pet", List.of(),
-                        TypeDescriptor.complex("Pet"),
-                        TypeDescriptor.complex("Pet"),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
                         false)
         ));
 
@@ -310,7 +311,7 @@ class ClientSerializerTest {
                                 ParameterLocation.QUERY,
                                 TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), true)),
                         null,
-                        TypeDescriptor.list(TypeDescriptor.complex("Pet")),
+                        TypeDescriptor.list(TypeDescriptor.complex(new JavaTypeName.Generated("Pet"))),
                         false)
         ));
 
@@ -328,8 +329,8 @@ class ClientSerializerTest {
                         List.of(new ParameterModel("petId",
                                 ParameterLocation.PATH,
                                 TypeDescriptor.simple("java.lang.Long"), true)),
-                        TypeDescriptor.complex("Pet"),
-                        TypeDescriptor.complex("Pet"),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")),
                         false)
         ));
 

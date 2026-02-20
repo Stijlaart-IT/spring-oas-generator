@@ -6,8 +6,8 @@ import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
-import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptor;
-import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypes;
@@ -30,7 +30,7 @@ class TypeDescriptorFactoryTest {
         TypeDescriptor type = factory.build(user);
 
         TypeDescriptor.ComplexType complex = assertInstanceOf(TypeDescriptor.ComplexType.class, type);
-        assertEquals("User", complex.modelName());
+        assertEquals(new JavaTypeName.Generated("User"), complex.modelName());
     }
 
     @Test
@@ -42,7 +42,7 @@ class TypeDescriptorFactoryTest {
         TypeDescriptor type = factory.build(status);
 
         TypeDescriptor.ComplexType complex = assertInstanceOf(TypeDescriptor.ComplexType.class, type);
-        assertEquals("Status", complex.modelName());
+        assertEquals(new JavaTypeName.Generated("Status"), complex.modelName());
     }
 
     @Test
@@ -65,19 +65,19 @@ class TypeDescriptorFactoryTest {
         TypeDescriptor type = factory.build(attributes);
 
         TypeDescriptor.ComplexType complex = assertInstanceOf(TypeDescriptor.ComplexType.class, type);
-        assertEquals("Attributes", complex.modelName());
+        assertEquals(new JavaTypeName.Generated("Attributes"), complex.modelName());
     }
 
     @Test
     void buildsComplexTypeFromRef() {
         Schema<?> user = new ObjectSchema().addProperty("name", new StringSchema());
-        TypeDescriptorFactory factory = createFactory(Map.of("User", user));
         Schema<?> ref = new Schema<>().$ref("#/components/schemas/User");
+        TypeDescriptorFactory factory = createFactory(Map.of("User", user, "AltUser", ref));
 
         TypeDescriptor type = factory.build(ref);
 
         TypeDescriptor.ComplexType complex = assertInstanceOf(TypeDescriptor.ComplexType.class, type);
-        assertEquals("User", complex.modelName());
+        assertEquals(new JavaTypeName.Generated("User"), complex.modelName());
     }
 
     @Test
@@ -98,7 +98,7 @@ class TypeDescriptorFactoryTest {
         openAPI.setComponents(comps);
 
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        SchemaTypes schemaTypes = new SchemaTypeResolver(registry).resolve();
-        return new TypeDescriptorFactory(schemaTypes, registry);
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create()).resolve();
+        return new TypeDescriptorFactory(schemaTypes);
     }
 }

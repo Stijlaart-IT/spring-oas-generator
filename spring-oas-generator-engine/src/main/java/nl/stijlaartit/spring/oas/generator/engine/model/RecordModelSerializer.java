@@ -14,6 +14,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFile;
 import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFileSerializer;
 import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
 import nl.stijlaartit.spring.oas.generator.engine.domain.SerializedFile;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
 
 import javax.lang.model.element.Modifier;
 import java.util.Objects;
@@ -105,8 +106,12 @@ public class RecordModelSerializer implements GenerationFileSerializer<RecordMod
                 .addAnnotation(GeneratedAnnotation.spec())
                 .recordConstructor(constructorBuilder.build());
 
-        for (String interfaceName : implementsByModel.parentInterfacesForName(model.name())) {
-            recordBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName));
+        for (JavaTypeName interfaceName : implementsByModel.parentInterfacesForName(model.typeName())) {
+            if (interfaceName instanceof JavaTypeName.Generated(String value)) {
+                recordBuilder.addSuperinterface(ClassName.get(modelsPackage, value));
+            } else {
+                throw new IllegalStateException("Unexpected interface name: " + interfaceName);
+            }
         }
 
         if (config.builderMode() != RecordModelWriterConfig.BuilderMode.DISABLED) {

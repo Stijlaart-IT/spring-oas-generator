@@ -1,7 +1,6 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
 import io.swagger.v3.oas.models.media.Schema;
-import nl.stijlaartit.spring.oas.generator.engine.domain.SchemaRef;
 import nl.stijlaartit.spring.oas.generator.engine.domain.EnumModel;
 import nl.stijlaartit.spring.oas.generator.engine.domain.EnumValueType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.FieldModel;
@@ -11,14 +10,12 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
 import nl.stijlaartit.spring.oas.generator.engine.domain.UnionModelFile;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaParent;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaUtil;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.ConcreteSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.EnumSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.GeneratedSchemaType;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.JavaSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.ObjectSchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.RefSchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypes;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.UnionSchemaType;
 import org.jspecify.annotations.Nullable;
@@ -33,24 +30,25 @@ import java.util.Set;
 
 public class ModelResolver {
 
-    private final SchemaRegistry registry;
+    private final SchemaTypes schemaTypes;
+    private final TypeDescriptorFactory typeDescriptorFactory;
 
-    public ModelResolver(SchemaRegistry registry) {
-        this.registry = Objects.requireNonNull(registry);
+    public ModelResolver( SchemaTypes schemaTypes, TypeDescriptorFactory typeDescriptorFactory) {
+        this.schemaTypes = Objects.requireNonNull(schemaTypes);
+        this.typeDescriptorFactory = typeDescriptorFactory;
     }
 
     public List<ModelFile> resolve(SchemaTypes schemaTypes) {
-        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, registry);
         return schemaTypes.generatedSchemaTypes()
                 .stream()
-                .map(generatedSchemaType -> createModelFile(generatedSchemaType, typeDescriptorFactory, schemaTypes))
+                .map(generatedSchemaType -> createModelFile(generatedSchemaType, schemaTypes))
                 .toList();
     }
 
-    private ModelFile createModelFile(GeneratedSchemaType generatedSchemaType, TypeDescriptorFactory typeDescriptorFactory, SchemaTypes schemaTypes) {
+    private ModelFile createModelFile(GeneratedSchemaType generatedSchemaType, SchemaTypes schemaTypes) {
         return switch (generatedSchemaType) {
             case ObjectSchemaType n ->
-                    createModelFileForObjectSchemaType(n, typeDescriptorFactory);
+                    createModelFileForObjectSchemaType(n);
             case EnumSchemaType enumSchemaType ->
                     createModelFileForEnumSchemaType(enumSchemaType);
             case UnionSchemaType unionSchemaType ->
@@ -58,8 +56,7 @@ public class ModelResolver {
         };
     }
 
-    private RecordModel createModelFileForObjectSchemaType(ObjectSchemaType objectSchemaType,
-                                                           TypeDescriptorFactory typeDescriptorFactory) {
+    private RecordModel createModelFileForObjectSchemaType(ObjectSchemaType objectSchemaType) {
         Schema<?> schema = objectSchemaType.schema();
 
         boolean additionalProperties = schema.getAdditionalProperties() instanceof Schema<?>
@@ -93,7 +90,7 @@ public class ModelResolver {
                 ? schema.getEnum().stream().map(String::valueOf).toList()
                 : List.of();
         EnumValueType valueType = resolveEnumValueType(schema);
-        return new EnumModel(enumSchemaType.name(), values, valueType);
+        return new EnumModel(enumSchemaType.name(), valueType, values);
     }
 
     private ModelFile createModelFileForUnionSchemaType(UnionSchemaType unionSchemaType,
@@ -105,38 +102,13 @@ public class ModelResolver {
         List<SchemaInstance> variantInstances = unionSchemaType.variantInstances();
         for (SchemaInstance variantInstance : variantInstances) {
             Schema<?> variantSchema = variantInstance.schema();
-            String variantName = resolveVariantName(variantSchema, schemaTypes);
+            ConcreteSchemaType concreteSchemaType = schemaTypes.resolveConcrete(variantSchema);
             String discriminatorValue = resolveDiscriminatorValue(variantSchema, discriminator);
-            variants.add(new OneOfVariant(variantName, discriminatorValue));
+            variants.add(new OneOfVariant(concreteSchemaType.name(), discriminatorValue));
         }
+
 
         return new UnionModelFile(unionSchemaType.name(), variants, discriminator);
-    }
-
-    private String resolveVariantName(Schema<?> variantSchema,
-                                      SchemaTypes schemaTypes) {
-        if (variantSchema.get$ref() != null && !variantSchema.get$ref().isBlank()) {
-            final var componentSchemaRef = SchemaRef.parseFromRefValue(variantSchema.get$ref());
-            return NamingUtil.toPascalCase(componentSchemaRef.name());
-        }
-
-        SchemaType schemaType;
-        try {
-            schemaType = schemaTypes.resolveFromSchema(variantSchema);
-        } catch (IllegalStateException ex) {
-            schemaType = null;
-        }
-
-        if (schemaType instanceof GeneratedSchemaType generatedType) {
-            return generatedType.name();
-        }
-
-        if (schemaType instanceof RefSchemaType) {
-            final var componentSchemaRef = SchemaRef.parseFromRefValue(variantSchema.get$ref());
-            return NamingUtil.toPascalCase(componentSchemaRef.name());
-        }
-
-        throw new IllegalStateException("Unable to resolve variant name for schema " + variantSchema);
     }
 
     @Nullable
@@ -159,13 +131,17 @@ public class ModelResolver {
         if (discriminatorProperty == null || discriminatorProperty.isBlank()) {
             return null;
         }
-        Schema<?> resolvedVariant = resolveRefSchema(variant);
+
+        ConcreteSchemaType resolvedVariant = schemaTypes.resolveConcrete(variant);
         Map<String, Schema> properties = collectProperties(resolvedVariant);
         Schema<?> discriminatorSchema = properties.get(discriminatorProperty);
         if (discriminatorSchema == null) {
             return null;
         }
-        Schema<?> resolvedProperty = resolveRefSchema(discriminatorSchema);
+
+        ConcreteSchemaType concreteSchemaType = schemaTypes.resolveConcrete(discriminatorSchema);
+        SchemaInstance schemaInstance = concreteSchemaType.instances().getFirst();
+        final var resolvedProperty = schemaInstance.schema();
         if (resolvedProperty.getEnum() != null && resolvedProperty.getEnum().size() == 1) {
             return String.valueOf(resolvedProperty.getEnum().getFirst());
         }
@@ -179,11 +155,12 @@ public class ModelResolver {
         }
         Set<String> candidates = null;
         for (Schema<?> variant : variants) {
-            Schema<?> resolved = resolveRefSchema(variant);
-            Map<String, Schema> properties = collectProperties(resolved);
+            final var resolvedConcrete = schemaTypes.resolveConcrete(variant);
+            Map<String, Schema> properties = collectProperties(resolvedConcrete);
             Set<String> localCandidates = new LinkedHashSet<>();
             for (Map.Entry<String, Schema> entry : properties.entrySet()) {
-                Schema<?> property = resolveRefSchema(entry.getValue());
+                final var concreteProperty = schemaTypes.resolveConcrete(entry.getValue());
+                Schema<?> property = concreteProperty.instances().getFirst().schema();
                 if (property.getEnum() != null && property.getEnum().size() == 1) {
                     localCandidates.add(entry.getKey());
                 }
@@ -203,18 +180,23 @@ public class ModelResolver {
         return candidates.stream().sorted().findFirst().orElse(null);
     }
 
-    private boolean isAdditionalPropertiesObject(Schema<?> schema) {
-        return (schema.getAdditionalProperties() instanceof Schema<?>
-                || Boolean.TRUE.equals(schema.getAdditionalProperties()))
-                && (schema.getProperties() == null || schema.getProperties().isEmpty());
+    private Map<String, Schema> collectProperties(ConcreteSchemaType concreteSchemaType) {
+        return switch (concreteSchemaType) {
+            case GeneratedSchemaType generatedSchemaType -> switch (generatedSchemaType) {
+                case ObjectSchemaType objectSchemaType -> collectProperties(objectSchemaType.schema());
+                case EnumSchemaType enumSchemaType -> collectProperties(enumSchemaType.schema());
+                case UnionSchemaType unionSchemaType -> collectProperties(unionSchemaType.schema());
+            };
+            case JavaSchemaType ignored -> Map.of();
+        };
     }
 
     private Map<String, Schema> collectProperties(Schema<?> schema) {
         Map<String, Schema> properties = new LinkedHashMap<>();
         if (schema.getAllOf() != null) {
             for (Schema<?> part : schema.getAllOf()) {
-                Schema<?> resolved = resolveRefSchema(part);
-                properties.putAll(collectProperties(resolved));
+                final var partSchemaType = schemaTypes.resolveConcrete(part);
+                properties.putAll(collectProperties(partSchemaType));
             }
         }
         if (schema.getProperties() != null) {
@@ -223,40 +205,29 @@ public class ModelResolver {
         return properties;
     }
 
+    private Set<String> collectRequired(ConcreteSchemaType concreteSchemaType) {
+        return switch (concreteSchemaType) {
+            case GeneratedSchemaType generatedSchemaType -> switch (generatedSchemaType) {
+                case ObjectSchemaType objectSchemaType -> collectRequired(objectSchemaType.schema());
+                case EnumSchemaType enumSchemaType -> collectRequired(enumSchemaType.schema());
+                case UnionSchemaType unionSchemaType -> collectRequired(unionSchemaType.schema());
+            };
+            case JavaSchemaType ignored -> Set.of();
+        };
+    }
+
     private Set<String> collectRequired(Schema<?> schema) {
         Set<String> required = new LinkedHashSet<>();
         if (schema.getAllOf() != null) {
             for (Schema<?> part : schema.getAllOf()) {
-                Schema<?> resolved = resolveRefSchema(part);
-                required.addAll(collectRequired(resolved));
+                final var partSchemaType = schemaTypes.resolveConcrete(part);
+                required.addAll(collectRequired(partSchemaType));
             }
         }
         if (schema.getRequired() != null) {
             required.addAll(schema.getRequired());
         }
         return required;
-    }
-
-    private Schema<?> resolveRefSchema(Schema<?> schema) {
-        if (schema.get$ref() == null) {
-            return schema;
-        }
-
-        String refName = extractRefName(schema.get$ref());
-        Schema<?> resolved = resolveComponentSchema(refName);
-        return resolved != null ? resolved : schema;
-    }
-
-    @Nullable
-    private Schema<?> resolveComponentSchema(String refName) {
-        for (SchemaInstance instance : registry.getInstances()) {
-            if (instance.parent() instanceof SchemaParent.ComponentParent(String componentName)) {
-                if (componentName.equals(refName)) {
-                    return instance.schema();
-                }
-            }
-        }
-        return null;
     }
 
     private EnumValueType resolveEnumValueType(Schema<?> schema) {
@@ -274,10 +245,5 @@ public class ModelResolver {
             return EnumValueType.STRING;
         }
         throw new IllegalStateException("Unsupported enum schema: " + type);
-    }
-
-    private String extractRefName(String ref) {
-        int lastSlash = ref.lastIndexOf('/');
-        return lastSlash >= 0 ? ref.substring(lastSlash + 1) : ref;
     }
 }

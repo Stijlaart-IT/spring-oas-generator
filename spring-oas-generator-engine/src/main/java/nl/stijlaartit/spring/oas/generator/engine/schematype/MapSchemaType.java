@@ -1,5 +1,6 @@
 package nl.stijlaartit.spring.oas.generator.engine.schematype;
 
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
 
 import java.util.List;
@@ -11,4 +12,10 @@ public record MapSchemaType(List<SchemaInstance> instances, SchemaInstance value
         this.instances = List.copyOf(instances);
         this.valueInstance = Objects.requireNonNull(valueInstance);
     }
+
+    @Override
+    public JavaTypeName name() {
+        return new JavaTypeName.Reserved("Map");
+    }
+
 }

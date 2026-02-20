@@ -18,6 +18,7 @@ import nl.stijlaartit.spring.oas.generator.engine.model.RecordModelSerializer;
 import nl.stijlaartit.spring.oas.generator.engine.model.RecordModelWriterConfig;
 import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
 import nl.stijlaartit.spring.oas.generator.engine.model.UnionModelSerializer;
+import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
 import nl.stijlaartit.spring.oas.generator.engine.utility.PackageInfoSerializer;
@@ -59,13 +60,15 @@ public class Generator {
         }
 
         final var registry = SchemaRegistry.resolve(openAPI);
+        final var nameProvider = NameProvider.create();
+
         logger.info("Found [" + registry.getInstances().size() + "] schema(s)");
-        final var schemaTypeResolver = new SchemaTypeResolver(registry);
+        final var schemaTypeResolver = new SchemaTypeResolver(registry, nameProvider);
         final var schemaTypes = schemaTypeResolver.resolve();
         logger.info("Found [" + schemaTypes.types().size() + "] distinct schema(s)");
-        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, registry);
+        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
 
-        final var modelResolver = new ModelResolver(registry);
+        final var modelResolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
         final var clientResolver = new ClientResolver(logger, typeDescriptorFactory);
         final var utilityResolver = new UtilityResolver(modelsPackage, clientPackage);
 

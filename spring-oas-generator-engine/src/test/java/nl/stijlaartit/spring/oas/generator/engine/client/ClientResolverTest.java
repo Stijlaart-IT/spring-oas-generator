@@ -10,6 +10,8 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.ParameterModel;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptor;
 import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -42,8 +44,8 @@ class ClientResolverTest {
 
     private List<ApiFile> resolveClient(OpenAPI openAPI) {
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        SchemaTypes schemaTypes = new SchemaTypeResolver(registry).resolve();
-        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, registry);
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create()).resolve();
+        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
         return new ClientResolver(Logger.noOp(), typeDescriptorFactory).resolve(openAPI);
     }
 
@@ -307,11 +309,12 @@ class ClientResolverTest {
                     "/pet", "post", "addPet", "pet",
                     List.of(), jsonBody(petRef), null
             );
+            openAPI.getComponents().addSchemas("Pet", new ObjectSchema());
 
             List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor body = clients.getFirst().getOperations().getFirst().requestBody();
 
-            assertEquals(TypeDescriptor.complex("Pet"), body);
+            assertEquals(TypeDescriptor.complex(new JavaTypeName.Generated("Pet")), body);
         }
 
         @Test
@@ -357,7 +360,7 @@ class ClientResolverTest {
             List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor body = clients.getFirst().getOperations().getFirst().requestBody();
 
-            assertEquals(TypeDescriptor.complex("SaveAlbumsUserRequest"), body);
+            assertEquals(TypeDescriptor.complex(new JavaTypeName.Generated("SaveAlbumsUserRequest")), body);
         }
 
         @Test
@@ -383,7 +386,7 @@ class ClientResolverTest {
             List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor body = clients.getFirst().getOperations().getFirst().requestBody();
 
-            assertEquals(TypeDescriptor.complex("User"), body);
+            assertEquals(TypeDescriptor.complex(new JavaTypeName.Generated("User")), body);
         }
     }
 
@@ -397,11 +400,11 @@ class ClientResolverTest {
                     "/pet/{petId}", "get", "getPetById", "pet",
                     List.of(), null, jsonResponse(petRef)
             );
-
+            openAPI.getComponents().addSchemas("Pet", new ObjectSchema());
             List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.getFirst().getOperations().getFirst().responseType();
 
-            assertEquals(TypeDescriptor.complex("Pet"), response);
+            assertEquals(TypeDescriptor.complex(new JavaTypeName.Generated("Pet")), response);
         }
 
         @Test
@@ -417,11 +420,12 @@ class ClientResolverTest {
                     "/pet", "post", "createPet", "pet",
                     List.of(), null, responses
             );
+            openAPI.getComponents().addSchemas("Pet", new ObjectSchema());
 
             List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.getFirst().getOperations().getFirst().responseType();
 
-            assertEquals(TypeDescriptor.complex("Pet"), response);
+            assertEquals(TypeDescriptor.complex(new JavaTypeName.Generated("Pet")), response);
         }
 
         @Test
@@ -439,11 +443,12 @@ class ClientResolverTest {
                     "/pet", "post", "createPet", "pet",
                     List.of(), null, responses
             );
+            openAPI.getComponents().addSchemas("Pet", new ObjectSchema());
 
             List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.getFirst().getOperations().getFirst().responseType();
 
-            assertEquals(TypeDescriptor.complex("Pet"), response);
+            assertEquals(TypeDescriptor.complex(new JavaTypeName.Generated("Pet")), response);
         }
 
         @Test
@@ -477,11 +482,12 @@ class ClientResolverTest {
                     "/pet/findByStatus", "get", "findPetsByStatus", "pet",
                     List.of(), null, jsonResponse(arraySchema)
             );
+            openAPI.getComponents().addSchemas("Pet", new ObjectSchema());
 
             List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.getFirst().getOperations().getFirst().responseType();
 
-            assertEquals(TypeDescriptor.list(TypeDescriptor.complex("Pet")), response);
+            assertEquals(TypeDescriptor.list(TypeDescriptor.complex(new JavaTypeName.Generated("Pet"))), response);
         }
 
         @Test
@@ -496,7 +502,7 @@ class ClientResolverTest {
             List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.getFirst().getOperations().getFirst().responseType();
 
-            assertEquals(TypeDescriptor.complex("GetInventoryResponse"), response);
+            assertEquals(TypeDescriptor.complex(new JavaTypeName.Generated("GetInventoryResponse")), response);
         }
 
         @Test
@@ -511,7 +517,7 @@ class ClientResolverTest {
             List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.getFirst().getOperations().getFirst().responseType();
 
-            assertEquals(TypeDescriptor.complex("GetInventoryResponse"), response);
+            assertEquals(TypeDescriptor.complex(new JavaTypeName.Generated("GetInventoryResponse")), response);
         }
 
         @Test
@@ -536,7 +542,7 @@ class ClientResolverTest {
             List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.getFirst().getOperations().getFirst().responseType();
 
-            assertEquals(TypeDescriptor.complex("SearchSliceInfo"), response);
+            assertEquals(TypeDescriptor.complex(new JavaTypeName.Generated("SearchSliceInfo")), response);
         }
 
         @Test
@@ -578,7 +584,7 @@ class ClientResolverTest {
             List<ApiFile> clients = resolveClient(openAPI);
             TypeDescriptor response = clients.getFirst().getOperations().getFirst().responseType();
 
-            assertEquals(TypeDescriptor.complex("GetUserStatusResponse"), response);
+            assertEquals(TypeDescriptor.complex(new JavaTypeName.Generated("GetUserStatusResponse")), response);
         }
     }
 
@@ -677,7 +683,7 @@ class ClientResolverTest {
         }
         paths.addPathItem(path, pathItem);
         openAPI.setPaths(paths);
-
+        openAPI.setComponents(new Components());
         return openAPI;
     }
 }

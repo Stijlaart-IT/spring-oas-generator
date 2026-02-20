@@ -5,6 +5,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.EnumModel;
 import nl.stijlaartit.spring.oas.generator.engine.domain.EnumValueType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.spring.oas.generator.engine.domain.UnionModelFile;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -18,11 +19,11 @@ class EnumModelSerializerTest {
 
     @Test
     void generatesEnumWithJsonPropertyValues() {
-        EnumModel model = new EnumModel("PetStatus", List.of(
+        EnumModel model = new EnumModel(new JavaTypeName.Generated("PetStatus"), EnumValueType.STRING, List.of(
                 "available",
                 "pending",
                 "sold"
-        ), EnumValueType.STRING);
+        ));
 
         String source = writer.toJavaFile(model).toString();
 
@@ -35,11 +36,11 @@ class EnumModelSerializerTest {
 
     @Test
     void generatesNumericEnumWithLiteralJsonProperty() {
-        EnumModel model = new EnumModel("Mode", List.of(
+        EnumModel model = new EnumModel(new JavaTypeName.Generated("Mode"), EnumValueType.NUMBER, List.of(
                 "-1",
                 "0",
                 "1"
-        ), EnumValueType.NUMBER);
+        ));
 
         String source = writer.toJavaFile(model).toString();
 
@@ -51,10 +52,10 @@ class EnumModelSerializerTest {
 
     @Test
     void enumImplementsInterfaceWhenListedInUnionVariants() {
-        EnumModel model = new EnumModel("Mode", List.of("A", "B"), EnumValueType.STRING);
+        EnumModel model = new EnumModel(new JavaTypeName.Generated("Mode"), EnumValueType.STRING, List.of("A", "B"));
         UnionModelFile union = new UnionModelFile(
-                "ModeWrapper",
-                List.of(new OneOfVariant("Mode", "mode")),
+                new JavaTypeName.Generated("ModeWrapper"),
+                List.of(new OneOfVariant(new JavaTypeName.Generated("Mode"), "mode")),
                 "type"
         );
 

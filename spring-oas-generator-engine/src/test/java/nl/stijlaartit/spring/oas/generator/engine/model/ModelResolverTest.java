@@ -1,6 +1,8 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
+import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
 import nl.stijlaartit.spring.oas.generator.engine.model.ModelResolver;
+import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.domain.ModelFile;
 import io.swagger.v3.oas.models.Components;
@@ -10,6 +12,7 @@ import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.Paths;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
@@ -24,14 +27,16 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ModelResolverTest {
 
     private List<ModelFile> resolveModels(OpenAPI openAPI) {
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        ModelResolver resolver = new ModelResolver(registry);
-        SchemaTypes schemaTypes = new SchemaTypeResolver(registry).resolve();
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create()).resolve();
+        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
+        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
         return resolver.resolve(schemaTypes);
     }
 
@@ -115,5 +120,28 @@ class ModelResolverTest {
         assertEquals(3, models.size());
         assertTrue(models.stream().anyMatch(model -> model.name().equals("Wrapper")));
         assertEquals(3, models.stream().map(ModelFile::name).distinct().count());
+    }
+
+    @Test
+    void resolvesPrimitiveComponentReferencedFromObject() {
+        Schema<?> primitiveRef = new Schema<>();
+        primitiveRef.set$ref("#/components/schemas/PrimitiveKey");
+        Schema<?> objectWithRef = new ObjectSchema()
+                .addProperty("key", primitiveRef)
+                .addRequiredItem("key");
+
+        OpenAPI openAPI = new OpenAPI()
+                .components(new Components().schemas(Map.of(
+                        "ObjectWithRefToPrimitive", objectWithRef,
+                        "PrimitiveKey", new IntegerSchema()
+                )));
+
+        List<ModelFile> models = resolveModels(openAPI);
+
+        assertTrue(models.stream().anyMatch(model -> model.name().equals("ObjectWithRefToPrimitive")));
+        RecordModel first = (RecordModel) models.getFirst();
+        final var field =first.fields().getFirst();
+        assertThat(field.name()).isEqualTo("key");
+        assertThat(field.type()).isEqualTo(TypeDescriptor.simple("java.lang.Integer"));
     }
 }

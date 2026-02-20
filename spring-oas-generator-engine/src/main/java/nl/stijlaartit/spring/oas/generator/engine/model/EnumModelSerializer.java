@@ -13,6 +13,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.EnumValueType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFile;
 import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFileSerializer;
 import nl.stijlaartit.spring.oas.generator.engine.domain.SerializedFile;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
 
 import javax.lang.model.element.Modifier;
 import java.math.BigDecimal;
@@ -48,15 +49,15 @@ public class EnumModelSerializer implements GenerationFileSerializer<EnumModel> 
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(GeneratedAnnotation.spec());
 
-        for (String interfaceName : implementsByModel.parentInterfacesForName(model.name())) {
-            enumBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName));
+        for (JavaTypeName interfaceName : implementsByModel.parentInterfacesForName(model.typeName())) {
+            enumBuilder.addSuperinterface(ClassName.get(modelsPackage, interfaceName.value()));
         }
 
         Map<String, Integer> usedNames = new HashMap<>();
-        for (String value : model.getEnumValues()) {
+        for (String value : model.enumValues()) {
             String baseName = toEnumConstantName(value);
             String name = uniqueName(baseName, usedNames);
-            if (model.getEnumValueType() == EnumValueType.STRING) {
+            if (model.enumValueType() == EnumValueType.STRING) {
                 TypeSpec constantSpec = TypeSpec.anonymousClassBuilder("")
                         .addAnnotation(AnnotationSpec.builder(JSON_PROPERTY)
                                 .addMember("value", "$S", value)
@@ -65,15 +66,15 @@ public class EnumModelSerializer implements GenerationFileSerializer<EnumModel> 
                 enumBuilder.addEnumConstant(name, constantSpec);
             } else {
                 enumBuilder.addEnumConstant(name,
-                        TypeSpec.anonymousClassBuilder(enumValueCode(model.getEnumValueType(), value))
+                        TypeSpec.anonymousClassBuilder(enumValueCode(model.enumValueType(), value))
                                 .build());
             }
         }
 
-        if (model.getEnumValueType() != EnumValueType.STRING) {
+        if (model.enumValueType() != EnumValueType.STRING) {
             ClassName jsonValue = ClassName.get("com.fasterxml.jackson.annotation", "JsonValue");
             ClassName jsonCreator = ClassName.get("com.fasterxml.jackson.annotation", "JsonCreator");
-            var valueType = enumValueTypeName(model.getEnumValueType());
+            var valueType = enumValueTypeName(model.enumValueType());
 
             enumBuilder.addField(FieldSpec.builder(valueType, "value", Modifier.PRIVATE, Modifier.FINAL)
                     .build());

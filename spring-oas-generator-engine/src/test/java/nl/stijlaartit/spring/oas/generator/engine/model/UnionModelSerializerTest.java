@@ -3,6 +3,7 @@ package nl.stijlaartit.spring.oas.generator.engine.model;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.spring.oas.generator.engine.domain.UnionModelFile;
 import nl.stijlaartit.spring.oas.generator.engine.GeneratedAnnotation;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -17,10 +18,10 @@ class UnionModelSerializerTest {
     @Test
     void generatesOneOfInterfaceWithDiscriminator() {
         UnionModelFile model = new UnionModelFile(
-                "QueueObjectCurrentlyPlaying",
+                new JavaTypeName.Generated("QueueObjectCurrentlyPlaying"),
                 List.of(
-                        new OneOfVariant("TrackObject", "track"),
-                        new OneOfVariant("EpisodeObject", "episode")
+                        new OneOfVariant(new JavaTypeName.Generated("TrackObject"), "track"),
+                        new OneOfVariant(new JavaTypeName.Generated("EpisodeObject"), "episode")
                 ),
                 "type"
         );

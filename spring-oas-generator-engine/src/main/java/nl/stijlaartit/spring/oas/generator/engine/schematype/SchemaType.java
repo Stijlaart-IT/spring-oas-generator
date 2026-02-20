@@ -5,7 +5,7 @@ import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
 
 import java.util.List;
 
-public sealed interface SchemaType permits JavaSchemaType, GeneratedSchemaType, RefSchemaType {
+public sealed interface SchemaType permits ConcreteSchemaType, RefSchemaType {
 
     List<SchemaInstance> instances();
 

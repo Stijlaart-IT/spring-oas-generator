@@ -8,14 +8,8 @@ import io.swagger.v3.oas.models.PathItem;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 public final class NamingUtil {
-
-    private static final Set<String> RESERVED_TYPE_NAMES = Set.of(
-            "Object", "Class", "String", "Integer", "Long", "Boolean", "Double", "Float",
-            "Short", "Byte", "Character", "Number", "Void", "Enum"
-    );
 
     private NamingUtil() {
     }
@@ -173,26 +167,6 @@ public final class NamingUtil {
             case SchemaParent.SchemaRelation.AnyOfRelation ignored -> null;
             case SchemaParent.SchemaRelation.AdditionalPropertiesRelation ignored -> "AdditionalProperties";
         };
-    }
-
-    public static String validateName(String name) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalStateException("Schema model name is blank.");
-        }
-        char first = name.charAt(0);
-        if (first == '_' || !Character.isJavaIdentifierStart(first) || !Character.isUpperCase(first)) {
-            throw new IllegalStateException("Invalid schema model name: " + name);
-        }
-        for (int i = 1; i < name.length(); i++) {
-            char c = name.charAt(i);
-            if (!Character.isJavaIdentifierPart(c)) {
-                throw new IllegalStateException("Invalid schema model name: " + name);
-            }
-        }
-        if (RESERVED_TYPE_NAMES.contains(name)) {
-            throw new IllegalStateException("Schema model name collides with reserved Java schema: " + name);
-        }
-        return name;
     }
 
     public static String toCamelCase(String input) {

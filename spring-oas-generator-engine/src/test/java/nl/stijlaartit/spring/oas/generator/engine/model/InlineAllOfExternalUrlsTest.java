@@ -6,11 +6,14 @@ import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import nl.stijlaartit.spring.oas.generator.engine.domain.FieldModel;
 import nl.stijlaartit.spring.oas.generator.engine.domain.ModelFile;
 import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypes;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Type;
 import java.net.URL;
 import java.util.List;
 
@@ -28,7 +31,7 @@ class InlineAllOfExternalUrlsTest {
         FieldModel externalUrls = findField(albumBase, "externalUrls");
         assertInstanceOf(TypeDescriptor.ComplexType.class, externalUrls.type());
         TypeDescriptor.ComplexType type = (TypeDescriptor.ComplexType) externalUrls.type();
-        assertEquals("ExternalUrlObject", type.modelName());
+        assertEquals(new JavaTypeName.Generated("ExternalUrlObject"), type.modelName());
     }
 
     @Test
@@ -46,8 +49,9 @@ class InlineAllOfExternalUrlsTest {
     private List<ModelFile> resolveModels() {
         OpenAPI openAPI = parseSpec();
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        SchemaTypes schemaTypes = new SchemaTypeResolver(registry).resolve();
-        ModelResolver resolver = new ModelResolver(registry);
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create()).resolve();
+        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
+        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
         return resolver.resolve(schemaTypes);
     }
 

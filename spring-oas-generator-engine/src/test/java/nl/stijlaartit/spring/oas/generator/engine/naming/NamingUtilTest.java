@@ -1,16 +1,15 @@
 package nl.stijlaartit.spring.oas.generator.engine.naming;
 
-import nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaParent;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.media.StringSchema;
+import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
+import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaParent;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class NamingUtilTest {
 
@@ -20,19 +19,6 @@ class NamingUtilTest {
         assertEquals("userName", NamingUtil.toCamelCase("User-Name"));
         assertEquals("UserName", NamingUtil.toPascalCase("user_name"));
         assertEquals("UserName", NamingUtil.toPascalCase("user-name"));
-    }
-
-    @Test
-    void validateNameAcceptsValidIdentifiers() {
-        assertEquals("Pet", NamingUtil.validateName("Pet"));
-    }
-
-    @Test
-    void validateNameRejectsInvalidIdentifiers() {
-        assertThrows(IllegalStateException.class, () -> NamingUtil.validateName("_Pet"));
-        assertThrows(IllegalStateException.class, () -> NamingUtil.validateName("pet"));
-        assertThrows(IllegalStateException.class, () -> NamingUtil.validateName("Object"));
-        assertThrows(IllegalStateException.class, () -> NamingUtil.validateName("Pet-Name"));
     }
 
     @Test

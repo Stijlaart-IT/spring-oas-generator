@@ -4,65 +4,69 @@ import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.JsonSchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
-import nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil;
+import nl.stijlaartit.spring.oas.generator.engine.domain.SchemaRef;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaParent;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaUtil;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-
-import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.findShortestComponentPath;
-import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.findShortestOperationPath;
-import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.hasComponentPath;
-import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.hasOperationPath;
-import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.toPascalCase;
-import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.validateName;
 
 public final class SchemaTypeResolver {
 
     private final SchemaRegistry registry;
+    private final NameProvider nameProvider;
 
-    public SchemaTypeResolver(SchemaRegistry registry) {
+    public SchemaTypeResolver(SchemaRegistry registry, NameProvider nameProvider) {
         this.registry = Objects.requireNonNull(registry, "registry");
+        this.nameProvider = Objects.requireNonNull(nameProvider, "nameProvider");
     }
 
     public SchemaTypes resolve() {
 
         List<SchemaInstanceGroup> groups = SchemaInstanceGroup.groupBySchemaEquals(registry.getInstances());
-        Set<String> usedNames = new LinkedHashSet<>();
         List<SchemaType> types = new ArrayList<>();
 
         for (SchemaInstanceGroup group : groups) {
-            SchemaType type = createType(group, usedNames);
+            SchemaType type = createType(group);
             types.add(type);
         }
 
+        final var names =
+            types.stream()
+                .filter(type -> type instanceof GeneratedSchemaType)
+                .map(type -> (GeneratedSchemaType) type)
+                    .map (GeneratedSchemaType::name)
+                    .toList();
 
+        final var uniqueNames = new HashSet<>(names);
+        if(uniqueNames.size() != names.size()) {
+            throw new IllegalStateException("Duplicate generated schema names: " + names);
+        }
         return new SchemaTypes(types);
     }
 
-    private SchemaType createType(SchemaInstanceGroup group,
-                                  Set<String> usedNames) {
+    private SchemaType createType(SchemaInstanceGroup group) {
         Schema<?> schema = group.schema();
         Schema<?> allOfRef = isComponentSchema(group.instances()) ? null : unwrapSingleAllOfRef(schema);
         if (allOfRef != null) {
-            return new RefSchemaType(group.instances(), allOfRef.get$ref());
+            return new RefSchemaType(group.instances(), SchemaRef.parseFromRefValue(allOfRef.get$ref()));
         }
         if (schema.get$ref() != null && !schema.get$ref().isBlank()) {
-            return new RefSchemaType(group.instances(), schema.get$ref());
+            return new RefSchemaType(group.instances(), SchemaRef.parseFromRefValue(schema.get$ref()));
         }
         if (isUnionSchema(schema)) {
-            String name = resolveUniqueName(group.instances(), "InlineUnion", usedNames);
+            JavaTypeName name = nameProvider.resolveUniqueName(group.instances(), "InlineUnion");
             List<SchemaInstance> variants = resolveVariantInstances(schema);
             return new UnionSchemaType(group.instances(), name, variants);
         }
         if (isEnumSchema(schema)) {
-            String name = resolveUniqueName(group.instances(), "InlineEnum", usedNames);
+            JavaTypeName name = nameProvider.resolveUniqueName(group.instances(), "InlineEnum");
             return new EnumSchemaType(group.instances(), name);
         }
         if (isArraySchema(schema)) {
@@ -71,14 +75,14 @@ public final class SchemaTypeResolver {
         }
         if (isMapSchema(schema)) {
             if (isOperationSchema(group.instances()) || isComponentSchema(group.instances())) {
-                String name = resolveUniqueName(group.instances(), "InlineObject", usedNames);
+                JavaTypeName name = nameProvider.resolveUniqueName(group.instances(), "InlineObject");
                 return new ObjectSchemaType(group.instances(), name);
             }
             SchemaInstance valueInstance = resolveAdditionalPropertiesInstance(schema);
             return new MapSchemaType(group.instances(), valueInstance);
         }
         if (isObjectSchema(schema)) {
-            String name = resolveUniqueName(group.instances(), "InlineObject", usedNames);
+            JavaTypeName name = nameProvider.resolveUniqueName(group.instances(), "InlineObject");
             return new ObjectSchemaType(group.instances(), name);
         }
         return createPrimitiveType(group.instances(), schema);
@@ -197,37 +201,6 @@ public final class SchemaTypeResolver {
             }
         }
         return variants;
-    }
-
-    private String resolveUniqueName(List<SchemaInstance> instances, String inlineName, Set<String> usedNames) {
-        String baseName = resolveName(instances, inlineName);
-        String uniqueName = baseName;
-        int suffix = 2;
-        while (usedNames.contains(uniqueName)) {
-            uniqueName = baseName + suffix++;
-        }
-        usedNames.add(uniqueName);
-        return uniqueName;
-    }
-
-    private String resolveName(List<SchemaInstance> instances, String inlineName) {
-        for (SchemaInstance instance : instances) {
-            if (instance.parent() instanceof SchemaParent.ComponentParent(String componentName)) {
-                return validateName(toPascalCase(componentName));
-            }
-        }
-
-        if (hasComponentPath(instances)) {
-            NamingUtil.PathName componentPath = findShortestComponentPath(instances);
-            return validateName(componentPath.toName());
-        }
-
-        if (hasOperationPath(instances)) {
-            NamingUtil.PathName operationPath = findShortestOperationPath(instances);
-            return validateName(operationPath.toName());
-        }
-
-        return validateName(inlineName);
     }
 
     private boolean isUnionSchema(Schema<?> schema) {

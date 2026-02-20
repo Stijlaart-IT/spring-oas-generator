@@ -5,6 +5,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
 import nl.stijlaartit.spring.oas.generator.engine.domain.UnionModelFile;
 import nl.stijlaartit.spring.oas.generator.engine.GeneratedAnnotation;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -31,7 +32,7 @@ class RecordModelSerializerTest {
 
     @Test
     void generatesRecordWithSingleField() {
-        RecordModel model = new RecordModel("User", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("User"), List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
         ), false);
@@ -46,7 +47,7 @@ class RecordModelSerializerTest {
 
     @Test
     void generatesRecordWithMultipleFields() {
-        RecordModel model = new RecordModel("User", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("User"), List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false),
                 new FieldModel("age", "age",
@@ -62,7 +63,7 @@ class RecordModelSerializerTest {
 
     @Test
     void addsJsonPropertyWhenNamesDisagree() {
-        RecordModel model = new RecordModel("User", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("User"), List.of(
                 new FieldModel("firstName", "first_name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
         ), false);
@@ -76,7 +77,7 @@ class RecordModelSerializerTest {
 
     @Test
     void addsJsonPropertyWhenNamesMatch() {
-        RecordModel model = new RecordModel("User", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("User"), List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
         ), false);
@@ -88,7 +89,7 @@ class RecordModelSerializerTest {
 
     @Test
     void addsNullableForNullableProperty() {
-        RecordModel model = new RecordModel("User", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("User"), List.of(
                 new FieldModel("age", "age",
                         TypeDescriptor.simple("java.lang.Integer"), false, true, false)
         ), false);
@@ -102,7 +103,7 @@ class RecordModelSerializerTest {
 
     @Test
     void addsJsonIncludeForRequiredPropertyOnly() {
-        RecordModel model = new RecordModel("User", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("User"), List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false),
                 new FieldModel("nickname", "nickname",
@@ -119,9 +120,9 @@ class RecordModelSerializerTest {
 
     @Test
     void resolvesComplexTypeFromModelsPackage() {
-        RecordModel model = new RecordModel("Owner", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("Owner"), List.of(
                 new FieldModel("pet", "pet",
-                        TypeDescriptor.complex("Pet"), true, false, false)
+                        TypeDescriptor.complex(new JavaTypeName.Generated("Pet")), true, false, false)
         ), false);
 
         String source = writer.toJavaFile(model).toString();
@@ -140,7 +141,7 @@ class RecordModelSerializerTest {
 
     @Test
     void resolvesListType() {
-        RecordModel model = new RecordModel("Pet", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("Pet"), List.of(
                 new FieldModel("tags", "tags",
                         TypeDescriptor.list(TypeDescriptor.simple("java.lang.String")), false, false, false)
         ), false);
@@ -152,7 +153,7 @@ class RecordModelSerializerTest {
 
     @Test
     void resolvesMapType() {
-        RecordModel model = new RecordModel("Config", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("Config"), List.of(
                 new FieldModel("metadata", "metadata",
                         TypeDescriptor.map(TypeDescriptor.simple("java.lang.Integer")), false, false, false)
         ), false);
@@ -164,9 +165,9 @@ class RecordModelSerializerTest {
 
     @Test
     void resolvesListOfComplexType() {
-        RecordModel model = new RecordModel("Pet", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("Pet"), List.of(
                 new FieldModel("tags", "tags",
-                        TypeDescriptor.list(TypeDescriptor.complex("Tag")), false, false, false)
+                        TypeDescriptor.list(TypeDescriptor.complex(new JavaTypeName.Generated("Tag"))), false, false, false)
         ), false);
 
         String source = writer.toJavaFile(model).toString();
@@ -176,7 +177,7 @@ class RecordModelSerializerTest {
 
     @Test
     void addsAdditionalPropertiesFieldWhenEnabled() {
-        RecordModel model = new RecordModel("Config", List.of(), true);
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("Config"), List.of(), true);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -189,7 +190,7 @@ class RecordModelSerializerTest {
 
     @Test
     void builderIncludesAdditionalPropertiesWhenEnabled() {
-        RecordModel model = new RecordModel("Config", List.of(), true);
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("Config"), List.of(), true);
 
         String source = writer.toJavaFile(model).toString();
 
@@ -202,7 +203,7 @@ class RecordModelSerializerTest {
     @Test
     void generatesJsonValueRecordComponent() {
         RecordModel model = new RecordModel(
-                "SessionResponse",
+                new JavaTypeName.Generated("SessionResponse"),
                 List.of(new FieldModel(
                         "value",
                         "value",
@@ -223,13 +224,13 @@ class RecordModelSerializerTest {
 
     @Test
     void recordImplementsInterfaceWhenListedInUnionVariants() {
-        RecordModel model = new RecordModel("TrackObject", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("TrackObject"), List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
         ), false);
         UnionModelFile union = new UnionModelFile(
-                "QueueObjectCurrentlyPlaying",
-                List.of(new OneOfVariant("TrackObject", "track")),
+                new JavaTypeName.Generated("QueueObjectCurrentlyPlaying"),
+                List.of(new OneOfVariant(new JavaTypeName.Generated("TrackObject"), "track")),
                 "type"
         );
 
@@ -242,7 +243,7 @@ class RecordModelSerializerTest {
 
     @Test
     void generatesBuilderByDefault() {
-        RecordModel model = new RecordModel("User", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("User"), List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false)
         ), false);
@@ -255,7 +256,7 @@ class RecordModelSerializerTest {
 
     @Test
     void builderStrictModeRequiresNonNullForNonNullableFields() {
-        RecordModel model = new RecordModel("User", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("User"), List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false),
                 new FieldModel("age", "age",
@@ -282,7 +283,7 @@ class RecordModelSerializerTest {
                 ImplementsByMapping.empty()
         );
 
-        RecordModel model = new RecordModel("User", List.of(
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("User"), List.of(
                 new FieldModel("name", "name",
                         TypeDescriptor.simple("java.lang.String"), true, false, false),
                 new FieldModel("age", "age",

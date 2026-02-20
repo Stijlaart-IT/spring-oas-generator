@@ -9,6 +9,8 @@ import io.swagger.v3.oas.models.media.NumberSchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import org.junit.jupiter.api.Test;
 
@@ -71,7 +73,7 @@ class SchemaTypeResolverTest {
 
         assertInstanceOf(ObjectSchemaType.class, type);
         ObjectSchemaType objectType = (ObjectSchemaType) type;
-        assertEquals("User", objectType.name());
+        assertEquals(new JavaTypeName.Generated("User"), objectType.name());
     }
 
     @Test
@@ -81,7 +83,7 @@ class SchemaTypeResolverTest {
 
         assertInstanceOf(ObjectSchemaType.class, type);
         ObjectSchemaType objectType = (ObjectSchemaType) type;
-        assertEquals("User", objectType.name());
+        assertEquals(new JavaTypeName.Generated("User"), objectType.name());
     }
 
     @Test
@@ -135,11 +137,11 @@ class SchemaTypeResolverTest {
         schemas.put("User", new ObjectSchema().addProperties("id", new StringSchema()));
 
         SchemaTypes types = resolveMultiple(schemas);
-        Map<String, GeneratedSchemaType> generated = types.generatedSchemaTypes().stream()
+        Map<JavaTypeName, GeneratedSchemaType> generated = types.generatedSchemaTypes().stream()
                 .collect(Collectors.toMap(GeneratedSchemaType::name, type -> type));
 
-        assertTrue(generated.containsKey("User"));
-        assertTrue(generated.containsKey("User2"));
+        assertTrue(generated.containsKey(new JavaTypeName.Generated("User")));
+        assertTrue(generated.containsKey(new JavaTypeName.Generated("User2")));
     }
 
     private SchemaType resolveSingle(Schema<?> schema, String name) {
@@ -156,6 +158,6 @@ class SchemaTypeResolverTest {
         openAPI.setComponents(components);
 
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        return new SchemaTypeResolver(registry).resolve();
+        return new SchemaTypeResolver(registry, NameProvider.create()).resolve();
     }
 }

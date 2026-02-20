@@ -57,7 +57,7 @@ public class UnionModelSerializer implements GenerationFileSerializer<UnionModel
             for (int i = 0; i < variants.size(); i++) {
                 OneOfVariant variant = variants.get(i);
                 AnnotationSpec.Builder typeBuilder = AnnotationSpec.builder(JSON_SUB_TYPES_TYPE)
-                        .addMember("value", "$T.class", ClassName.get(modelsPackage, variant.modelName()));
+                        .addMember("value", "$T.class", ClassName.get(modelsPackage, variant.modelName().value()));
                 String discriminatorValue = variant.discriminatorValue();
                 if (discriminatorValue != null && !discriminatorValue.isBlank()) {
                     typeBuilder.addMember("name", "$S", discriminatorValue);

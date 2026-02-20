@@ -3,6 +3,7 @@ package nl.stijlaartit.spring.oas.generator.engine.model;
 import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFile;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OneOfVariant;
 import nl.stijlaartit.spring.oas.generator.engine.domain.UnionModelFile;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,19 +12,19 @@ import java.util.List;
 import java.util.Map;
 
 public class ImplementsByMapping {
-    private final Map<String, List<String>> mappings;
+    private final Map<JavaTypeName, List<JavaTypeName>> mappings;
 
-    public ImplementsByMapping(Map<String, List<String>> mappings) {
+    public ImplementsByMapping(Map<JavaTypeName, List<JavaTypeName>> mappings) {
         this.mappings = mappings;
     }
 
 
-    public List<String> parentInterfacesForName(String name) {
+    public List<JavaTypeName> parentInterfacesForName(JavaTypeName name) {
         return mappings.getOrDefault(name, List.of());
     }
 
     public static ImplementsByMapping create(List<GenerationFile> models) {
-        Map<String, List<String>> implementsByModel = new HashMap<>();
+        Map<JavaTypeName, List<JavaTypeName>> implementsByModel = new HashMap<>();
         for (GenerationFile model : models) {
             if (!(model instanceof UnionModelFile unionModel)) {
                 continue;
@@ -31,11 +32,11 @@ public class ImplementsByMapping {
             for (OneOfVariant variant : unionModel.variants()) {
                 implementsByModel
                         .computeIfAbsent(variant.modelName(), key -> new ArrayList<>())
-                        .add(unionModel.name());
+                        .add(unionModel.typeName());
             }
         }
-        for (Map.Entry<String, List<String>> entry : implementsByModel.entrySet()) {
-            List<String> distinct = new ArrayList<>(new LinkedHashSet<>(entry.getValue()));
+        for (Map.Entry<JavaTypeName, List<JavaTypeName>> entry : implementsByModel.entrySet()) {
+            List<JavaTypeName> distinct = new ArrayList<>(new LinkedHashSet<>(entry.getValue()));
             entry.setValue(distinct);
         }
         return new ImplementsByMapping(implementsByModel);

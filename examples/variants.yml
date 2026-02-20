@@ -69,3 +69,30 @@ components:
     AdditionalPropertiesTrue:
       type: object
       additionalProperties: true
+    ObjectWithRefToPrimitive:
+      type: object
+      properties:
+        key:
+          $ref: "#/components/schemas/PrimitiveKey"
+      required:
+        - key
+    PrimitiveKey:
+      type: integer
+    AllOfTwoObjects:
+      allOf:
+        - $ref: "#/components/schemas/AllOfFirstObject"
+        - $ref: "#/components/schemas/AllOfSecondObject"
+    AllOfFirstObject:
+      type: object
+      properties:
+        name2:
+          type: string
+      required:
+        - name2
+    AllOfSecondObject:
+      type: object
+      properties:
+        age:
+          type: integer
+      required:
+        - age

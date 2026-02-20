@@ -1,5 +1,7 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
+
 import java.util.Objects;
 
 public sealed interface TypeDescriptor permits TypeDescriptor.ComplexType, TypeDescriptor.ListType, TypeDescriptor.MapType, TypeDescriptor.SimpleType {
@@ -10,7 +12,7 @@ public sealed interface TypeDescriptor permits TypeDescriptor.ComplexType, TypeD
         }
     }
 
-    record ComplexType(String modelName) implements TypeDescriptor {
+    record ComplexType(JavaTypeName modelName) implements TypeDescriptor {
         public ComplexType {
             Objects.requireNonNull(modelName);
         }
@@ -32,7 +34,7 @@ public sealed interface TypeDescriptor permits TypeDescriptor.ComplexType, TypeD
         return new SimpleType(qualifiedName);
     }
 
-    static ComplexType complex(String modelName) {
+    static ComplexType complex(JavaTypeName modelName) {
         return new ComplexType(modelName);
     }
 

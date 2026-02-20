@@ -3,6 +3,7 @@ package nl.stijlaartit.spring.oas.generator.engine.model;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
 
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,7 @@ public class TypeNameResolver {
     public TypeName resolve(TypeDescriptor type) {
         return switch (type) {
             case TypeDescriptor.SimpleType(String qualifiedName) -> resolveQualifiedName(qualifiedName);
-            case TypeDescriptor.ComplexType(String modelName) -> ClassName.get(modelsPackage, modelName);
+            case TypeDescriptor.ComplexType(JavaTypeName modelName) -> ClassName.get(modelsPackage, modelName.value());
             case TypeDescriptor.ListType(TypeDescriptor elementType) ->
                     ParameterizedTypeName.get(ClassName.get(List.class), resolve(elementType));
             case TypeDescriptor.MapType(TypeDescriptor valueType) -> ParameterizedTypeName.get(
