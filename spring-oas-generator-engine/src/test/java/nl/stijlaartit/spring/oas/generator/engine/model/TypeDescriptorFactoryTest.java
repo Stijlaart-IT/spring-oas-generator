@@ -98,7 +98,7 @@ class TypeDescriptorFactoryTest {
         openAPI.setComponents(comps);
 
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        SchemaTypes schemaTypes = new SchemaTypeResolver().resolve(registry);
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry).resolve();
         return new TypeDescriptorFactory(schemaTypes, registry);
     }
 }

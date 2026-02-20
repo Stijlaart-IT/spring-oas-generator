@@ -25,15 +25,20 @@ import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.valid
 
 public final class SchemaTypeResolver {
 
-    public SchemaTypes resolve(SchemaRegistry registry) {
-        Objects.requireNonNull(registry);
+    private final SchemaRegistry registry;
+
+    public SchemaTypeResolver(SchemaRegistry registry) {
+        this.registry = Objects.requireNonNull(registry, "registry");
+    }
+
+    public SchemaTypes resolve() {
 
         List<SchemaInstanceGroup> groups = SchemaInstanceGroup.groupBySchemaEquals(registry.getInstances());
         Set<String> usedNames = new LinkedHashSet<>();
         List<SchemaType> types = new ArrayList<>();
 
         for (SchemaInstanceGroup group : groups) {
-            SchemaType type = createType(group, registry, usedNames);
+            SchemaType type = createType(group, usedNames);
             types.add(type);
         }
 
@@ -42,7 +47,6 @@ public final class SchemaTypeResolver {
     }
 
     private SchemaType createType(SchemaInstanceGroup group,
-                                  SchemaRegistry registry,
                                   Set<String> usedNames) {
         Schema<?> schema = group.schema();
         Schema<?> allOfRef = isComponentSchema(group.instances()) ? null : unwrapSingleAllOfRef(schema);
@@ -54,7 +58,7 @@ public final class SchemaTypeResolver {
         }
         if (isUnionSchema(schema)) {
             String name = resolveUniqueName(group.instances(), "InlineUnion", usedNames);
-            List<SchemaInstance> variants = resolveVariantInstances(schema, registry);
+            List<SchemaInstance> variants = resolveVariantInstances(schema);
             return new UnionSchemaType(group.instances(), name, variants);
         }
         if (isEnumSchema(schema)) {
@@ -62,7 +66,7 @@ public final class SchemaTypeResolver {
             return new EnumSchemaType(group.instances(), name);
         }
         if (isArraySchema(schema)) {
-            SchemaInstance itemInstance = resolveItemInstance(schema,  registry);
+            SchemaInstance itemInstance = resolveItemInstance(schema);
             return new ListSchemaType(group.instances(), itemInstance);
         }
         if (isMapSchema(schema)) {
@@ -70,7 +74,7 @@ public final class SchemaTypeResolver {
                 String name = resolveUniqueName(group.instances(), "InlineObject", usedNames);
                 return new ObjectSchemaType(group.instances(), name);
             }
-            SchemaInstance valueInstance = resolveAdditionalPropertiesInstance(schema, registry);
+            SchemaInstance valueInstance = resolveAdditionalPropertiesInstance(schema);
             return new MapSchemaType(group.instances(), valueInstance);
         }
         if (isObjectSchema(schema)) {
@@ -165,7 +169,7 @@ public final class SchemaTypeResolver {
         };
     }
 
-    private SchemaInstance resolveItemInstance(Schema<?> schema, SchemaRegistry registry) {
+    private SchemaInstance resolveItemInstance(Schema<?> schema) {
         Schema<?> itemsSchema = schema.getItems();
         if (itemsSchema == null) {
             throw new IllegalStateException("Array schema is missing items schema.");
@@ -173,16 +177,14 @@ public final class SchemaTypeResolver {
         return registry.instanceForSchema(itemsSchema);
     }
 
-    private SchemaInstance resolveAdditionalPropertiesInstance(Schema<?> schema,
-                                                               SchemaRegistry registry) {
+    private SchemaInstance resolveAdditionalPropertiesInstance(Schema<?> schema) {
         if (!(schema.getAdditionalProperties() instanceof Schema<?> additional)) {
             throw new IllegalStateException("Map schema is missing additionalProperties schema.");
         }
         return registry.instanceForSchema(additional);
     }
 
-    private List<SchemaInstance> resolveVariantInstances(Schema<?> schema,
-                                                         SchemaRegistry registry) {
+    private List<SchemaInstance> resolveVariantInstances(Schema<?> schema) {
         List<SchemaInstance> variants = new ArrayList<>();
         if (schema.getOneOf() != null) {
             for (Schema<?> oneOfSchema : schema.getOneOf()) {

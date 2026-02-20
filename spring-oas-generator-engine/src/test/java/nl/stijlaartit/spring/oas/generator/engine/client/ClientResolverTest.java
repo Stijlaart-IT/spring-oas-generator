@@ -42,7 +42,7 @@ class ClientResolverTest {
 
     private List<ApiFile> resolveClient(OpenAPI openAPI) {
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        SchemaTypes schemaTypes = new SchemaTypeResolver().resolve(registry);
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry).resolve();
         final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, registry);
         return new ClientResolver(Logger.noOp(), typeDescriptorFactory).resolve(openAPI);
     }

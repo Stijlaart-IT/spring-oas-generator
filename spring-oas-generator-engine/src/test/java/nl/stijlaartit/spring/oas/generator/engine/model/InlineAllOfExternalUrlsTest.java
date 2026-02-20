@@ -46,7 +46,7 @@ class InlineAllOfExternalUrlsTest {
     private List<ModelFile> resolveModels() {
         OpenAPI openAPI = parseSpec();
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        SchemaTypes schemaTypes = new SchemaTypeResolver().resolve(registry);
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry).resolve();
         ModelResolver resolver = new ModelResolver(registry);
         return resolver.resolve(schemaTypes);
     }

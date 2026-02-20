@@ -31,7 +31,7 @@ class ModelResolverTest {
     private List<ModelFile> resolveModels(OpenAPI openAPI) {
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
         ModelResolver resolver = new ModelResolver(registry);
-        SchemaTypes schemaTypes = new SchemaTypeResolver().resolve(registry);
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry).resolve();
         return resolver.resolve(schemaTypes);
     }
 

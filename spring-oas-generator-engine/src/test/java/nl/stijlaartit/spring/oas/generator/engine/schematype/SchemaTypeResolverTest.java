@@ -156,6 +156,6 @@ class SchemaTypeResolverTest {
         openAPI.setComponents(components);
 
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        return new SchemaTypeResolver().resolve(registry);
+        return new SchemaTypeResolver(registry).resolve();
     }
 }

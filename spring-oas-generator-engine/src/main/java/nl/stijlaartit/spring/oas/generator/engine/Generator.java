@@ -60,8 +60,8 @@ public class Generator {
 
         final var registry = SchemaRegistry.resolve(openAPI);
         logger.info("Found [" + registry.getInstances().size() + "] schema(s)");
-        final var schemaTypeResolver = new SchemaTypeResolver();
-        final var schemaTypes = schemaTypeResolver.resolve(registry);
+        final var schemaTypeResolver = new SchemaTypeResolver(registry);
+        final var schemaTypes = schemaTypeResolver.resolve();
         logger.info("Found [" + schemaTypes.types().size() + "] distinct schema(s)");
         final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, registry);
 
