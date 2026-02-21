@@ -63,7 +63,7 @@ public class Generator {
         final var nameProvider = NameProvider.create();
 
         logger.info("Found [" + registry.getInstances().size() + "] schema(s)");
-        final var schemaTypeResolver = new SchemaTypeResolver(registry, nameProvider);
+        final var schemaTypeResolver = new SchemaTypeResolver(registry, nameProvider, logger);
         final var schemaTypes = schemaTypeResolver.resolve();
         logger.info("Found [" + schemaTypes.types().size() + "] distinct schema(s)");
         final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
@@ -72,7 +72,7 @@ public class Generator {
         final var clientResolver = new ClientResolver(logger, typeDescriptorFactory);
         final var utilityResolver = new UtilityResolver(modelsPackage, clientPackage);
 
-        final var modelFiles = modelResolver.resolve(schemaTypes);
+        final var modelFiles = modelResolver.resolve();
         logger.info("Found [" + modelFiles.size() + "] model(s) to generate");
         final var clientFiles = clientResolver.resolve(openAPI);
         logger.info("Found [" + clientFiles.size() + "] client(s) to generate");

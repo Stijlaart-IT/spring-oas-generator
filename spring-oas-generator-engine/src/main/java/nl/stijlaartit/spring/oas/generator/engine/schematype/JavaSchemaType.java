@@ -1,6 +1,4 @@
 package nl.stijlaartit.spring.oas.generator.engine.schematype;
 
-import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
-
 public non-sealed interface JavaSchemaType extends ConcreteSchemaType {
 }

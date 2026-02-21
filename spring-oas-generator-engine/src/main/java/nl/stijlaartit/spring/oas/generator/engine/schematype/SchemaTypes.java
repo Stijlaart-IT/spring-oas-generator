@@ -51,6 +51,9 @@ public final class SchemaTypes {
         return switch (schemaType) {
             case ConcreteSchemaType concrete -> concrete;
             case RefSchemaType ref -> resolveConcrete(resolveByRef(ref.ref()));
+            case DeferredSchemaType deferredSchemaType -> {
+                yield resolveConcrete(deferredSchemaType.target());
+            }
         };
     }
 
@@ -77,6 +80,6 @@ public final class SchemaTypes {
             }
         }
 
-        throw new IllegalStateException("Could not resolve ref schema type");
+        throw new IllegalStateException("Could not resolve ref schema type: " + ref);
     }
 }

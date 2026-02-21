@@ -1,10 +1,5 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
-import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
-import nl.stijlaartit.spring.oas.generator.engine.model.ModelResolver;
-import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
-import nl.stijlaartit.spring.oas.generator.engine.domain.ModelFile;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -20,24 +15,37 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
+import nl.stijlaartit.spring.oas.generator.engine.domain.FieldModel;
+import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFile;
+import nl.stijlaartit.spring.oas.generator.engine.domain.ModelFile;
+import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
+import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
+import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
+import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.CompositeSchemaType;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.IntegerSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypes;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.StringSchemaType;
 import org.junit.jupiter.api.Test;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ModelResolverTest {
 
     private List<ModelFile> resolveModels(OpenAPI openAPI) {
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create()).resolve();
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
         TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
         ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
-        return resolver.resolve(schemaTypes);
+        return resolver.resolve();
     }
 
     private OpenAPI openApiWithOperation(String path, Operation operation) {
@@ -140,8 +148,69 @@ class ModelResolverTest {
 
         assertTrue(models.stream().anyMatch(model -> model.name().equals("ObjectWithRefToPrimitive")));
         RecordModel first = (RecordModel) models.getFirst();
-        final var field =first.fields().getFirst();
+        final var field = first.fields().getFirst();
         assertThat(field.name()).isEqualTo("key");
         assertThat(field.type()).isEqualTo(TypeDescriptor.simple("java.lang.Integer"));
+    }
+
+    @Test
+    void failsOnMixedAllOfType() {
+        Schema<?> allOf = new Schema<>()
+                .allOf(List.of(
+                        new StringSchema(),
+                        new IntegerSchema()
+                ));
+
+        OpenAPI openAPI = new OpenAPI()
+                .components(new Components().schemas(Map.of("MixedAllOf", allOf)));
+
+        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
+        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
+        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
+        List<ModelFile> models = resolver.resolve();
+
+        assertEquals(1, models.size());
+        assertThat(models.getFirst()).isEqualTo(new RecordModel(new JavaTypeName.Generated("MixedAllOf"), List.of(), false));
+
+        assertThat(schemaTypes.types()).hasSize(3);
+        assertThat(schemaTypes.types().get(0)).isInstanceOf(CompositeSchemaType.class);
+        assertThat(schemaTypes.types().get(1)).isInstanceOf(StringSchemaType.class);
+        assertThat(schemaTypes.types().get(2)).isInstanceOf(IntegerSchemaType.class);
+    }
+
+    @Test
+    void shouldHaveStablePropertyOrderWithAllOf() {
+
+        OpenAPI openAPI = new OpenAPI()
+                .components(new Components().schemas(Map.of(
+                        "PlaylistUserObject",
+                        new ObjectSchema()
+                                .addProperty("external_urls", new StringSchema())
+                                .addProperty("href", new StringSchema())
+                                .addProperty("id", new StringSchema())
+                                .addProperty("type", new StringSchema())
+                                .addProperty("uri", new StringSchema()),
+                        "PlaylistOwnerObject",
+                        new Schema().allOf(List.of(
+                                new Schema().$ref("#/components/schemas/PlaylistUserObject"),
+                                new ObjectSchema().addProperty("display_name", new StringSchema())
+                        ))
+                )));
+
+        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
+        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
+        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
+        List<ModelFile> models = resolver.resolve();
+
+        assertEquals(3, models.size());
+        final var playlistOwnerObject = (RecordModel) models.stream().filter(v -> v.name().equals("PlaylistOwnerObject")).findFirst().orElseThrow();
+        final var fieldNames = playlistOwnerObject.fields()
+                .stream().map(FieldModel::name)
+                .toList();
+        assertThat(fieldNames).isEqualTo(List.of(
+                "externalUrls", "href", "id", "type", "uri", "displayName"
+        ));
     }
 }

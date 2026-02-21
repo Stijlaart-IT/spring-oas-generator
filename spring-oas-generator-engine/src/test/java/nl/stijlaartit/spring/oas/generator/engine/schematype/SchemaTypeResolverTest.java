@@ -9,6 +9,7 @@ import io.swagger.v3.oas.models.media.NumberSchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
@@ -104,7 +105,7 @@ class SchemaTypeResolverTest {
 
     @Test
     void resolvesUnionSchemaToUnionTypeWithVariantInstances() {
-        Schema<?> schema = new ObjectSchema();
+        Schema<?> schema = new Schema<>();
         schema.setOneOf(List.of(new StringSchema(), new IntegerSchema()));
 
         SchemaType type = resolveSingle(schema, "UnionModel");
@@ -158,6 +159,6 @@ class SchemaTypeResolverTest {
         openAPI.setComponents(components);
 
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        return new SchemaTypeResolver(registry, NameProvider.create()).resolve();
+        return new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
     }
 }

@@ -1,0 +1,62 @@
+package nl.stijlaartit.spring.oas.generator.engine;
+
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.parser.OpenAPIV3Parser;
+import io.swagger.v3.parser.core.models.SwaggerParseResult;
+import net.bytebuddy.build.Plugin;
+import nl.stijlaartit.spring.oas.generator.engine.client.ClientResolver;
+import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFile;
+import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
+import nl.stijlaartit.spring.oas.generator.engine.model.ModelResolver;
+import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
+import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
+import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
+import nl.stijlaartit.spring.oas.generator.engine.utility.UtilityResolver;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.ArrayList;
+import java.util.Objects;
+
+public class EngineIntegrationTest {
+
+    @ParameterizedTest
+    @MethodSource("nl.stijlaartit.spring.oas.generator.engine.EngineIntegrationTest#specs")
+    void test(String specName) {
+        SwaggerParseResult result = new OpenAPIV3Parser().readLocation("../examples/" + specName.toString(), null, null);
+        OpenAPI openAPI = Objects.requireNonNull(result.getOpenAPI());
+        Logger logger = Logger.noOp();
+
+        final var registry = SchemaRegistry.resolve(openAPI);
+        final var nameProvider = NameProvider.create();
+
+        final var schemaTypeResolver = new SchemaTypeResolver(registry, nameProvider, logger);
+        final var schemaTypes = schemaTypeResolver.resolve();
+        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
+
+        final var modelResolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
+        final var clientResolver = new ClientResolver(logger, typeDescriptorFactory);
+        final var utilityResolver = new UtilityResolver("com.example.models", "com.example.api");
+
+        final var modelFiles = modelResolver.resolve();
+        final var clientFiles = clientResolver.resolve(openAPI);
+        final var utilityFiles = utilityResolver.resolve(modelFiles, clientFiles);
+
+        final var generationFiles = new ArrayList<GenerationFile>();
+        generationFiles.addAll(modelFiles);
+        generationFiles.addAll(clientFiles);
+        generationFiles.addAll(utilityFiles);
+    }
+
+
+    public static String[] specs() {
+        return new String[]{
+                "petstore.json",
+                "pokeapi.yml",
+                "realworld.yml",
+                "spotify.yml",
+                "variants.yml"
+        };
+    }
+}

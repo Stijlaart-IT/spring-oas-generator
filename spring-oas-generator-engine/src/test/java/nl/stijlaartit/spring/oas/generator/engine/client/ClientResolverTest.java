@@ -44,7 +44,7 @@ class ClientResolverTest {
 
     private List<ApiFile> resolveClient(OpenAPI openAPI) {
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create()).resolve();
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
         final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
         return new ClientResolver(Logger.noOp(), typeDescriptorFactory).resolve(openAPI);
     }
@@ -286,7 +286,6 @@ class ClientResolverTest {
                     .in("query")
                     .required(false)
                     .schema(schema);
-
             OpenAPI openAPI = openApiWithOperation(
                     "/articles", "get", "getArticles", "articles",
                     List.of(tagParam), null, null

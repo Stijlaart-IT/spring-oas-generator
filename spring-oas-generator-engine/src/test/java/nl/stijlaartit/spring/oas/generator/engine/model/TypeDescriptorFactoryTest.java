@@ -6,6 +6,7 @@ import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
@@ -98,7 +99,7 @@ class TypeDescriptorFactoryTest {
         openAPI.setComponents(comps);
 
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create()).resolve();
+        SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
         return new TypeDescriptorFactory(schemaTypes);
     }
 }

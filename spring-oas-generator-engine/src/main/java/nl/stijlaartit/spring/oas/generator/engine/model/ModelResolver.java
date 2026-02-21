@@ -11,6 +11,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.UnionModelFile;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaUtil;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.CompositeSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.ConcreteSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.EnumSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.GeneratedSchemaType;
@@ -33,26 +34,24 @@ public class ModelResolver {
     private final SchemaTypes schemaTypes;
     private final TypeDescriptorFactory typeDescriptorFactory;
 
-    public ModelResolver( SchemaTypes schemaTypes, TypeDescriptorFactory typeDescriptorFactory) {
+    public ModelResolver(SchemaTypes schemaTypes, TypeDescriptorFactory typeDescriptorFactory) {
         this.schemaTypes = Objects.requireNonNull(schemaTypes);
         this.typeDescriptorFactory = typeDescriptorFactory;
     }
 
-    public List<ModelFile> resolve(SchemaTypes schemaTypes) {
+    public List<ModelFile> resolve() {
         return schemaTypes.generatedSchemaTypes()
                 .stream()
-                .map(generatedSchemaType -> createModelFile(generatedSchemaType, schemaTypes))
+                .map(generatedSchemaType -> createModelFile(generatedSchemaType))
                 .toList();
     }
 
-    private ModelFile createModelFile(GeneratedSchemaType generatedSchemaType, SchemaTypes schemaTypes) {
+    private ModelFile createModelFile(GeneratedSchemaType generatedSchemaType) {
         return switch (generatedSchemaType) {
-            case ObjectSchemaType n ->
-                    createModelFileForObjectSchemaType(n);
-            case EnumSchemaType enumSchemaType ->
-                    createModelFileForEnumSchemaType(enumSchemaType);
-            case UnionSchemaType unionSchemaType ->
-                    createModelFileForUnionSchemaType(unionSchemaType, schemaTypes);
+            case ObjectSchemaType n -> createModelFileForObjectSchemaType(n);
+            case EnumSchemaType enumSchemaType -> createModelFileForEnumSchemaType(enumSchemaType);
+            case UnionSchemaType unionSchemaType -> createModelFileForUnionSchemaType(unionSchemaType);
+            case CompositeSchemaType compositeSchemaType -> createModelFileForCompositeSchemaType(compositeSchemaType);
         };
     }
 
@@ -63,7 +62,8 @@ public class ModelResolver {
                 || Boolean.TRUE.equals(schema.getAdditionalProperties());
 
         Set<String> requiredProperties = collectRequired(schema);
-        final var fields = collectProperties(schema)
+        // TODO: not handling nested properties is ok for this right? That should be composite?
+        final var fields = (schema.getProperties() == null ? Map.<String, Schema>of() : schema.getProperties())
                 .entrySet()
                 .stream()
                 .map(property -> {
@@ -80,7 +80,7 @@ public class ModelResolver {
     }
 
     private ModelFile createModelFileForEnumSchemaType(EnumSchemaType enumSchemaType) {
-        final var  instances = enumSchemaType.instances();
+        final var instances = enumSchemaType.instances();
         if (instances.isEmpty()) {
             throw new IllegalStateException("Enum schema " + enumSchemaType.name() + " has no instances.");
         }
@@ -93,8 +93,7 @@ public class ModelResolver {
         return new EnumModel(enumSchemaType.name(), valueType, values);
     }
 
-    private ModelFile createModelFileForUnionSchemaType(UnionSchemaType unionSchemaType,
-                                                        SchemaTypes schemaTypes) {
+    private ModelFile createModelFileForUnionSchemaType(UnionSchemaType unionSchemaType) {
         Schema<?> schema = unionSchemaType.instances().isEmpty() ? null : unionSchemaType.instances().getFirst().schema();
 
         String discriminator = resolveDiscriminatorProperty(schema);
@@ -109,6 +108,38 @@ public class ModelResolver {
 
 
         return new UnionModelFile(unionSchemaType.name(), variants, discriminator);
+    }
+
+    private ModelFile createModelFileForCompositeSchemaType(CompositeSchemaType compositeSchemaType) {
+        Schema<?> schema = compositeSchemaType.schema();
+
+        boolean additionalProperties = schema.getAdditionalProperties() instanceof Schema<?>
+                || Boolean.TRUE.equals(schema.getAdditionalProperties());
+
+        Set<String> requiredProperties = collectRequired(schema);
+        CompositeObjectPropertiesHelper.Result result = new CompositeObjectPropertiesHelper(schemaTypes).collectCompositeObjectProperties(compositeSchemaType);
+        return switch (result) {
+            case CompositeObjectPropertiesHelper.Result.Mixed mixed ->
+                // TODO Log warn
+                    new RecordModel(compositeSchemaType.name(), List.of(), false);
+
+            case CompositeObjectPropertiesHelper.Result.Props props -> {
+                final var fields = props.properties()
+                        .entrySet()
+                        .stream()
+                        .map(property -> {
+                            String jsonName = property.getKey();
+                            String javaName = JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(jsonName));
+                            TypeDescriptor type = typeDescriptorFactory.build(property.getValue());
+                            boolean nullable = Boolean.TRUE.equals(property.getValue().getNullable());
+                            boolean isRequired = requiredProperties.contains(jsonName);
+                            return new FieldModel(javaName, jsonName, type, isRequired, nullable, false);
+                        })
+                        .toList();
+
+                yield new RecordModel(compositeSchemaType.name(), fields, additionalProperties);
+            }
+        };
     }
 
     @Nullable
@@ -186,6 +217,7 @@ public class ModelResolver {
                 case ObjectSchemaType objectSchemaType -> collectProperties(objectSchemaType.schema());
                 case EnumSchemaType enumSchemaType -> collectProperties(enumSchemaType.schema());
                 case UnionSchemaType unionSchemaType -> collectProperties(unionSchemaType.schema());
+                case CompositeSchemaType compositeSchemaType -> collectProperties(compositeSchemaType.schema());
             };
             case JavaSchemaType ignored -> Map.of();
         };
@@ -211,6 +243,7 @@ public class ModelResolver {
                 case ObjectSchemaType objectSchemaType -> collectRequired(objectSchemaType.schema());
                 case EnumSchemaType enumSchemaType -> collectRequired(enumSchemaType.schema());
                 case UnionSchemaType unionSchemaType -> collectRequired(unionSchemaType.schema());
+                case CompositeSchemaType compositeSchemaType -> collectRequired(compositeSchemaType.schema());
             };
             case JavaSchemaType ignored -> Set.of();
         };

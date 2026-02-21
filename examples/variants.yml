@@ -96,3 +96,7 @@ components:
           type: integer
       required:
         - age
+    MixedAllOf:
+        allOf:
+          - type: number
+          - type: integer

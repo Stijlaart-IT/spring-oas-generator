@@ -149,10 +149,6 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, AudioAnalysisObject.class);
     }
 
-
-
-
-
     @Test
     void audioFeaturesObject() {
         var original = new AudioFeaturesObject(1.0f, "value", 1.0f, 1, 1.0f, "value", 1.0f, 1, 1.0f, 1.0f, 1, 1.0f, 1.0f, 1, "value", null, "value", 1.0f);
@@ -689,42 +685,9 @@ class JsonSerializationTest {
     }
 
     @Test
-    void simplifiedAudiobookObject() {
-        var original = new SimplifiedAudiobookObject(List.of(), List.of(), List.of(), "value", "value", "value",
-                true, sampleExternalUrls(), "value", "value", List.of(), List.of(), "value", "value",
-                List.of(), "value", AudiobookBaseType.values()[0], "value", 1);
-        assertSerializesSymmetrical(original, SimplifiedAudiobookObject.class);
-    }
-
-    @Test
-    void simplifiedChapterObject() {
-        var original = new SimplifiedChapterObject("value", List.of(), 1, "value", "value", 1, true,
-                sampleExternalUrls(), "value", "value", List.of(), true, List.of(), "value", "value",
-                EpisodeBaseReleaseDatePrecision.values()[0], null, EpisodeBaseType.values()[0], "value",
-                null);
-        assertSerializesSymmetrical(original, SimplifiedChapterObject.class);
-    }
-
-    @Test
-    void simplifiedEpisodeObject() {
-        var original = new SimplifiedEpisodeObject("value", "value", "value", 1, true, sampleExternalUrls(),
-                "value", "value", List.of(), true, true, "value", List.of(), "value", "value",
-                EpisodeBaseReleaseDatePrecision.values()[0], null, EpisodeBaseType.values()[0], "value", null);
-        assertSerializesSymmetrical(original, SimplifiedEpisodeObject.class);
-    }
-
-    @Test
     void simplifiedPlaylistObject() {
         var original = new SimplifiedPlaylistObject(true, "value", null, "value", "value", List.of(), "value", null, true, "value", null, "value", "value");
         assertSerializesSymmetrical(original, SimplifiedPlaylistObject.class);
-    }
-
-    @Test
-    void simplifiedShowObject() {
-        var original = new SimplifiedShowObject(List.of(), List.of(), "value", "value", true,
-                sampleExternalUrls(), "value", "value", List.of(), true, List.of(), "value", "value",
-                "value", ShowBaseType.values()[0], "value", 1);
-        assertSerializesSymmetrical(original, SimplifiedShowObject.class);
     }
 
     @Test
@@ -837,14 +800,14 @@ class JsonSerializationTest {
         return new PagingSimplifiedEpisodeObject("value", 1, "value", 0, "value", 1, List.of());
     }
 
-    private SimplifiedAudiobookObject sampleSimplifiedAudiobookObject() {
-        return new SimplifiedAudiobookObject(List.of(), List.of(), List.of(), "value", "value", "value",
+    private AudiobookBase sampleSimplifiedAudiobookObject() {
+        return new AudiobookBase(List.of(), List.of(), List.of(), "value", "value", "value",
                 true, sampleExternalUrls(), "value", "value", List.of(), List.of(), "value", "value",
                 List.of(), "value", AudiobookBaseType.values()[0], "value", 1);
     }
 
-    private SimplifiedShowObject sampleSimplifiedShowObject() {
-        return new SimplifiedShowObject(List.of(), List.of(), "value", "value", true, sampleExternalUrls(),
+    private ShowBase sampleSimplifiedShowObject() {
+        return new ShowBase(List.of(), List.of(), "value", "value", true, sampleExternalUrls(),
                 "value", "value", List.of(), true, List.of(), "value", "value", "value",
                 ShowBaseType.values()[0], "value", 1);
     }

@@ -5,7 +5,7 @@ import java.util.Set;
 public sealed interface JavaTypeName permits JavaTypeName.Reserved, JavaTypeName.Generated {
      Set<String> RESERVED_TYPE_NAMES = Set.of(
             "Object", "Class", "String", "Integer", "Long", "Boolean", "Double", "Float",
-            "Short", "Byte", "Character", "Number", "Void", "Enum"
+            "Short", "Byte", "Character", "Number", "Void", "Enum", "List"
     );
 
     String value();
