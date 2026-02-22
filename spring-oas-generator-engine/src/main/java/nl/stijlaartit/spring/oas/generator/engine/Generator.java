@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import static io.swagger.v3.oas.models.SpecVersion.V30;
+
 public class Generator {
 
     private final Logger logger;
@@ -57,6 +59,10 @@ public class Generator {
                 }
             }
             throw new IllegalArgumentException(error.toString());
+        }
+
+        if(!openAPI.getSpecVersion().equals(V30)) {
+            throw new IllegalArgumentException("Only OpenAPI 3.0.x is supported, found " + openAPI.getOpenapi());
         }
 
         final var registry = SchemaRegistry.resolve(openAPI);

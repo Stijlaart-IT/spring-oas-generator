@@ -5,6 +5,7 @@ import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class RawOperationResolver {
@@ -106,8 +108,14 @@ public class RawOperationResolver {
         }
 
         Content content = successResponse.getContent();
+        return determineContentSchema(content)
+                .<ResponseBodyType>map(ResponseBodyType.SchemaType::new)
+                .orElse(new ResponseBodyType.None());
+    }
+
+    private static Optional<Schema> determineContentSchema(Content content) {
         if (content == null) {
-            return new ResponseBodyType.None();
+            return Optional.empty();
         }
 
         MediaType mediaType = content.get("application/json");
@@ -115,15 +123,17 @@ public class RawOperationResolver {
             mediaType = content.values().iterator().next();
         }
         if (mediaType == null || mediaType.getSchema() == null) {
-            return new ResponseBodyType.None();
+            return Optional.empty();
         }
-        return new ResponseBodyType.SchemaType(mediaType.getSchema());
+        return Optional.ofNullable(mediaType.getSchema());
     }
 
     @Nullable
     private ApiResponse findSuccessResponse(String operationId, ApiResponses responses) {
         ApiResponse responseWithBody = null;
         String responseWithBodyCode = null;
+        Optional<Schema> responseWithBodySchema = null;
+
         List<String> successCodes = new ArrayList<>();
 
         for (String code : responses.keySet()) {
@@ -136,12 +146,18 @@ public class RawOperationResolver {
             if (content == null || content.isEmpty()) {
                 continue;
             }
+            Optional<Schema> statusContentSchema = determineContentSchema(content);
             if (responseWithBody != null) {
+                if (statusContentSchema.equals(responseWithBodySchema)) {
+                    logger.warn("[warn] Operation '" + operationId + "' defines multiple 2xx responses with same body. Using first response body.");
+                    continue;
+                }
                 throw new IllegalArgumentException("Multiple 2xx responses with body defined for operation '"
                         + operationId + "': " + responseWithBodyCode + " and " + code);
             }
             responseWithBody = candidate;
             responseWithBodyCode = code;
+            responseWithBodySchema = statusContentSchema;
         }
 
         if (responseWithBody != null && successCodes.size() > 1) {

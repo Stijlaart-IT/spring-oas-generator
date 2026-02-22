@@ -462,7 +462,7 @@ class ClientResolverTest {
                             new ApiResponse()
                                     .content(new Content()
                                             .addMediaType("application/json",
-                                                    new MediaType().schema(new StringSchema()))))
+                                                    new MediaType().schema(new IntegerSchema()))))
                     .addApiResponse("204", new ApiResponse().description("no content"));
             OpenAPI openAPI = openApiWithOperation(
                     "/pet", "post", "createPet", "pet",

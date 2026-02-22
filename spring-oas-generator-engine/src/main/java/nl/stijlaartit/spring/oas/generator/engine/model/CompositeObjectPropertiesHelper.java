@@ -20,7 +20,12 @@ public class CompositeObjectPropertiesHelper {
 
     sealed interface Result permits Result.Mixed, Result.Props {
         record Mixed(String error)implements Result {}
-        record Props(Map<String, Schema> properties) implements Result {}
+        record Props(Map<String, Schema> properties) implements Result {
+            public Props {
+                // TODO unit test
+                Objects.requireNonNull(properties);
+            }
+        }
 
     }
     private final SchemaTypes schemaTypes;
@@ -32,7 +37,7 @@ public class CompositeObjectPropertiesHelper {
     public Result collectCompositeObjectProperties(ConcreteSchemaType concreteSchemaType) {
         return switch (concreteSchemaType) {
             case GeneratedSchemaType generatedSchemaType -> switch (generatedSchemaType) {
-                case ObjectSchemaType objectSchemaType -> new Result.Props(concreteSchemaType.schema().getProperties());
+                case ObjectSchemaType objectSchemaType -> new Result.Props(concreteSchemaType.schema().getProperties() != null ? concreteSchemaType.schema().getProperties() : new HashMap<>());
                 case EnumSchemaType enumSchemaType -> new Result.Mixed("Enum not supported in composite types");
                 case UnionSchemaType unionSchemaType -> new Result.Mixed("Union not supported in composite types");
                 case CompositeSchemaType compositeSchemaType -> collectNestedProperties(compositeSchemaType.schema());
@@ -45,7 +50,7 @@ public class CompositeObjectPropertiesHelper {
     private Result collectNestedProperties(Schema<?> schema) {
         List<Schema> allOf = Objects.requireNonNull(schema.getAllOf());
         // Use linked hashmap to preserve order
-        Map<String, Schema> properties= new LinkedHashMap<>();
+        Map<String, Schema> properties = new LinkedHashMap<>();
         for (Schema<?> part : allOf) {
             final var partSchemaType = schemaTypes.resolveConcrete(part);
             Result collectProperties = collectCompositeObjectProperties(partSchemaType);
