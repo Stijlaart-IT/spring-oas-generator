@@ -1,15 +1,19 @@
 package nl.stijlaartit.spring.oas.generator.engine.naming;
 
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.media.StringSchema;
+import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
+import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathRoot;
+import nl.stijlaartit.spring.oas.generator.engine.domain.path.SchemaPath;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaParent;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NamingUtilTest {
 
@@ -23,43 +27,76 @@ class NamingUtilTest {
 
     @Test
     void resolvesShortestComponentPath() {
-        SchemaInstance root = new SchemaInstance(
+        SchemaInstance first = new SchemaInstance(
                 new StringSchema(),
-                new SchemaParent.ComponentParent("pet")
-        );
-        SchemaInstance child = new SchemaInstance(
-                new StringSchema(),
-                new SchemaParent.SchemaInstanceParent(root, new SchemaParent.SchemaRelation.PropertyRelation("name"))
+                SchemaPath.forRoot(PathRoot.componentSchema("pet")).property("name")
         );
 
-        NamingUtil.PathName path = NamingUtil.findShortestComponentPath(List.of(child));
+        SchemaInstance second = new SchemaInstance(
+                new StringSchema(),
+                SchemaPath.forRoot(PathRoot.componentSchema("pet")).property("name").property("other")
+        );
 
-        assertEquals("Pet", path.base());
-        assertEquals(List.of("name"), path.segments());
-        assertEquals("PetName", path.toName());
+
+        final var path = NamingUtil.findShortestComponentPath(List.of(first, second));
+
+        assertThat(path).isEqualTo(first.path());
     }
 
     @Test
     void resolvesOperationParameterPath() {
-        Operation operation = new Operation().operationId("getPet");
-        SchemaInstance root = new SchemaInstance(
+        SchemaInstance first = new SchemaInstance(
                 new StringSchema(),
-                new SchemaParent.OperationParameterParent(
-                        operation,
-                        PathItem.HttpMethod.GET,
-                        "/pet/{petId}",
-                        "petId",
-                        "path"
-                )
+                SchemaPath.forRoot(PathRoot.requestParam(OperationName.id("getPet"), "petId")).property("name")
         );
-        SchemaInstance child = new SchemaInstance(
+        SchemaInstance second = new SchemaInstance(
                 new StringSchema(),
-                new SchemaParent.SchemaInstanceParent(root, new SchemaParent.SchemaRelation.PropertyRelation("name"))
+                SchemaPath.forRoot(PathRoot.requestParam(OperationName.id("getPet"), "petId")).property("name").property("other")
         );
 
-        NamingUtil.PathName path = NamingUtil.findShortestOperationPath(List.of(child));
+        final var path = NamingUtil.findShortestOperationPath(List.of(
+                first,
+                second
+        ));
 
-        assertEquals("GetPetPathPetIdParameter", path.base());
-        assertEquals("GetPetPathPetIdParameterName", path.toName());
+        assertThat(path).isEqualTo(first.path());
+    }
+
+    @Test
+    void convertsPartsToReservedTypeName() {
+        JavaTypeName name = NamingUtil.toJavaTypeName(List.of("/enum"));
+
+        assertInstanceOf(JavaTypeName.Reserved.class, name);
+        assertEquals("Enum", name.value());
+    }
+
+    @Test
+    void convertsPartsToGeneratedTypeName() {
+        JavaTypeName name = NamingUtil.toJavaTypeName(List.of("GET", "RequestBody"));
+
+        assertInstanceOf(JavaTypeName.Generated.class, name);
+        assertEquals("GetRequestBody", name.value());
+    }
+
+    @Test
+    void prefixesTypeWhenNameStartsWithDigit() {
+        JavaTypeName name = NamingUtil.toJavaTypeName(List.of("/123/foo"));
+
+        assertEquals("Type123Foo", name.value());
+        assertTrue(name instanceof JavaTypeName.Generated);
+    }
+
+    @Test
+    void stripsInvalidCharactersAndJoinsParts() {
+        JavaTypeName name = NamingUtil.toJavaTypeName(List.of("/pet-id", "foo@bar"));
+
+        assertEquals("PetIdFooBar", name.value());
+    }
+
+    @Test
+    void fallsBackToTypeWhenNoValidParts() {
+        JavaTypeName name = NamingUtil.toJavaTypeName(List.of("", " / ", "!!!"));
+
+        assertEquals("Type", name.value());
     }
 }

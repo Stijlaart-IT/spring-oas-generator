@@ -149,7 +149,7 @@ public class RawOperationResolver {
             Optional<Schema> statusContentSchema = determineContentSchema(content);
             if (responseWithBody != null) {
                 if (statusContentSchema.equals(responseWithBodySchema)) {
-                    logger.warn("[warn] Operation '" + operationId + "' defines multiple 2xx responses with same body. Using first response body.");
+                    logger.warn("Operation '" + operationId + "' defines multiple 2xx responses with same body. Using first response body.");
                     continue;
                 }
                 throw new IllegalArgumentException("Multiple 2xx responses with body defined for operation '"
@@ -161,7 +161,7 @@ public class RawOperationResolver {
         }
 
         if (responseWithBody != null && successCodes.size() > 1) {
-            logger.warn("[warn] Operation '" + operationId
+            logger.warn("Operation '" + operationId
                     + "' defines multiple 2xx responses. Using response " + responseWithBodyCode + ".");
         }
 

@@ -1,27 +1,28 @@
 package nl.stijlaartit.spring.oas.generator.engine;
 
+import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import nl.stijlaartit.spring.oas.generator.engine.client.ClientResolver;
-import nl.stijlaartit.spring.oas.generator.engine.client.ClientSerializer;
-import nl.stijlaartit.spring.oas.generator.engine.client.ClientWriterConfig;
-import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFile;
-import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFileSerializer;
-import nl.stijlaartit.spring.oas.generator.engine.domain.SerializedFile;
+import nl.stijlaartit.spring.oas.generator.serialization.ClientSerializer;
+import nl.stijlaartit.spring.oas.generator.serialization.ClientWriterConfig;
+import nl.stijlaartit.spring.oas.generator.domain.file.GenerationFile;
+import nl.stijlaartit.spring.oas.generator.serialization.GenerationFileSerializer;
+import nl.stijlaartit.spring.oas.generator.serialization.SerializedFile;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
-import nl.stijlaartit.spring.oas.generator.engine.model.EnumModelSerializer;
-import nl.stijlaartit.spring.oas.generator.engine.model.ImplementsByMapping;
+import nl.stijlaartit.spring.oas.generator.serialization.EnumModelSerializer;
+import nl.stijlaartit.spring.oas.generator.serialization.ImplementsByMapping;
 import nl.stijlaartit.spring.oas.generator.engine.model.ModelResolver;
-import nl.stijlaartit.spring.oas.generator.engine.model.NullWrapperSerializer;
-import nl.stijlaartit.spring.oas.generator.engine.model.RecordModelSerializer;
-import nl.stijlaartit.spring.oas.generator.engine.model.RecordModelWriterConfig;
+import nl.stijlaartit.spring.oas.generator.serialization.NullWrapperSerializer;
+import nl.stijlaartit.spring.oas.generator.serialization.RecordModelSerializer;
+import nl.stijlaartit.spring.oas.generator.serialization.RecordModelWriterConfig;
 import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
-import nl.stijlaartit.spring.oas.generator.engine.model.UnionModelSerializer;
+import nl.stijlaartit.spring.oas.generator.serialization.UnionModelSerializer;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
-import nl.stijlaartit.spring.oas.generator.engine.utility.PackageInfoSerializer;
+import nl.stijlaartit.spring.oas.generator.serialization.PackageInfoSerializer;
 import nl.stijlaartit.spring.oas.generator.engine.utility.UtilityResolver;
 
 import java.nio.file.Path;
@@ -61,8 +62,8 @@ public class Generator {
             throw new IllegalArgumentException(error.toString());
         }
 
-        if(!openAPI.getSpecVersion().equals(V30)) {
-            throw new IllegalArgumentException("Only OpenAPI 3.0.x is supported, found " + openAPI.getOpenapi());
+        if (!openAPI.getSpecVersion().equals(V30)) {
+            logger.warn("Only OpenAPI 3.0.x is officially supported, found " + openAPI.getOpenapi() + ". This may produce issues!");
         }
 
         final var registry = SchemaRegistry.resolve(openAPI);
@@ -72,9 +73,9 @@ public class Generator {
         final var schemaTypeResolver = new SchemaTypeResolver(registry, nameProvider, logger);
         final var schemaTypes = schemaTypeResolver.resolve();
         logger.info("Found [" + schemaTypes.types().size() + "] distinct schema(s)");
-        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
+        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, modelsPackage);
 
-        final var modelResolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
+        final var modelResolver = new ModelResolver(schemaTypes, typeDescriptorFactory, logger);
         final var clientResolver = new ClientResolver(logger, typeDescriptorFactory);
         final var utilityResolver = new UtilityResolver(modelsPackage, clientPackage);
 

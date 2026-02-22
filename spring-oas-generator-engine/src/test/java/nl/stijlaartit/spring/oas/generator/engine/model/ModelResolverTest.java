@@ -1,5 +1,6 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
+import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
@@ -15,12 +16,12 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
-import nl.stijlaartit.spring.oas.generator.engine.domain.FieldModel;
-import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFile;
-import nl.stijlaartit.spring.oas.generator.engine.domain.ModelFile;
-import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
+import nl.stijlaartit.spring.oas.generator.domain.file.RecordField;
+import nl.stijlaartit.spring.oas.generator.domain.file.ModelFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.RecordModel;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
-import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.domain.file.JavaParameterName;
+import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.CompositeSchemaType;
@@ -30,7 +31,6 @@ import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypes;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.StringSchemaType;
 import org.junit.jupiter.api.Test;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -43,8 +43,8 @@ class ModelResolverTest {
     private List<ModelFile> resolveModels(OpenAPI openAPI) {
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
-        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
-        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
+        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
+        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());
         return resolver.resolve();
     }
 
@@ -149,8 +149,8 @@ class ModelResolverTest {
         assertTrue(models.stream().anyMatch(model -> model.name().equals("ObjectWithRefToPrimitive")));
         RecordModel first = (RecordModel) models.getFirst();
         final var field = first.fields().getFirst();
-        assertThat(field.name()).isEqualTo("key");
-        assertThat(field.type()).isEqualTo(TypeDescriptor.simple("java.lang.Integer"));
+        assertThat(field.name().value()).isEqualTo("key");
+        assertThat(field.type()).isEqualTo(TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Integer")));
     }
 
     @Test
@@ -166,8 +166,8 @@ class ModelResolverTest {
 
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
-        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
-        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
+        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
+        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());
         List<ModelFile> models = resolver.resolve();
 
         assertEquals(1, models.size());
@@ -200,14 +200,15 @@ class ModelResolverTest {
 
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
-        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
-        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
+        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
+        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());
         List<ModelFile> models = resolver.resolve();
 
         assertEquals(3, models.size());
         final var playlistOwnerObject = (RecordModel) models.stream().filter(v -> v.name().equals("PlaylistOwnerObject")).findFirst().orElseThrow();
         final var fieldNames = playlistOwnerObject.fields()
-                .stream().map(FieldModel::name)
+                .stream().map(RecordField::name)
+                .map(JavaParameterName::value)
                 .toList();
         assertThat(fieldNames).isEqualTo(List.of(
                 "externalUrls", "href", "id", "type", "uri", "displayName"

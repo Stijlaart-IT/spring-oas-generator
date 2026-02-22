@@ -1,7 +1,7 @@
 package nl.stijlaartit.variants.generated;
 
 import nl.stijlaartit.variants.generated.client.DefaultApi;
-import nl.stijlaartit.variants.generated.models.GetInlineResponseBodyResponseItem;
+import nl.stijlaartit.variants.generated.models.GetInlineResponseBody200ResponseItem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -20,7 +20,7 @@ public class InlineResponseBodyTest {
     @Test
     void shouldHaveGeneratedResponseBody() {
         // Validates the generated types
-        List<GetInlineResponseBodyResponseItem> result =  defaultApi.getInlineResponseBody();
+        List<GetInlineResponseBody200ResponseItem> result =  defaultApi.getInlineResponseBody();
         assertThat(result).isNotNull();
     }
 }

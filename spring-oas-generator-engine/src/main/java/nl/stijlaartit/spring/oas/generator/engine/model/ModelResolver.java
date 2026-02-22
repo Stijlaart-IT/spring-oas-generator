@@ -1,13 +1,17 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
 import io.swagger.v3.oas.models.media.Schema;
-import nl.stijlaartit.spring.oas.generator.engine.domain.EnumModel;
-import nl.stijlaartit.spring.oas.generator.engine.domain.EnumValueType;
-import nl.stijlaartit.spring.oas.generator.engine.domain.FieldModel;
-import nl.stijlaartit.spring.oas.generator.engine.domain.ModelFile;
-import nl.stijlaartit.spring.oas.generator.engine.domain.OneOfVariant;
-import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
-import nl.stijlaartit.spring.oas.generator.engine.domain.UnionModelFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.EnumModel;
+import nl.stijlaartit.spring.oas.generator.domain.file.EnumValueType;
+import nl.stijlaartit.spring.oas.generator.domain.file.RecordField;
+import nl.stijlaartit.spring.oas.generator.domain.file.ModelFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.OneOfVariant;
+import nl.stijlaartit.spring.oas.generator.domain.file.RecordModel;
+import nl.stijlaartit.spring.oas.generator.domain.file.UnionModelFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.JavaParameterName;
+import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
+import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
+import nl.stijlaartit.spring.oas.generator.serialization.JavaIdentifierUtils;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaUtil;
@@ -33,16 +37,18 @@ public class ModelResolver {
 
     private final SchemaTypes schemaTypes;
     private final TypeDescriptorFactory typeDescriptorFactory;
+    private final Logger logger;
 
-    public ModelResolver(SchemaTypes schemaTypes, TypeDescriptorFactory typeDescriptorFactory) {
+    public ModelResolver(SchemaTypes schemaTypes, TypeDescriptorFactory typeDescriptorFactory, Logger logger) {
         this.schemaTypes = Objects.requireNonNull(schemaTypes);
         this.typeDescriptorFactory = typeDescriptorFactory;
+        this.logger = logger;
     }
 
     public List<ModelFile> resolve() {
         return schemaTypes.generatedSchemaTypes()
                 .stream()
-                .map(generatedSchemaType -> createModelFile(generatedSchemaType))
+                .map(this::createModelFile)
                 .toList();
     }
 
@@ -68,11 +74,11 @@ public class ModelResolver {
                 .stream()
                 .map(property -> {
                     String jsonName = property.getKey();
-                    String javaName = JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(jsonName));
+                    final var javaName = new JavaParameterName(JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(jsonName)));
                     TypeDescriptor type = typeDescriptorFactory.build(property.getValue());
                     boolean nullable = Boolean.TRUE.equals(property.getValue().getNullable());
                     boolean isRequired = requiredProperties.contains(jsonName);
-                    return new FieldModel(javaName, jsonName, type, isRequired, nullable, false);
+                    return new RecordField(javaName, jsonName, type, isRequired, nullable, false);
                 })
                 .toList();
 
@@ -119,9 +125,10 @@ public class ModelResolver {
         Set<String> requiredProperties = collectRequired(schema);
         CompositeObjectPropertiesHelper.Result result = new CompositeObjectPropertiesHelper(schemaTypes).collectCompositeObjectProperties(compositeSchemaType);
         return switch (result) {
-            case CompositeObjectPropertiesHelper.Result.Mixed mixed ->
-                // TODO Log warn
-                    new RecordModel(compositeSchemaType.name(), List.of(), false);
+            case CompositeObjectPropertiesHelper.Result.Mixed mixed -> {
+                logger.warn("Found composite object with different mixed-type schemas with name [" + compositeSchemaType.name().value() + "]. Generating empty record model.");
+                yield new RecordModel(compositeSchemaType.name(), List.of(), false);
+            }
 
             case CompositeObjectPropertiesHelper.Result.Props props -> {
                 final var fields = props.properties()
@@ -129,11 +136,11 @@ public class ModelResolver {
                         .stream()
                         .map(property -> {
                             String jsonName = property.getKey();
-                            String javaName = JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(jsonName));
+                            final var javaName = new JavaParameterName(JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(jsonName)));
                             TypeDescriptor type = typeDescriptorFactory.build(property.getValue());
                             boolean nullable = Boolean.TRUE.equals(property.getValue().getNullable());
                             boolean isRequired = requiredProperties.contains(jsonName);
-                            return new FieldModel(javaName, jsonName, type, isRequired, nullable, false);
+                            return new RecordField(javaName, jsonName, type, isRequired, nullable, false);
                         })
                         .toList();
 
@@ -153,7 +160,7 @@ public class ModelResolver {
                 return propertyName;
             }
         }
-        List<Schema> variants = schema.getOneOf();
+        final var variants = schema.getOneOf();
         return inferDiscriminatorProperty(variants);
     }
 
@@ -164,7 +171,7 @@ public class ModelResolver {
         }
 
         ConcreteSchemaType resolvedVariant = schemaTypes.resolveConcrete(variant);
-        Map<String, Schema> properties = collectProperties(resolvedVariant);
+        final var properties = collectProperties(resolvedVariant);
         Schema<?> discriminatorSchema = properties.get(discriminatorProperty);
         if (discriminatorSchema == null) {
             return null;
@@ -187,9 +194,9 @@ public class ModelResolver {
         Set<String> candidates = null;
         for (Schema<?> variant : variants) {
             final var resolvedConcrete = schemaTypes.resolveConcrete(variant);
-            Map<String, Schema> properties = collectProperties(resolvedConcrete);
+            final var properties = collectProperties(resolvedConcrete);
             Set<String> localCandidates = new LinkedHashSet<>();
-            for (Map.Entry<String, Schema> entry : properties.entrySet()) {
+            for (final var entry : properties.entrySet()) {
                 final var concreteProperty = schemaTypes.resolveConcrete(entry.getValue());
                 Schema<?> property = concreteProperty.instances().getFirst().schema();
                 if (property.getEnum() != null && property.getEnum().size() == 1) {

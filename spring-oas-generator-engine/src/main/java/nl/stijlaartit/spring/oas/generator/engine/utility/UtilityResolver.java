@@ -1,12 +1,12 @@
 package nl.stijlaartit.spring.oas.generator.engine.utility;
 
-import nl.stijlaartit.spring.oas.generator.engine.domain.ApiFile;
-import nl.stijlaartit.spring.oas.generator.engine.domain.FieldModel;
-import nl.stijlaartit.spring.oas.generator.engine.domain.GenerationFile;
-import nl.stijlaartit.spring.oas.generator.engine.domain.ModelFile;
-import nl.stijlaartit.spring.oas.generator.engine.domain.NullWrapperFile;
-import nl.stijlaartit.spring.oas.generator.engine.domain.PackageInfoFile;
-import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
+import nl.stijlaartit.spring.oas.generator.domain.file.ApiFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.RecordField;
+import nl.stijlaartit.spring.oas.generator.domain.file.GenerationFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.ModelFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.NullWrapperFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.PackageInfoFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.RecordModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +38,7 @@ public class UtilityResolver {
     private static boolean requiresNullWrapper(List<ModelFile> models) {
         for (ModelFile model : models) {
             if (model instanceof RecordModel recordModel) {
-                for (FieldModel field : recordModel.fields()) {
+                for (RecordField field : recordModel.fields()) {
                     if (!field.required() && field.nullable()) {
                         return true;
                     }

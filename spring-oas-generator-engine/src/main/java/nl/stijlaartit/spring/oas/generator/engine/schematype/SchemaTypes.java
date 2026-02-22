@@ -2,8 +2,8 @@ package nl.stijlaartit.spring.oas.generator.engine.schematype;
 
 import io.swagger.v3.oas.models.media.Schema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.SchemaRef;
+import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathRoot;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaParent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,9 +51,7 @@ public final class SchemaTypes {
         return switch (schemaType) {
             case ConcreteSchemaType concrete -> concrete;
             case RefSchemaType ref -> resolveConcrete(resolveByRef(ref.ref()));
-            case DeferredSchemaType deferredSchemaType -> {
-                yield resolveConcrete(deferredSchemaType.target());
-            }
+            case DeferredSchemaType deferredSchemaType -> resolveConcrete(deferredSchemaType.target());
         };
     }
 
@@ -61,13 +59,12 @@ public final class SchemaTypes {
         final Predicate<SchemaInstance> matcher;
 
         if (ref.type().equals("schemas")) {
-            matcher = v -> v.parent() instanceof SchemaParent.ComponentParent(
+            matcher = v -> v.path().root() instanceof PathRoot.ComponentSchema(
                     String componentName
-            ) && componentName.equals(ref.name());
+            ) && componentName.equals(ref.name()) && v.path().segments().isEmpty();
         } else if (ref.type().equals("parameters")) {
-            matcher = v -> v.parent() instanceof SchemaParent.ComponentParameterParent(
-                    String componentName
-            ) && componentName.equals(ref.name());
+            matcher = v -> v.path().root() instanceof PathRoot.ComponentParameter(String componentName) &&
+                    componentName.equals(ref.name()) && v.path().segments().isEmpty();
         } else {
             throw new IllegalArgumentException("Unsupported ref type: " + ref.type());
         }
@@ -75,7 +72,7 @@ public final class SchemaTypes {
 
         for (SchemaType type : types) {
             final var matches = type.instances().stream().anyMatch(matcher);
-            if(matches) {
+            if (matches) {
                 return type;
             }
         }

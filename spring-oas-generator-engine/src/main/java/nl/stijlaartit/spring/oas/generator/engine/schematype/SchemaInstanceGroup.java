@@ -1,9 +1,7 @@
 package nl.stijlaartit.spring.oas.generator.engine.schematype;
 
 import io.swagger.v3.oas.models.media.Schema;
-import nl.stijlaartit.spring.oas.generator.engine.domain.SchemaRef;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
-
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -24,12 +22,10 @@ public record SchemaInstanceGroup(Schema<?> schema, List<SchemaInstance> instanc
         Map<Schema<?>, List<SchemaInstance>> grouped = new LinkedHashMap<>();
         for (SchemaInstance instance : instances) {
             Schema<?> schema = instance.schema();
-            Schema<?> key = findExistingKey(grouped, schema);
-            if (key == null) {
+            if (!grouped.containsKey(schema)) {
                 grouped.put(schema, new ArrayList<>());
-                key = schema;
             }
-            grouped.get(key).add(instance);
+            grouped.get(schema).add(instance);
         }
 
         List<SchemaInstanceGroup> groups = new ArrayList<>();
@@ -127,25 +123,10 @@ public record SchemaInstanceGroup(Schema<?> schema, List<SchemaInstance> instanc
             }
 
             // Handle oneof, any of ect.
-            System.out.println(schema.getType());
-            System.out.println(schema.getAllOf());
-            System.out.println(schema.getAnyOf());
-            System.out.println(schema.getOneOf());
-            System.out.println(schema.getAdditionalProperties());
             throw new IllegalStateException("Unsupported schema (a): " + schema);
         }
 
         throw new IllegalStateException("Unsupported schema (b): " + schema);
 
-    }
-
-    private static @Nullable Schema<?> findExistingKey(Map<Schema<?>, List<SchemaInstance>> grouped,
-                                                       Schema<?> schema) {
-        for (Schema<?> key : grouped.keySet()) {
-            if (key.equals(schema)) {
-                return key;
-            }
-        }
-        return null;
     }
 }

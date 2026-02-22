@@ -1,25 +1,25 @@
 package nl.stijlaartit.spring.oas.generator.engine.naming;
 
+import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathRoot;
+import nl.stijlaartit.spring.oas.generator.engine.domain.path.SchemaPath;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaParent;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
+import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public final class NamingUtil {
 
     private NamingUtil() {
     }
 
-    public static PathName findShortestComponentPath(List<SchemaInstance> instances) {
-        PathName best = null;
+    public static SchemaPath findShortestComponentPath(List<SchemaInstance> instances) {
+        SchemaPath best = null;
         int bestLength = Integer.MAX_VALUE;
         for (SchemaInstance instance : instances) {
-            PathName path = resolvePathToComponent(instance);
-            if (path == null) {
+            final var path = instance.path();
+            if (!(path.root() instanceof PathRoot.ComponentSchema)) {
                 continue;
             }
             int length = path.segments().size();
@@ -36,21 +36,30 @@ public final class NamingUtil {
 
     public static boolean hasComponentPath(List<SchemaInstance> instances) {
         for (SchemaInstance instance : instances) {
-            if (resolvePathToComponent(instance) != null) {
+            if (instance.path().root() instanceof PathRoot.ComponentSchema) {
                 return true;
             }
         }
         return false;
     }
 
-    public static PathName findShortestOperationPath(List<SchemaInstance> instances) {
-        PathName best = null;
+    public static SchemaPath findShortestOperationPath(List<SchemaInstance> instances) {
+        SchemaPath best = null;
         int bestLength = Integer.MAX_VALUE;
         for (SchemaInstance instance : instances) {
-            PathName path = resolvePathToOperation(instance);
-            if (path == null) {
+            SchemaPath path = instance.path();
+            final var x = switch (path.root()) {
+                case PathRoot.ComponentSchema ignored -> Optional.empty();
+                case PathRoot.RequestBody ignored -> Optional.of(path);
+                case PathRoot.RequestParam ignored -> Optional.of(path);
+                case PathRoot.ResponseBody ignored -> Optional.of(path);
+                case PathRoot.ComponentParameter ignored -> Optional.empty();
+                case PathRoot.SharedPathParam ignored -> Optional.empty();
+            };
+            if (x.isEmpty()) {
                 continue;
             }
+
             int length = path.segments().size();
             if (length < bestLength) {
                 best = path;
@@ -65,108 +74,19 @@ public final class NamingUtil {
 
     public static boolean hasOperationPath(List<SchemaInstance> instances) {
         for (SchemaInstance instance : instances) {
-            if (resolvePathToOperation(instance) != null) {
+            final var hasOperationRoot = switch (instance.path().root()) {
+                case PathRoot.ComponentSchema ignored -> false;
+                case PathRoot.RequestBody ignored -> true;
+                case PathRoot.RequestParam ignored -> true;
+                case PathRoot.ResponseBody ignored -> true;
+                case PathRoot.ComponentParameter ignored -> false;
+                case PathRoot.SharedPathParam ignored -> false;
+            };
+            if (hasOperationRoot) {
                 return true;
             }
         }
         return false;
-    }
-
-    private static PathName resolvePathToComponent(SchemaInstance instance) {
-        List<String> segments = new ArrayList<>();
-        SchemaInstance current = instance;
-        while (current.parent() instanceof SchemaParent.SchemaInstanceParent(
-                SchemaInstance parent, SchemaParent.SchemaRelation relation
-        )) {
-            String segment = resolveSegment(relation);
-            if (segment != null && !segment.isBlank()) {
-                segments.add(segment);
-            }
-            current = parent;
-        }
-        if (current.parent() instanceof SchemaParent.ComponentParent(String componentName)) {
-            if (segments.isEmpty()) {
-                return null;
-            }
-            Collections.reverse(segments);
-            return new PathName(toPascalCase(componentName), segments);
-        }
-        if (current.parent() instanceof SchemaParent.ComponentParameterParent(String parameterName)) {
-            Collections.reverse(segments);
-            return new PathName(toPascalCase(parameterName) + "Parameter", segments);
-        }
-        return null;
-    }
-
-    private static PathName resolvePathToOperation(SchemaInstance instance) {
-        List<String> segments = new ArrayList<>();
-        SchemaInstance current = instance;
-        int depth = 0;
-        while (current.parent() instanceof SchemaParent.SchemaInstanceParent(
-                SchemaInstance parent, SchemaParent.SchemaRelation relation
-        )) {
-            String segment = resolveSegment(relation);
-            if (segment != null && !segment.isBlank()) {
-                segments.add(segment);
-            }
-            current = parent;
-            depth++;
-        }
-        if (current.parent() instanceof SchemaParent.OperationRequestParent(
-                Operation operation, PathItem.HttpMethod method, String path
-        )) {
-            String base = toPascalCase(resolveOperationId(
-                    operation, method, path)) + "Request";
-            if (segments.isEmpty() && depth > 0) {
-                return null;
-            }
-            Collections.reverse(segments);
-            return new PathName(base, segments);
-        }
-        if (current.parent() instanceof SchemaParent.OperationResponseParent responseParent) {
-            String base = toPascalCase(resolveOperationId(
-                    responseParent.operation(), responseParent.method(), responseParent.path())) + "Response";
-            if (segments.isEmpty() && depth > 0) {
-                return null;
-            }
-            Collections.reverse(segments);
-            return new PathName(base, segments);
-        }
-        if (current.parent() instanceof SchemaParent.OperationParameterParent(
-                Operation operation, PathItem.HttpMethod method, String path, String parameterName, String parameterIn
-        )) {
-            String operationId = resolveOperationId(
-                    operation, method, path);
-            String base = toPascalCase(operationId)
-                    + (parameterIn != null && !parameterIn.isBlank() ? toPascalCase(parameterIn) : "")
-                    + (parameterName != null && !parameterName.isBlank() ? toPascalCase(parameterName) : "")
-                    + "Parameter";
-            if (segments.isEmpty() && depth > 0) {
-                return null;
-            }
-            Collections.reverse(segments);
-            return new PathName(base, segments);
-        }
-        return null;
-    }
-
-    private static String resolveOperationId(Operation operation, PathItem.HttpMethod method, String path) {
-        if (operation != null && operation.getOperationId() != null
-                && !operation.getOperationId().isBlank()) {
-            return operation.getOperationId();
-        }
-        return OperationIdNaming.fallbackOperationId(method, path);
-    }
-
-    private static String resolveSegment(SchemaParent.SchemaRelation relation) {
-        return switch (relation) {
-            case SchemaParent.SchemaRelation.PropertyRelation propertyRelation -> propertyRelation.propertyName();
-            case SchemaParent.SchemaRelation.ListItemRelation ignored -> "Item";
-            case SchemaParent.SchemaRelation.OneOfRelation ignored -> null;
-            case SchemaParent.SchemaRelation.AllOfRelation ignored -> null;
-            case SchemaParent.SchemaRelation.AnyOfRelation ignored -> null;
-            case SchemaParent.SchemaRelation.AdditionalPropertiesRelation ignored -> "AdditionalProperties";
-        };
     }
 
     public static String toCamelCase(String input) {
@@ -199,13 +119,124 @@ public final class NamingUtil {
         return Character.toUpperCase(camel.charAt(0)) + camel.substring(1);
     }
 
-    public record PathName(String base, List<String> segments) {
-        public String toName() {
-            StringBuilder result = new StringBuilder(base);
-            for (String segment : segments) {
-                result.append(toPascalCase(segment));
-            }
-            return result.toString();
+    public static JavaTypeName toJavaTypeName(List<String> parts) {
+        StringBuilder nameBuilder = new StringBuilder();
+        for (String part : parts) {
+            nameBuilder.append(normalizePartToPascalCase(part));
         }
+        String name = nameBuilder.toString();
+        if (name.isBlank()) {
+            name = "Type";
+        } else if (Character.isDigit(name.charAt(0))) {
+            name = "Type" + name;
+        }
+        if (JavaTypeName.RESERVED_TYPE_NAMES.contains(name)) {
+            return new JavaTypeName.Reserved(name);
+        }
+        return new JavaTypeName.Generated(name);
+    }
+
+    private static String normalizePartToPascalCase(String part) {
+        if (part == null || part.isBlank()) {
+            return "";
+        }
+        StringBuilder result = new StringBuilder();
+        StringBuilder token = new StringBuilder();
+        for (int i = 0; i < part.length(); i++) {
+            char c = part.charAt(i);
+            if (Character.isLetterOrDigit(c)) {
+                token.append(c);
+            } else {
+                appendToken(result, token);
+                token.setLength(0);
+            }
+        }
+        appendToken(result, token);
+        return result.toString();
+    }
+
+    private static void appendToken(StringBuilder result, StringBuilder token) {
+        if (token.isEmpty()) {
+            return;
+        }
+        String tokenValue = token.toString();
+        for (String chunk : splitCamelToken(tokenValue)) {
+            result.append(pascalizeChunk(chunk));
+        }
+    }
+
+    private static List<String> splitCamelToken(String token) {
+        if (isAllUpper(token) || isAllLower(token) || isAllDigits(token)) {
+            return List.of(token);
+        }
+        List<String> parts = new ArrayList<>();
+        int start = 0;
+        for (int i = 1; i < token.length(); i++) {
+            char prev = token.charAt(i - 1);
+            char current = token.charAt(i);
+            if ((Character.isLowerCase(prev) || Character.isDigit(prev)) && Character.isUpperCase(current)) {
+                parts.add(token.substring(start, i));
+                start = i;
+            }
+        }
+        parts.add(token.substring(start));
+        return parts;
+    }
+
+    private static boolean isAllUpper(String token) {
+        boolean hasLetter = false;
+        for (int i = 0; i < token.length(); i++) {
+            char c = token.charAt(i);
+            if (Character.isLetter(c)) {
+                hasLetter = true;
+                if (!Character.isUpperCase(c)) {
+                    return false;
+                }
+            }
+        }
+        return hasLetter;
+    }
+
+    private static boolean isAllLower(String token) {
+        boolean hasLetter = false;
+        for (int i = 0; i < token.length(); i++) {
+            char c = token.charAt(i);
+            if (Character.isLetter(c)) {
+                hasLetter = true;
+                if (!Character.isLowerCase(c)) {
+                    return false;
+                }
+            }
+        }
+        return hasLetter;
+    }
+
+    private static boolean isAllDigits(String token) {
+        for (int i = 0; i < token.length(); i++) {
+            if (!Character.isDigit(token.charAt(i))) {
+                return false;
+            }
+        }
+        return !token.isEmpty();
+    }
+
+    private static String pascalizeChunk(String chunk) {
+        if (chunk.isEmpty()) {
+            return "";
+        }
+        StringBuilder result = new StringBuilder();
+        int index = 0;
+        while (index < chunk.length() && Character.isDigit(chunk.charAt(index))) {
+            result.append(chunk.charAt(index));
+            index++;
+        }
+        if (index < chunk.length()) {
+            result.append(Character.toUpperCase(chunk.charAt(index)));
+            index++;
+            for (; index < chunk.length(); index++) {
+                result.append(Character.toLowerCase(chunk.charAt(index)));
+            }
+        }
+        return result.toString();
     }
 }

@@ -1,13 +1,18 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
+import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
-import nl.stijlaartit.spring.oas.generator.engine.domain.FieldModel;
-import nl.stijlaartit.spring.oas.generator.engine.domain.ModelFile;
-import nl.stijlaartit.spring.oas.generator.engine.domain.RecordModel;
+import nl.stijlaartit.spring.oas.generator.domain.file.RecordField;
+import nl.stijlaartit.spring.oas.generator.domain.file.ModelFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.RecordModel;
+import nl.stijlaartit.spring.oas.generator.serialization.ImplementsByMapping;
+import nl.stijlaartit.spring.oas.generator.serialization.RecordModelSerializer;
+import nl.stijlaartit.spring.oas.generator.serialization.RecordModelWriterConfig;
+import nl.stijlaartit.spring.oas.generator.serialization.SerializedFile;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
-import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
@@ -28,10 +33,8 @@ class InlineAllOfExternalUrlsTest {
         assertTrue(models.stream().noneMatch(model -> model.name().equals("AlbumBaseExternalUrls")));
 
         RecordModel albumBase = findRecord(models, "AlbumBase");
-        FieldModel externalUrls = findField(albumBase, "externalUrls");
-        assertInstanceOf(TypeDescriptor.ComplexType.class, externalUrls.type());
-        TypeDescriptor.ComplexType type = (TypeDescriptor.ComplexType) externalUrls.type();
-        assertEquals(new JavaTypeName.Generated("ExternalUrlObject"), type.modelName());
+        RecordField externalUrls = findField(albumBase, "externalUrls");
+        assertEquals(new JavaTypeName.Generated("ExternalUrlObject"), externalUrls.type().modelName());
     }
 
     @Test
@@ -40,7 +43,8 @@ class InlineAllOfExternalUrlsTest {
         RecordModel albumBase = findRecord(models, "AlbumBase");
 
         RecordModelSerializer writer = new RecordModelSerializer("com.example.models", RecordModelWriterConfig.defaultConfig(), ImplementsByMapping.empty());
-        String source = writer.toJavaFile(albumBase).toString();
+        SerializedFile serialized = writer.serialize(albumBase);
+        String source = ((SerializedFile.Ast) serialized).javaFile().toString();
 
         assertTrue(source.contains("ExternalUrlObject externalUrls"));
         assertFalse(source.contains("AlbumBaseExternalUrls"));
@@ -50,8 +54,8 @@ class InlineAllOfExternalUrlsTest {
         OpenAPI openAPI = parseSpec();
         SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
-        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes);
-        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory);
+        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
+        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());
         return resolver.resolve();
     }
 
@@ -75,9 +79,9 @@ class InlineAllOfExternalUrlsTest {
                 .orElseThrow();
     }
 
-    private FieldModel findField(RecordModel model, String name) {
+    private RecordField findField(RecordModel model, String name) {
         return model.fields().stream()
-                .filter(field -> field.name().equals(name))
+                .filter(field -> field.name().value().equals(name))
                 .findFirst()
                 .orElseThrow();
     }

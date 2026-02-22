@@ -8,13 +8,15 @@ import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
-import org.jspecify.annotations.NonNull;
+import nl.stijlaartit.spring.oas.generator.engine.domain.HttpMethod;
+import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
+import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathRoot;
+import nl.stijlaartit.spring.oas.generator.engine.domain.path.SchemaPath;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public final class SchemaRegistry {
@@ -47,9 +49,9 @@ public final class SchemaRegistry {
                 if (schema == null) {
                     continue;
                 }
-                SchemaParent parent = new SchemaParent.ComponentParent(entry.getKey());
-                String path = appendPath("$.components.schemas", entry.getKey());
-                collect(schema, parent, path, instances, visiting);
+
+                SchemaPath schemaPath = SchemaPath.forRoot(PathRoot.componentSchema(entry.getKey()));
+                collect(schema, schemaPath, instances, visiting);
             }
         }
 
@@ -59,9 +61,7 @@ public final class SchemaRegistry {
                 if (parameter == null) {
                     continue;
                 }
-                SchemaParent parent = new SchemaParent.ComponentParameterParent(entry.getKey());
-                String base = appendPath("$.components.parameters", entry.getKey());
-                collectParameterSchema(parameter, parent, base, instances, visiting);
+                collectParameterSchema(parameter, SchemaPath.forRoot(PathRoot.componentParameter(entry.getKey())), instances, visiting);
             }
         }
 
@@ -73,11 +73,11 @@ public final class SchemaRegistry {
                     continue;
                 }
                 collectPathItemParameters(path, pathItem, instances, visiting);
-                collectOperation(path, PathItem.HttpMethod.GET, pathItem.getGet(), instances, visiting);
-                collectOperation(path, PathItem.HttpMethod.POST, pathItem.getPost(), instances, visiting);
-                collectOperation(path, PathItem.HttpMethod.PUT, pathItem.getPut(), instances, visiting);
-                collectOperation(path, PathItem.HttpMethod.DELETE, pathItem.getDelete(), instances, visiting);
-                collectOperation(path, PathItem.HttpMethod.PATCH, pathItem.getPatch(), instances, visiting);
+                collectOperation(path, HttpMethod.GET, pathItem.getGet(), instances, visiting);
+                collectOperation(path, HttpMethod.POST, pathItem.getPost(), instances, visiting);
+                collectOperation(path, HttpMethod.PUT, pathItem.getPut(), instances, visiting);
+                collectOperation(path, HttpMethod.DELETE, pathItem.getDelete(), instances, visiting);
+                collectOperation(path, HttpMethod.PATCH, pathItem.getPatch(), instances, visiting);
             }
         }
 
@@ -85,7 +85,8 @@ public final class SchemaRegistry {
     }
 
     private static void collectOperation(String path,
-                                         PathItem.HttpMethod method,
+                                         HttpMethod method,
+                                         @Nullable
                                          Operation operation,
                                          List<SchemaInstance> instances,
                                          IdentityHashMap<Schema<?>, Boolean> visiting) {
@@ -93,32 +94,26 @@ public final class SchemaRegistry {
             return;
         }
 
+        String operationId = operation.getOperationId();
+        final OperationName operationName = (operationId == null || operationId.isBlank()) ?
+                OperationName.pathAndMethod(path, method)
+                : OperationName.id(operationId);
+
         if (operation.getParameters() != null && !operation.getParameters().isEmpty()) {
-            String base = appendPath("$.paths", path);
-            base = appendPath(base, method.name().toLowerCase());
             for (int i = 0; i < operation.getParameters().size(); i++) {
                 Parameter parameter = operation.getParameters().get(i);
                 if (parameter == null) {
                     continue;
                 }
-                SchemaParent parent = new SchemaParent.OperationParameterParent(
-                        operation, method, path, parameter.getName(), parameter.getIn());
-                String parameterPath = appendIndex(appendPath(base, "parameters"), i);
-                collectParameterSchema(parameter, parent, parameterPath, instances, visiting);
+                String name = parameter.getName() != null ? parameter.getName() : "Index" + (i + 1);
+                collectParameterSchema(parameter, SchemaPath.forRoot(PathRoot.requestParam(operationName, name)), instances, visiting);
             }
         }
 
         if (operation.getRequestBody() != null && operation.getRequestBody().getContent() != null) {
             Schema<?> requestSchema = resolveContentSchema(operation.getRequestBody().getContent());
             if (requestSchema != null) {
-                SchemaParent parent = new SchemaParent.OperationRequestParent(operation, method, path);
-                String base = appendPath("$.paths", path);
-                base = appendPath(base, method.name().toLowerCase());
-                base = appendPath(base, "requestBody");
-                base = appendPath(base, "content");
-                base = appendPath(base, "application/json");
-                String jsonPath = appendPath(base, "schema");
-                collect(requestSchema, parent, jsonPath, instances, visiting);
+                collect(requestSchema, SchemaPath.forRoot(PathRoot.requestBody(operationName)), instances, visiting);
             }
         }
 
@@ -133,15 +128,7 @@ public final class SchemaRegistry {
                 if (responseSchema == null) {
                     continue;
                 }
-                SchemaParent parent = new SchemaParent.OperationResponseParent(operation, status, method, path);
-                String base = appendPath("$.paths", path);
-                base = appendPath(base, method.name().toLowerCase());
-                base = appendPath(base, "responses");
-                base = appendPath(base, status);
-                base = appendPath(base, "content");
-                base = appendPath(base, "application/json");
-                String jsonPath = appendPath(base, "schema");
-                collect(responseSchema, parent, jsonPath, instances, visiting);
+                collect(responseSchema, SchemaPath.forRoot(PathRoot.responseBody(operationName, status)), instances, visiting);
             }
         }
     }
@@ -153,16 +140,12 @@ public final class SchemaRegistry {
         if (pathItem.getParameters() == null || pathItem.getParameters().isEmpty()) {
             return;
         }
-        String base = appendPath("$.paths", path);
         for (int i = 0; i < pathItem.getParameters().size(); i++) {
             Parameter parameter = pathItem.getParameters().get(i);
             if (parameter == null) {
                 continue;
             }
-            SchemaParent parent = new SchemaParent.OperationParameterParent(
-                    null, null, path, parameter.getName(), parameter.getIn());
-            String parameterPath = appendIndex(appendPath(base, "parameters"), i);
-            collectParameterSchema(parameter, parent, parameterPath, instances, visiting);
+            collectParameterSchema(parameter, SchemaPath.forRoot(PathRoot.sharedPathParam(path, parameter.getName())), instances, visiting);
         }
     }
 
@@ -179,99 +162,77 @@ public final class SchemaRegistry {
     }
 
     private static void collectParameterSchema(Parameter parameter,
-                                               SchemaParent parent,
-                                               String basePath,
+                                               SchemaPath schemaPath,
                                                List<SchemaInstance> instances,
                                                IdentityHashMap<Schema<?>, Boolean> visiting) {
         if (parameter.getSchema() != null) {
-            String jsonPath = appendPath(basePath, "schema");
-            collect(parameter.getSchema(), parent, jsonPath, instances, visiting);
+            collect(parameter.getSchema(), schemaPath, instances, visiting);
         }
-        if (parameter.getContent() != null) {
-            Schema<?> contentSchema = resolveContentSchema(parameter.getContent());
-            if (contentSchema != null) {
-                String contentBase = appendPath(basePath, "content");
-                contentBase = appendPath(contentBase, "application/json");
-                String jsonPath = appendPath(contentBase, "schema");
-                collect(contentSchema, parent, jsonPath, instances, visiting);
-            }
-        }
+        // TODO Document compatibility
+//        if (parameter.getContent() != null) {
+//            Schema<?> contentSchema = resolveContentSchema(parameter.getContent());
+//            if (contentSchema != null) {
+//                String contentBase = appendPath(basePath, "content");
+//                contentBase = appendPath(contentBase, "application/json");
+//                String jsonPath = appendPath(contentBase, "schema");
+//                collect(contentSchema, parent, new SchemaPath(SchemaPath.PathRoot.REQUEST_PARAM_SCHEMA, List.of()), jsonPath, instances, visiting);
+//            }
+//        }
     }
 
     private static void collect(Schema<?> schema,
-                                SchemaParent parent,
-                                String jsonPath,
+                                SchemaPath schemaPath,
                                 List<SchemaInstance> instances,
                                 IdentityHashMap<Schema<?>, Boolean> visiting) {
         if (visiting.put(schema, Boolean.TRUE) != null) {
             throw new IllegalStateException("Detected schema cycle during registry collection.");
         }
 
-        SchemaInstance instance = new SchemaInstance(schema, parent);
+        SchemaInstance instance = new SchemaInstance(schema, schemaPath);
         instances.add(instance);
         if (schema.getAllOf() != null) {
-            for (int i = 0; i < schema.getAllOf().size(); i++) {
-                Schema<?> part = schema.getAllOf().get(i);
-                SchemaParent.SchemaRelation relation = new SchemaParent.SchemaRelation.AllOfRelation(i);
-                SchemaParent nestedParent = new SchemaParent.SchemaInstanceParent(instance, relation);
-                String partPath = appendIndex(appendPath(jsonPath, "allOf"), i);
-                collect(part, nestedParent, partPath, instances, visiting);
+            if (schema.getAllOf().size() == 1) {
+                Schema<?> part = schema.getAllOf().getFirst();
+                final var nestedPath = schemaPath.singletonVariant("allOf");
+                collect(part, nestedPath, instances, visiting);
+            } else {
+                for (int i = 0; i < schema.getAllOf().size(); i++) {
+                    Schema<?> part = schema.getAllOf().get(i);
+                    final var nestedPath = schemaPath.variant("allOf", i);
+                    collect(part, nestedPath, instances, visiting);
+                }
             }
         }
         if (schema.getOneOf() != null) {
-            List<Schema> parts = schema.getOneOf();
+            final var parts = schema.getOneOf();
             for (int i = 0; i < parts.size(); i++) {
                 Schema<?> part = parts.get(i);
-                SchemaParent.SchemaRelation relation = new SchemaParent.SchemaRelation.OneOfRelation(i);
-                SchemaParent nestedParent = new SchemaParent.SchemaInstanceParent(instance, relation);
-                String partPath = appendIndex(appendPath(jsonPath, "oneOf"), i);
-                collect(part, nestedParent, partPath, instances, visiting);
+                final var nestedPath = schemaPath.variant("oneOf", i);
+                collect(part, nestedPath, instances, visiting);
             }
         }
         if (schema.getAnyOf() != null) {
             for (int i = 0; i < schema.getAnyOf().size(); i++) {
                 Schema<?> part = schema.getAnyOf().get(i);
-                SchemaParent.SchemaRelation relation = new SchemaParent.SchemaRelation.AnyOfRelation(i);
-                SchemaParent nestedParent = new SchemaParent.SchemaInstanceParent(instance, relation);
-                String partPath = appendIndex(appendPath(jsonPath, "anyOf"), i);
-                collect(part, nestedParent, partPath, instances, visiting);
+                final var nestedPath = schemaPath.variant("anyOf", i);
+                collect(part, nestedPath, instances, visiting);
             }
         }
         if (schema.getProperties() != null) {
-            for (Map.Entry<String, Schema> entry : schema.getProperties().entrySet()) {
-                SchemaParent.SchemaRelation relation =
-                        new SchemaParent.SchemaRelation.PropertyRelation(entry.getKey());
-                SchemaParent nestedParent = new SchemaParent.SchemaInstanceParent(instance, relation);
-                String propertyPath = appendPath(appendPath(jsonPath, "properties"), entry.getKey());
-                collect(entry.getValue(), nestedParent, propertyPath, instances, visiting);
+            for (final var entry : schema.getProperties().entrySet()) {
+                final var nestedPath = schemaPath.property(entry.getKey());
+
+                collect(entry.getValue(), nestedPath, instances, visiting);
             }
         }
         if (schema.getItems() != null) {
-            SchemaParent.SchemaRelation relation = new SchemaParent.SchemaRelation.ListItemRelation();
-            SchemaParent nestedParent = new SchemaParent.SchemaInstanceParent(instance, relation);
-            String itemPath = appendPath(jsonPath, "items");
-            collect(schema.getItems(), nestedParent, itemPath, instances, visiting);
+            collect(schema.getItems(), schemaPath.items(), instances, visiting);
         }
         if (schema.getAdditionalProperties() instanceof Schema<?> additional) {
-            SchemaParent.SchemaRelation relation = new SchemaParent.SchemaRelation.AdditionalPropertiesRelation();
-            SchemaParent nestedParent = new SchemaParent.SchemaInstanceParent(instance, relation);
-            String additionalPath = appendPath(jsonPath, "additionalProperties");
-            collect(additional, nestedParent, additionalPath, instances, visiting);
+            collect(additional, schemaPath.additionalProperties(), instances, visiting);
         }
 
         visiting.remove(schema);
-    }
-
-    private static String appendPath(String base, String segment) {
-        if (segment.matches("[A-Za-z_][A-Za-z0-9_]*")) {
-            return base + "." + segment;
-        }
-        String escaped = segment.replace("\\", "\\\\").replace("'", "\\'");
-        return base + "['" + escaped + "']";
-    }
-
-    private static String appendIndex(String base, int index) {
-        return base + "[" + index + "]";
     }
 
     public SchemaInstance instanceForSchema(Schema<?> schema) {

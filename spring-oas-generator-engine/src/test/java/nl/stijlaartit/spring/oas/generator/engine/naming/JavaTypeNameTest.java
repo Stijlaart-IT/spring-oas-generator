@@ -1,24 +1,19 @@
 package nl.stijlaartit.spring.oas.generator.engine.naming;
 
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaParent;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.media.StringSchema;
+import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class JavaTypeNameTest {
 
     @Test
     void validateNameRejectsInvalidIdentifiers() {
-        assertThrows(IllegalStateException.class, () -> new JavaTypeName.Generated("_Pet"));
-        assertThrows(IllegalStateException.class, () -> new JavaTypeName.Generated("pet"));
-        assertThrows(IllegalStateException.class, () -> new JavaTypeName.Generated("Object"));
-        assertThrows(IllegalStateException.class, () -> new JavaTypeName.Generated("Pet-Name"));
+        assertThrows(IllegalArgumentException.class, () -> new JavaTypeName.Generated("_Pet"));
+        assertThrows(IllegalArgumentException.class, () -> new JavaTypeName.Generated("pet"));
+        assertThrows(IllegalArgumentException.class, () -> new JavaTypeName.Generated("Object"));
+        assertThrows(IllegalArgumentException.class, () -> new JavaTypeName.Generated("Pet-Name"));
     }
 
     @Test

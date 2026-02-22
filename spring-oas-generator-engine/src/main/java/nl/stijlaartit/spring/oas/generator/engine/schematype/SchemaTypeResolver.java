@@ -3,7 +3,7 @@ package nl.stijlaartit.spring.oas.generator.engine.schematype;
 import io.swagger.v3.oas.models.media.Schema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.SchemaRef;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
-import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
@@ -56,7 +56,7 @@ public final class SchemaTypeResolver {
             case NUMBER -> new DecimalSchemaType(group.instances());
             case STRING -> new StringSchemaType(group.instances());
             case ENUM -> {
-                JavaTypeName name = nameProvider.resolveUniqueName(group.instances(), "InlineEnum");
+                JavaTypeName name = nameProvider.resolveUniqueName(group.instances());
                 yield new EnumSchemaType(group.instances(), name);
             }
             case ARRAY -> {
@@ -64,7 +64,7 @@ public final class SchemaTypeResolver {
                 yield new ListSchemaType(group.instances(), itemInstance);
             }
             case OBJECT -> {
-                JavaTypeName name = nameProvider.resolveUniqueName(group.instances(), "InlineObject");
+                JavaTypeName name = nameProvider.resolveUniqueName(group.instances());
                 yield new ObjectSchemaType(group.instances(), name);
             }
             case REF -> new RefSchemaType(group.instances(), SchemaRef.parseFromRefValue(group.schema().get$ref()));
@@ -77,7 +77,7 @@ public final class SchemaTypeResolver {
                 yield new DeferredSchemaType(group.instances(), single);
             }
             case ALL_OF_MULTI -> {
-                JavaTypeName name = nameProvider.resolveUniqueName(group.instances(), "InlineComposite");
+                JavaTypeName name = nameProvider.resolveUniqueName(group.instances());
                 yield new CompositeSchemaType(name, group.instances());
             }
             case ONE_OF_EMPTY -> {
@@ -89,7 +89,7 @@ public final class SchemaTypeResolver {
                 yield new DeferredSchemaType(group.instances(), single);
             }
             case ONE_OF_MULTI -> {
-                JavaTypeName name = nameProvider.resolveUniqueName(group.instances(), "InlineUnion");
+                JavaTypeName name = nameProvider.resolveUniqueName(group.instances());
                 List<SchemaInstance> variants = resolveVariantInstances(group.schema());
                 yield  new UnionSchemaType(group.instances(), name, variants);
             }
@@ -98,7 +98,7 @@ public final class SchemaTypeResolver {
                 yield new EmptySchemaType(group.instances());
             }
             case ANY_OF_SINGLE -> {
-                final var single = group.schema().getOneOf().getFirst();
+                final var single = group.schema().getAnyOf().getFirst();
                 yield new DeferredSchemaType(group.instances(), single);
             }
             case ANY_OF_MULTI -> new EmptySchemaType(group.instances());

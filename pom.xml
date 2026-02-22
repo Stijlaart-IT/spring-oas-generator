@@ -17,6 +17,8 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>spring-oas-generator-file-domain</module>
+        <module>spring-oas-generator-serialization</module>
         <module>spring-oas-generator-engine</module>
         <module>spring-oas-generator-cli</module>
         <module>spring-oas-generator-maven-plugin</module>
@@ -46,6 +48,16 @@
             <dependency>
                 <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
                 <artifactId>spring-oas-generator-engine</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
+                <artifactId>spring-oas-generator-file-domain</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
+                <artifactId>spring-oas-generator-serialization</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

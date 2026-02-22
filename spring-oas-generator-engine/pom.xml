@@ -14,8 +14,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.palantir.javapoet</groupId>
-            <artifactId>javapoet</artifactId>
+            <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
+            <artifactId>spring-oas-generator-file-domain</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
+            <artifactId>spring-oas-generator-serialization</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jspecify</groupId>

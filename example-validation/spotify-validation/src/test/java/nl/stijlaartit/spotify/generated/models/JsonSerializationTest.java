@@ -127,14 +127,14 @@ class JsonSerializationTest {
         var original = new ArtistDiscographyAlbumObject(AlbumBaseAlbumType.values()[0], 1, List.of(),
                 sampleExternalUrls(), "value", "value", List.of(), "value", "value",
                 AlbumBaseReleaseDatePrecision.values()[0], null, AlbumBaseType.values()[0], "value",
-                List.of(), ArtistDiscographyAlbumObjectAlbumGroup.values()[0]);
+                List.of(), ArtistDiscographyAlbumObjectAllOf1AlbumGroup.values()[0]);
         assertSerializesSymmetrical(original, ArtistDiscographyAlbumObject.class);
     }
 
     @Test
-    void artistDiscographyAlbumObjectAlbumGroup() {
-        var original = ArtistDiscographyAlbumObjectAlbumGroup.values()[0];
-        assertSerializesSymmetrical(original, ArtistDiscographyAlbumObjectAlbumGroup.class);
+    void artistDiscographyAlbumObjectAllOf1AlbumGroup() {
+        var original = ArtistDiscographyAlbumObjectAllOf1AlbumGroup.values()[0];
+        assertSerializesSymmetrical(original, ArtistDiscographyAlbumObjectAllOf1AlbumGroup.class);
     }
 
     @Test

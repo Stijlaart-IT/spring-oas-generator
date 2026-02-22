@@ -74,21 +74,21 @@ class JsonSerializationTest {
     }
 
     @Test
-    void apiV2PokemonEncountersRetrieveResponseItem() {
-        var original = new ApiV2PokemonEncountersRetrieveResponseItem(null, null);
-        assertSerializesSymmetrical(original, ApiV2PokemonEncountersRetrieveResponseItem.class);
+    void apiV2PokemonEncountersRetrieve200ResponseItem() {
+        var original = new ApiV2PokemonEncountersRetrieve200ResponseItem(null, null);
+        assertSerializesSymmetrical(original, ApiV2PokemonEncountersRetrieve200ResponseItem.class);
     }
 
     @Test
-    void apiV2PokemonEncountersRetrieveResponseItemVersionDetails() {
-        var original = new ApiV2PokemonEncountersRetrieveResponseItemVersionDetailsItem(null, null, null);
-        assertSerializesSymmetrical(original, ApiV2PokemonEncountersRetrieveResponseItemVersionDetailsItem.class);
+    void apiV2PokemonEncountersRetrieve200ResponseItemVersionDetails() {
+        var original = new ApiV2PokemonEncountersRetrieve200ResponseItemVersionDetailsItem(null, null, null);
+        assertSerializesSymmetrical(original, ApiV2PokemonEncountersRetrieve200ResponseItemVersionDetailsItem.class);
     }
 
     @Test
-    void apiV2PokemonEncountersRetrieveResponseItemVersionDetailsEncounterDetails() {
-        var original = new ApiV2PokemonEncountersRetrieveResponseItemVersionDetailsItemEncounterDetailsItem(null, null, null, null, null);
-        assertSerializesSymmetrical(original, ApiV2PokemonEncountersRetrieveResponseItemVersionDetailsItemEncounterDetailsItem.class);
+    void apiV2PokemonEncountersRetrieve200ResponseItemVersionDetailsEncounterDetails() {
+        var original = new ApiV2PokemonEncountersRetrieve200ResponseItemVersionDetailsItemEncounterDetailsItem(null, null, null, null, null);
+        assertSerializesSymmetrical(original, ApiV2PokemonEncountersRetrieve200ResponseItemVersionDetailsItemEncounterDetailsItem.class);
     }
 
     @Test
@@ -115,9 +115,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, BerryFirmnessDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void berryFlavorDetail() {
@@ -131,11 +131,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, BerryFlavorDetailBerriesItem.class);
     }
 
-    
 
-    
 
-    
+
+
+
 
     @Test
     void characteristicDescription() {
@@ -161,7 +161,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ContestEffectDetail.class);
     }
 
-    
+
 
     @Test
     void contestEffectFlavorText() {
@@ -169,7 +169,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ContestEffectFlavorText.class);
     }
 
-    
+
 
     @Test
     void contestTypeDetail() {
@@ -183,7 +183,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ContestTypeName.class);
     }
 
-    
+
 
     @Test
     void eggGroupDetail() {
@@ -197,9 +197,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, EggGroupDetailPokemonSpeciesItem.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void encounterConditionDetail() {
@@ -207,9 +207,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, EncounterConditionDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void encounterConditionValueDetail() {
@@ -217,9 +217,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, EncounterConditionValueDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void encounterMethodDetail() {
@@ -227,9 +227,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, EncounterMethodDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void evolutionChainDetail() {
@@ -255,7 +255,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, EvolutionChainDetailChainEvolvesToItemEvolutionDetailsItem.class);
     }
 
-    
+
 
     @Test
     void evolutionTriggerDetail() {
@@ -263,9 +263,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, EvolutionTriggerDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void experience() {
@@ -285,7 +285,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, GenderDetailPokemonSpeciesDetailsItem.class);
     }
 
-    
+
 
     @Test
     void generationDetail() {
@@ -293,11 +293,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, GenerationDetail.class);
     }
 
-    
 
-    
 
-    
+
+
+
 
     @Test
     void growthRateDetail() {
@@ -305,9 +305,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, GrowthRateDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void itemAttributeDetail() {
@@ -315,9 +315,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemAttributeDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void itemCategoryDetail() {
@@ -325,9 +325,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemCategoryDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void itemDetail() {
@@ -359,7 +359,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemDetailSprites.class);
     }
 
-    
+
 
     @Test
     void itemFlavorText() {
@@ -373,9 +373,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemFlingEffectDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void itemGameIndex() {
@@ -383,7 +383,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemGameIndex.class);
     }
 
-    
+
 
     @Test
     void itemPocketDetail() {
@@ -391,11 +391,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, ItemPocketDetail.class);
     }
 
-    
 
-    
 
-    
+
+
+
 
     @Test
     void languageDetail() {
@@ -403,9 +403,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, LanguageDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void locationAreaDetail() {
@@ -443,9 +443,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, LocationAreaDetailPokemonEncountersItemVersionDetailsItemEncounterDetails.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void locationDetail() {
@@ -453,11 +453,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, LocationDetail.class);
     }
 
-    
 
-    
 
-    
+
+
+
 
     @Test
     void machineDetail() {
@@ -465,7 +465,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MachineDetail.class);
     }
 
-    
+
 
     @Test
     void moveBattleStyleDetail() {
@@ -473,9 +473,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveBattleStyleDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void moveChange() {
@@ -489,7 +489,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveChangeEffectEntriesItem.class);
     }
 
-    
+
 
     @Test
     void moveDamageClassDetail() {
@@ -497,9 +497,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveDamageClassDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void moveDetail() {
@@ -543,9 +543,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveDetailStatChangesItem.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void moveLearnMethodDetail() {
@@ -553,9 +553,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveLearnMethodDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void moveMeta() {
@@ -569,11 +569,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveMetaAilmentDetail.class);
     }
 
-    
 
-    
 
-    
+
+
+
 
     @Test
     void moveMetaCategoryDetail() {
@@ -581,13 +581,13 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveMetaCategoryDetail.class);
     }
 
-    
 
-    
 
-    
 
-    
+
+
+
+
 
     @Test
     void moveTargetDetail() {
@@ -595,9 +595,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, MoveTargetDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void natureBattleStylePreference() {
@@ -617,9 +617,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, NatureDetailPokeathlonStatChangesItem.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void paginatedAbilitySummaryList() {
@@ -921,9 +921,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PalParkAreaDetailPokemonEncountersItem.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void pokeathlonStatDetail() {
@@ -943,11 +943,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokeathlonStatDetailAffectingNaturesDecreaseItem.class);
     }
 
-    
 
-    
 
-    
+
+
+
 
     @Test
     void pokedexDetail() {
@@ -961,9 +961,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokedexDetailPokemonEntriesItem.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void pokemonColorDetail() {
@@ -971,9 +971,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokemonColorDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void pokemonDetail() {
@@ -1047,7 +1047,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokemonFormDetailFormNamesItem.class);
     }
 
-    
+
 
     @Test
     void pokemonGameIndex() {
@@ -1061,9 +1061,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokemonHabitatDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void pokemonShapeDetail() {
@@ -1077,9 +1077,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokemonShapeDetailAwesomeNamesItem.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void pokemonSpeciesDetail() {
@@ -1111,7 +1111,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokemonSpeciesFlavorText.class);
     }
 
-    
+
 
     @Test
     void pokemonStat() {
@@ -1119,7 +1119,7 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, PokemonStat.class);
     }
 
-    
+
 
     @Test
     void regionDetail() {
@@ -1127,9 +1127,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, RegionDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void statDetail() {
@@ -1137,9 +1137,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, StatDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void superContestEffectDetail() {
@@ -1147,9 +1147,9 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, SuperContestEffectDetail.class);
     }
 
-    
 
-    
+
+
 
     @Test
     void typeDetail() {
@@ -1175,11 +1175,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, TypeDetailPokemonItem.class);
     }
 
-    
 
-    
 
-    
+
+
+
 
     @Test
     void versionDetail() {
@@ -1193,10 +1193,10 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, VersionGroupDetail.class);
     }
 
-    
 
-    
 
-    
+
+
+
 
 }

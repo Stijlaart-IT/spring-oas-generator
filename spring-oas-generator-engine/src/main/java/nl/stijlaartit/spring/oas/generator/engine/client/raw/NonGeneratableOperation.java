@@ -4,7 +4,7 @@ import io.swagger.v3.oas.models.PathItem;
 import org.jspecify.annotations.Nullable;
 
 public record NonGeneratableOperation(String path,
-                                      PathItem.HttpMethod key,
+                                      PathItem.HttpMethod method,
                                       @Nullable String operationId,
-                                      String methodHeadNotSupported) implements RawOperation {
+                                      String message) implements RawOperation {
 }

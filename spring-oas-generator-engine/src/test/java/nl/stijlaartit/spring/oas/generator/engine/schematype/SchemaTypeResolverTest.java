@@ -10,7 +10,7 @@ import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
-import nl.stijlaartit.spring.oas.generator.engine.naming.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import org.junit.jupiter.api.Test;
@@ -135,7 +135,7 @@ class SchemaTypeResolverTest {
     void nameUniquenessAddsSuffix() {
         Map<String, Schema<?>> schemas = new LinkedHashMap<>();
         schemas.put("user", new ObjectSchema());
-        schemas.put("User", new ObjectSchema().addProperties("id", new StringSchema()));
+        schemas.put("User", new ObjectSchema().addProperty("id", new StringSchema()));
 
         SchemaTypes types = resolveMultiple(schemas);
         Map<JavaTypeName, GeneratedSchemaType> generated = types.generatedSchemaTypes().stream()

@@ -14,15 +14,21 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaParent;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
+import nl.stijlaartit.spring.oas.generator.engine.domain.HttpMethod;
+import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
+import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathRoot;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SchemaRegistryTest {
 
@@ -38,8 +44,10 @@ class SchemaRegistryTest {
 
         SchemaInstance instance = findBySchema(registry, user);
         assertNotNull(instance);
-        assertInstanceOf(SchemaParent.ComponentParent.class, instance.parent());
-        assertEquals("User", ((SchemaParent.ComponentParent) instance.parent()).componentName());
+
+        assertInstanceOf(PathRoot.ComponentSchema.class, instance.path().root());
+        PathRoot.ComponentSchema root = (PathRoot.ComponentSchema) instance.path().root();
+        assertEquals("User", root.name());
     }
 
     @Test
@@ -56,9 +64,9 @@ class SchemaRegistryTest {
 
         SchemaInstance addressInstance = findBySchema(registry, address);
         assertNotNull(addressInstance);
-        assertInstanceOf(SchemaParent.SchemaInstanceParent.class, addressInstance.parent());
-        SchemaInstance parent = ((SchemaParent.SchemaInstanceParent) addressInstance.parent()).parent();
-        assertSame(user, parent.schema());
+        assertInstanceOf(PathRoot.ComponentSchema.class, addressInstance.path().root());
+        PathRoot.ComponentSchema root = (PathRoot.ComponentSchema) addressInstance.path().root();
+        assertSame("User", root.name());
     }
 
     @Test
@@ -146,8 +154,9 @@ class SchemaRegistryTest {
 
         SchemaInstance instance = findBySchema(registry, requestSchema);
         assertNotNull(instance);
-        assertInstanceOf(SchemaParent.OperationRequestParent.class, instance.parent());
-        assertSame(operation, ((SchemaParent.OperationRequestParent) instance.parent()).operation());
+        assertInstanceOf(PathRoot.RequestBody.class, instance.path().root());
+        PathRoot.RequestBody root = (PathRoot.RequestBody) instance.path().root();
+        assertThat(root.operationName()).isEqualTo(OperationName.pathAndMethod("/users", HttpMethod.POST));
     }
 
     @Test
@@ -166,11 +175,10 @@ class SchemaRegistryTest {
 
         SchemaInstance instance = findBySchema(registry, responseSchema);
         assertNotNull(instance);
-        assertInstanceOf(SchemaParent.OperationResponseParent.class, instance.parent());
-        SchemaParent.OperationResponseParent parent =
-                (SchemaParent.OperationResponseParent) instance.parent();
-        assertSame(operation, parent.operation());
-        assertEquals("404", parent.statusCode());
+        assertInstanceOf(PathRoot.ResponseBody.class, instance.path().root());
+        PathRoot.ResponseBody root =
+                (PathRoot.ResponseBody) instance.path().root();
+        assertThat(OperationName.pathAndMethod("/users", HttpMethod.POST)).isEqualTo(root.operationName());
     }
 
     @Test

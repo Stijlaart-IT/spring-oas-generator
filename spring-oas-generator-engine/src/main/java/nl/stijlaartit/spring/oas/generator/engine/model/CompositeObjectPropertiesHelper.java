@@ -1,6 +1,7 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
 import io.swagger.v3.oas.models.media.Schema;
+import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.CompositeSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.ConcreteSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.EnumSchemaType;
@@ -19,7 +20,9 @@ import java.util.Objects;
 public class CompositeObjectPropertiesHelper {
 
     sealed interface Result permits Result.Mixed, Result.Props {
-        record Mixed(String error)implements Result {}
+        record Mixed(JavaTypeName javaTypeName, String error) implements Result {
+        }
+
         record Props(Map<String, Schema> properties) implements Result {
             public Props {
                 // TODO unit test
@@ -28,6 +31,7 @@ public class CompositeObjectPropertiesHelper {
         }
 
     }
+
     private final SchemaTypes schemaTypes;
 
     public CompositeObjectPropertiesHelper(SchemaTypes schemaTypes) {
@@ -37,13 +41,13 @@ public class CompositeObjectPropertiesHelper {
     public Result collectCompositeObjectProperties(ConcreteSchemaType concreteSchemaType) {
         return switch (concreteSchemaType) {
             case GeneratedSchemaType generatedSchemaType -> switch (generatedSchemaType) {
-                case ObjectSchemaType objectSchemaType -> new Result.Props(concreteSchemaType.schema().getProperties() != null ? concreteSchemaType.schema().getProperties() : new HashMap<>());
-                case EnumSchemaType enumSchemaType -> new Result.Mixed("Enum not supported in composite types");
-                case UnionSchemaType unionSchemaType -> new Result.Mixed("Union not supported in composite types");
+                case ObjectSchemaType objectSchemaType ->
+                        new Result.Props(concreteSchemaType.schema().getProperties() != null ? concreteSchemaType.schema().getProperties() : new HashMap<>());
+                case EnumSchemaType enumSchemaType -> new Result.Mixed(enumSchemaType.name(), "Enum not supported in composite types");
+                case UnionSchemaType unionSchemaType -> new Result.Mixed(unionSchemaType.name(), "Union not supported in composite types");
                 case CompositeSchemaType compositeSchemaType -> collectNestedProperties(compositeSchemaType.schema());
             };
-            // TODO, what about Map?
-            case JavaSchemaType ignored -> new Result.Mixed("Primitives not supporte");
+            case JavaSchemaType ignored -> new Result.Mixed(ignored.name(), "Primitives not supported");
         };
     }
 
