@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -50,34 +51,11 @@ class JsonSerializationTest {
         assertSerializesSymmetrical(original, QueueObject.class);
     }
 
-    @Test
-    void currentlyPlayingContextObjectItem() {
-        var original = sampleTrackObject();
-        assertSerializesSymmetrical(original, QueueObjectQueueItem.class);
-    }
-
-    @Test
-    void currentlyPlayingObjectItem() {
-        var original = sampleEpisodeObject();
-        assertSerializesSymmetrical(original, QueueObjectCurrentlyPlaying.class);
-    }
 
     @Test
     void playlistTrackObjectTrack() {
         var original = sampleTrackObject();
         assertSerializesSymmetrical(original, PlaylistTrackObjectTrack.class);
-    }
-
-    @Test
-    void queueObjectCurrentlyPlaying() {
-        var original = sampleEpisodeObject();
-        assertSerializesSymmetrical(original, QueueObjectCurrentlyPlaying.class);
-    }
-
-    @Test
-    void queueObjectQueue() {
-        var original = sampleTrackObject();
-        assertSerializesSymmetrical(original, QueueObjectQueueItem.class);
     }
 
     @Test
@@ -90,7 +68,7 @@ class JsonSerializationTest {
     void albumBase() {
         var original = new AlbumBase(AlbumBaseAlbumType.values()[0], 1, List.of(), sampleExternalUrls(),
                 "value", "value", List.of(), "value", "value",
-                AlbumBaseReleaseDatePrecision.values()[0], null, AlbumBaseType.values()[0], "value");
+                EpisodeBaseReleaseDatePrecision.values()[0], null, AlbumBaseType.values()[0], "value");
         assertSerializesSymmetrical(original, AlbumBase.class);
     }
 
@@ -110,7 +88,7 @@ class JsonSerializationTest {
     void albumObject() {
         var original = new AlbumObject(AlbumBaseAlbumType.values()[0], 1, List.of(), sampleExternalUrls(),
                 "value", "value", List.of(), "value", "value",
-                AlbumBaseReleaseDatePrecision.values()[0], null, AlbumBaseType.values()[0], "value",
+                EpisodeBaseReleaseDatePrecision.values()[0], null, AlbumBaseType.values()[0], "value",
                 List.of(), samplePagingSimplifiedTrackObject(), List.of(), sampleExternalIds(), List.of(),
                 "value", 1);
         assertSerializesSymmetrical(original, AlbumObject.class);
@@ -126,7 +104,7 @@ class JsonSerializationTest {
     void artistDiscographyAlbumObject() {
         var original = new ArtistDiscographyAlbumObject(AlbumBaseAlbumType.values()[0], 1, List.of(),
                 sampleExternalUrls(), "value", "value", List.of(), "value", "value",
-                AlbumBaseReleaseDatePrecision.values()[0], null, AlbumBaseType.values()[0], "value",
+                EpisodeBaseReleaseDatePrecision.values()[0], null, AlbumBaseType.values()[0], "value",
                 List.of(), ArtistDiscographyAlbumObjectAllOf1AlbumGroup.values()[0]);
         assertSerializesSymmetrical(original, ArtistDiscographyAlbumObject.class);
     }
@@ -151,7 +129,8 @@ class JsonSerializationTest {
 
     @Test
     void audioFeaturesObject() {
-        var original = new AudioFeaturesObject(1.0f, "value", 1.0f, 1, 1.0f, "value", 1.0f, 1, 1.0f, 1.0f, 1, 1.0f, 1.0f, 1, "value", null, "value", 1.0f);
+        var value = BigDecimal.valueOf(1.0);
+        var original = new AudioFeaturesObject(value, "value", value, 1, value, "value", value, 1, value, value, 1, value, value, 1, "value", null, "value", value);
         assertSerializesSymmetrical(original, AudioFeaturesObject.class);
     }
 
@@ -235,7 +214,6 @@ class JsonSerializationTest {
         var original = new CopyrightObject("value", "value");
         assertSerializesSymmetrical(original, CopyrightObject.class);
     }
-
 
 
     @Test
@@ -344,12 +322,6 @@ class JsonSerializationTest {
     }
 
     @Test
-    void followArtistsUsersRequest() {
-        var original = new FollowArtistsUsersRequest(List.of(), Map.of("additional", "value"));
-        assertSerializesSymmetrical(original, FollowArtistsUsersRequest.class);
-    }
-
-    @Test
     void followPlaylistRequest() {
         var original = new FollowPlaylistRequest(true, Map.of("additional", "value"));
         assertSerializesSymmetrical(original, FollowPlaylistRequest.class);
@@ -393,7 +365,7 @@ class JsonSerializationTest {
 
     @Test
     void pagingObject() {
-        var original = new PagingObject("value", 1, "value", 1, "value", 1);
+        var original = new PagingObject("value", 1, "value", 1, "value", 1, Map.of());
         assertSerializesSymmetrical(original, PagingObject.class);
     }
 
@@ -483,7 +455,7 @@ class JsonSerializationTest {
 
     @Test
     void playHistoryObject() {
-        var original = new PlayHistoryObject(null, OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC), null);
+        var original = new PlayHistoryObject(null, "played_at", null);
         assertSerializesSymmetrical(original, PlayHistoryObject.class);
     }
 
@@ -502,7 +474,7 @@ class JsonSerializationTest {
 
     @Test
     void playlistTrackObject() {
-        var original = new PlaylistTrackObject(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC), null, true, null);
+        var original = new PlaylistTrackObject("added at", null, true, null);
         assertSerializesSymmetrical(original, PlaylistTrackObject.class);
     }
 
@@ -550,23 +522,11 @@ class JsonSerializationTest {
     }
 
 
-
-    @Test
-    void removeEpisodesUserRequest() {
-        var original = new RemoveEpisodesUserRequest(List.of(), Map.of("additional", "value"));
-        assertSerializesSymmetrical(original, RemoveEpisodesUserRequest.class);
-    }
-
-
-
     @Test
     void removeTracksPlaylistRequest() {
         var original = new RemoveTracksPlaylistRequest(List.of(), "value");
         assertSerializesSymmetrical(original, RemoveTracksPlaylistRequest.class);
     }
-
-
-
 
 
     @Test
@@ -606,37 +566,35 @@ class JsonSerializationTest {
     }
 
 
-
     @Test
     void savedAlbumObject() {
-        var original = new SavedAlbumObject(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC), null);
+        var original = new SavedAlbumObject("addedAt", null);
         assertSerializesSymmetrical(original, SavedAlbumObject.class);
     }
 
     @Test
     void savedAudiobookObject() {
-        var original = new SavedAudiobookObject(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC), null);
+        var original = new SavedAudiobookObject("addedAt", null);
         assertSerializesSymmetrical(original, SavedAudiobookObject.class);
     }
 
     @Test
     void savedEpisodeObject() {
-        var original = new SavedEpisodeObject(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC), null);
+        var original = new SavedEpisodeObject("addedAt", null);
         assertSerializesSymmetrical(original, SavedEpisodeObject.class);
     }
 
     @Test
     void savedShowObject() {
-        var original = new SavedShowObject(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC), null);
+        var original = new SavedShowObject("addedAt", null);
         assertSerializesSymmetrical(original, SavedShowObject.class);
     }
 
     @Test
     void savedTrackObject() {
-        var original = new SavedTrackObject(OffsetDateTime.of(2024, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC), null);
+        var original = new SavedTrackObject("addedAt", null);
         assertSerializesSymmetrical(original, SavedTrackObject.class);
     }
-
 
 
     @Test
@@ -644,7 +602,6 @@ class JsonSerializationTest {
         var original = SectionObjectMode.values()[0];
         assertSerializesSymmetrical(original, SectionObjectMode.class);
     }
-
 
 
     @Test
@@ -673,7 +630,7 @@ class JsonSerializationTest {
     void simplifiedAlbumObject() {
         var original = new SimplifiedAlbumObject(AlbumBaseAlbumType.values()[0], 1, List.of(),
                 sampleExternalUrls(), "value", "value", List.of(), "value", "value",
-                AlbumBaseReleaseDatePrecision.values()[0], null, AlbumBaseType.values()[0], "value",
+                EpisodeBaseReleaseDatePrecision.values()[0], null, AlbumBaseType.values()[0], "value",
                 List.of());
         assertSerializesSymmetrical(original, SimplifiedAlbumObject.class);
     }
@@ -704,7 +661,6 @@ class JsonSerializationTest {
     }
 
 
-
     @Test
     void trackObjectType() {
         var original = TrackObjectType.values()[0];
@@ -721,12 +677,6 @@ class JsonSerializationTest {
     void transferAUsersPlaybackRequest() {
         var original = new TransferAUsersPlaybackRequest(List.of(), true, Map.of("additional", "value"));
         assertSerializesSymmetrical(original, TransferAUsersPlaybackRequest.class);
-    }
-
-    @Test
-    void unfollowArtistsUsersRequest() {
-        var original = new UnfollowArtistsUsersRequest(List.of(), Map.of("additional", "value"));
-        assertSerializesSymmetrical(original, UnfollowArtistsUsersRequest.class);
     }
 
     private TrackObject sampleTrackObject() {

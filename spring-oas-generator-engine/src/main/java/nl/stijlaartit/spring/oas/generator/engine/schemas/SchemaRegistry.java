@@ -1,18 +1,19 @@
 package nl.stijlaartit.spring.oas.generator.engine.schemas;
 
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.MediaType;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.parameters.Parameter;
-import io.swagger.v3.oas.models.responses.ApiResponse;
-import nl.stijlaartit.spring.oas.generator.engine.domain.HttpMethod;
+import nl.stijlaartit.spring.oas.generator.engine.Oas30ToSimpleSchemaMapper;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
 import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathRoot;
 import nl.stijlaartit.spring.oas.generator.engine.domain.path.SchemaPath;
-import org.jspecify.annotations.Nullable;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.CompositeSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ObjectProperty;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleArraySchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleObjectSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleParam;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOperation;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.UnionSchema;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -30,212 +31,131 @@ public final class SchemaRegistry {
         return instances;
     }
 
-    /**
-     * Collects schemas from components, parameters, request bodies, and response bodies.
-     *
-     * <p>Note: schemas should not be cyclic at this stage (directly or indirectly), since
-     * cycles should only be introduced through $ref. References are not resolved during
-     * collection. A cycle detected by object reference indicates an invalid in-memory model
-     * and will raise an error.
-     */
-    public static SchemaRegistry resolve(OpenAPI openAPI) {
-        Objects.requireNonNull(openAPI);
+    public static SchemaRegistry resolve(SimplifiedOas simplifiedOas) {
+        Objects.requireNonNull(simplifiedOas);
         List<SchemaInstance> instances = new ArrayList<>();
-        IdentityHashMap<Schema<?>, Boolean> visiting = new IdentityHashMap<>();
+        IdentityHashMap<SimpleSchema, Boolean> visiting = new IdentityHashMap<>();
 
-        if (openAPI.getComponents() != null && openAPI.getComponents().getSchemas() != null) {
-            for (var entry : openAPI.getComponents().getSchemas().entrySet()) {
-                Schema<?> schema = entry.getValue();
-                if (schema == null) {
-                    continue;
-                }
-
-                SchemaPath schemaPath = SchemaPath.forRoot(PathRoot.componentSchema(entry.getKey()));
-                collect(schema, schemaPath, instances, visiting);
+        for (var entry : simplifiedOas.componentSchema().entrySet()) {
+            SimpleSchema simpleSchema = entry.getValue();
+            if (simpleSchema == null) {
+                continue;
             }
+            SchemaPath schemaPath = SchemaPath.forRoot(PathRoot.componentSchema(entry.getKey()));
+            collect(simpleSchema, schemaPath, instances, visiting);
         }
 
-        if (openAPI.getComponents() != null && openAPI.getComponents().getParameters() != null) {
-            for (var entry : openAPI.getComponents().getParameters().entrySet()) {
-                Parameter parameter = entry.getValue();
-                if (parameter == null) {
-                    continue;
-                }
-                collectParameterSchema(parameter, SchemaPath.forRoot(PathRoot.componentParameter(entry.getKey())), instances, visiting);
+        for (var entry : simplifiedOas.componentParameters().entrySet()) {
+            SimpleSchema parameterSchema = entry.getValue();
+            if (parameterSchema == null) {
+                continue;
             }
+            SchemaPath schemaPath = SchemaPath.forRoot(PathRoot.componentParameter(entry.getKey()));
+            collect(parameterSchema, schemaPath, instances, visiting);
         }
 
-        if (openAPI.getPaths() != null) {
-            for (var pathEntry : openAPI.getPaths().entrySet()) {
-                String path = pathEntry.getKey();
-                PathItem pathItem = pathEntry.getValue();
-                if (pathItem == null) {
+        for (SimplifiedOperation operation : simplifiedOas.operations()) {
+            collectOperation(operation, instances, visiting);
+        }
+        for (var pathParamsEntry : simplifiedOas.pathParams().entrySet()) {
+            String path = pathParamsEntry.getKey();
+            List<SimpleParam> params = pathParamsEntry.getValue();
+            if (params == null || params.isEmpty()) {
+                continue;
+            }
+            for (SimpleParam param : params) {
+                if (param == null || param.schema() == null) {
                     continue;
                 }
-                collectPathItemParameters(path, pathItem, instances, visiting);
-                collectOperation(path, HttpMethod.GET, pathItem.getGet(), instances, visiting);
-                collectOperation(path, HttpMethod.POST, pathItem.getPost(), instances, visiting);
-                collectOperation(path, HttpMethod.PUT, pathItem.getPut(), instances, visiting);
-                collectOperation(path, HttpMethod.DELETE, pathItem.getDelete(), instances, visiting);
-                collectOperation(path, HttpMethod.PATCH, pathItem.getPatch(), instances, visiting);
+                collect(param.schema(), SchemaPath.forRoot(PathRoot.sharedPathParam(path, param.name())), instances, visiting);
             }
         }
 
         return new SchemaRegistry(instances);
     }
 
-    private static void collectOperation(String path,
-                                         HttpMethod method,
-                                         @Nullable
-                                         Operation operation,
+    private static void collectOperation(SimplifiedOperation operation,
                                          List<SchemaInstance> instances,
-                                         IdentityHashMap<Schema<?>, Boolean> visiting) {
-        if (operation == null) {
-            return;
-        }
-
-        String operationId = operation.getOperationId();
+                                         IdentityHashMap<SimpleSchema, Boolean> visiting) {
+        final String operationId = operation.operationId();
         final OperationName operationName = (operationId == null || operationId.isBlank()) ?
-                OperationName.pathAndMethod(path, method)
+                OperationName.pathAndMethod(operation.path(), operation.method())
                 : OperationName.id(operationId);
 
-        if (operation.getParameters() != null && !operation.getParameters().isEmpty()) {
-            for (int i = 0; i < operation.getParameters().size(); i++) {
-                Parameter parameter = operation.getParameters().get(i);
-                if (parameter == null) {
+        if (operation.params() != null) {
+            for (SimpleParam param : operation.params()) {
+                if (param == null || param.schema() == null) {
                     continue;
                 }
-                String name = parameter.getName() != null ? parameter.getName() : "Index" + (i + 1);
-                collectParameterSchema(parameter, SchemaPath.forRoot(PathRoot.requestParam(operationName, name)), instances, visiting);
+                collect(param.schema(), SchemaPath.forRoot(PathRoot.requestParam(operationName, param.name())), instances, visiting);
             }
         }
 
-        if (operation.getRequestBody() != null && operation.getRequestBody().getContent() != null) {
-            Schema<?> requestSchema = resolveContentSchema(operation.getRequestBody().getContent());
-            if (requestSchema != null) {
-                collect(requestSchema, SchemaPath.forRoot(PathRoot.requestBody(operationName)), instances, visiting);
-            }
+        if (operation.requestBody() != null) {
+            collect(operation.requestBody(), SchemaPath.forRoot(PathRoot.requestBody(operationName)), instances, visiting);
         }
 
-        if (operation.getResponses() != null) {
-            for (var entry : operation.getResponses().entrySet()) {
-                String status = entry.getKey();
-                ApiResponse response = entry.getValue();
-                if (response == null || response.getContent() == null) {
-                    continue;
-                }
-                Schema<?> responseSchema = resolveContentSchema(response.getContent());
-                if (responseSchema == null) {
-                    continue;
-                }
-                collect(responseSchema, SchemaPath.forRoot(PathRoot.responseBody(operationName, status)), instances, visiting);
-            }
-        }
-    }
-
-    private static void collectPathItemParameters(String path,
-                                                  PathItem pathItem,
-                                                  List<SchemaInstance> instances,
-                                                  IdentityHashMap<Schema<?>, Boolean> visiting) {
-        if (pathItem.getParameters() == null || pathItem.getParameters().isEmpty()) {
+        if (operation.responses() == null || operation.responses().isEmpty()) {
             return;
         }
-        for (int i = 0; i < pathItem.getParameters().size(); i++) {
-            Parameter parameter = pathItem.getParameters().get(i);
-            if (parameter == null) {
+        for (var response : operation.responses()) {
+            if (response == null || response.schema() == null) {
                 continue;
             }
-            collectParameterSchema(parameter, SchemaPath.forRoot(PathRoot.sharedPathParam(path, parameter.getName())), instances, visiting);
+            collect(response.schema(), SchemaPath.forRoot(PathRoot.responseBody(operationName, response.status())), instances, visiting);
         }
     }
 
-    @Nullable
-    private static Schema<?> resolveContentSchema(@Nullable Content content) {
-        if (content == null || content.isEmpty()) {
-            return null;
-        }
-        MediaType mediaType = content.get("application/json");
-        if (mediaType == null) {
-            mediaType = content.values().iterator().next();
-        }
-        return mediaType != null ? mediaType.getSchema() : null;
-    }
-
-    private static void collectParameterSchema(Parameter parameter,
-                                               SchemaPath schemaPath,
-                                               List<SchemaInstance> instances,
-                                               IdentityHashMap<Schema<?>, Boolean> visiting) {
-        if (parameter.getSchema() != null) {
-            collect(parameter.getSchema(), schemaPath, instances, visiting);
-        }
-        // TODO Document compatibility
-//        if (parameter.getContent() != null) {
-//            Schema<?> contentSchema = resolveContentSchema(parameter.getContent());
-//            if (contentSchema != null) {
-//                String contentBase = appendPath(basePath, "content");
-//                contentBase = appendPath(contentBase, "application/json");
-//                String jsonPath = appendPath(contentBase, "schema");
-//                collect(contentSchema, parent, new SchemaPath(SchemaPath.PathRoot.REQUEST_PARAM_SCHEMA, List.of()), jsonPath, instances, visiting);
-//            }
-//        }
-    }
-
-    private static void collect(Schema<?> schema,
+    private static void collect(SimpleSchema schema,
                                 SchemaPath schemaPath,
                                 List<SchemaInstance> instances,
-                                IdentityHashMap<Schema<?>, Boolean> visiting) {
+                                IdentityHashMap<SimpleSchema, Boolean> visiting) {
         if (visiting.put(schema, Boolean.TRUE) != null) {
             throw new IllegalStateException("Detected schema cycle during registry collection.");
         }
 
-        SchemaInstance instance = new SchemaInstance(schema, schemaPath);
-        instances.add(instance);
-        if (schema.getAllOf() != null) {
-            if (schema.getAllOf().size() == 1) {
-                Schema<?> part = schema.getAllOf().getFirst();
-                final var nestedPath = schemaPath.singletonVariant("allOf");
-                collect(part, nestedPath, instances, visiting);
-            } else {
-                for (int i = 0; i < schema.getAllOf().size(); i++) {
-                    Schema<?> part = schema.getAllOf().get(i);
-                    final var nestedPath = schemaPath.variant("allOf", i);
-                    collect(part, nestedPath, instances, visiting);
+        instances.add(new SchemaInstance(schema, schemaPath));
+
+        switch (schema) {
+            case CompositeSchema compositeSchema -> {
+                if (compositeSchema.components() != null) {
+                    if (compositeSchema.components().size() == 1) {
+                        collect(compositeSchema.components().getFirst(), schemaPath.singletonVariant("allOf"), instances, visiting);
+                    } else {
+                        for (int i = 0; i < compositeSchema.components().size(); i++) {
+                            collect(compositeSchema.components().get(i), schemaPath.variant("allOf", i), instances, visiting);
+                        }
+                    }
                 }
             }
-        }
-        if (schema.getOneOf() != null) {
-            final var parts = schema.getOneOf();
-            for (int i = 0; i < parts.size(); i++) {
-                Schema<?> part = parts.get(i);
-                final var nestedPath = schemaPath.variant("oneOf", i);
-                collect(part, nestedPath, instances, visiting);
+            case UnionSchema unionSchema -> {
+                if (unionSchema.variants() != null) {
+                    for (int i = 0; i < unionSchema.variants().size(); i++) {
+                        collect(unionSchema.variants().get(i), schemaPath.variant("oneOf", i), instances, visiting);
+                    }
+                }
             }
-        }
-        if (schema.getAnyOf() != null) {
-            for (int i = 0; i < schema.getAnyOf().size(); i++) {
-                Schema<?> part = schema.getAnyOf().get(i);
-                final var nestedPath = schemaPath.variant("anyOf", i);
-                collect(part, nestedPath, instances, visiting);
+            case SimpleArraySchema arraySchema -> collect(arraySchema.itemSchema(), schemaPath.items(), instances, visiting);
+            case SimpleObjectSchema objectSchema -> {
+                for (int i = 0; i < objectSchema.properties().size(); i++) {
+                    ObjectProperty property = objectSchema.properties().get(i);
+                    if (property == null || property.schema() == null) {
+                        continue;
+                    }
+                    collect(property.schema(), schemaPath.property(property.propertyName()), instances, visiting);
+                }
+                objectSchema.additionalProperties().ifPresent(simpleSchema ->
+                        collect(simpleSchema, schemaPath.additionalProperties(), instances, visiting)
+                );
             }
-        }
-        if (schema.getProperties() != null) {
-            for (final var entry : schema.getProperties().entrySet()) {
-                final var nestedPath = schemaPath.property(entry.getKey());
-
-                collect(entry.getValue(), nestedPath, instances, visiting);
+            default -> {
             }
-        }
-        if (schema.getItems() != null) {
-            collect(schema.getItems(), schemaPath.items(), instances, visiting);
-        }
-        if (schema.getAdditionalProperties() instanceof Schema<?> additional) {
-            collect(additional, schemaPath.additionalProperties(), instances, visiting);
         }
 
         visiting.remove(schema);
     }
 
-    public SchemaInstance instanceForSchema(Schema<?> schema) {
+    public SchemaInstance instanceForSchema(SimpleSchema schema) {
         return instances.stream()
                 .filter(i -> i.schema().equals(schema))
                 .findFirst()

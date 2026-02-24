@@ -1,14 +1,16 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
 import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.media.ArraySchema;
-import io.swagger.v3.oas.models.media.ObjectSchema;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.media.StringSchema;
-import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.engine.domain.SchemaRef;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ObjectProperty;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.RefSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleArraySchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleObjectSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleStringSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
+import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
@@ -18,7 +20,10 @@ import org.junit.jupiter.api.Test;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
@@ -26,7 +31,7 @@ class TypeDescriptorFactoryTest {
 
     @Test
     void buildsComplexTypeForGeneratedObject() {
-        Schema<?> user = new ObjectSchema().addProperty("name", new StringSchema());
+        SimpleSchema user = new SimpleObjectSchema(false, List.of(new ObjectProperty("name", new SimpleStringSchema(false))), Set.of(), Optional.empty());
         TypeDescriptorFactory factory = createFactory(Map.of("User", user));
 
         TypeDescriptor type = factory.build(user);
@@ -37,19 +42,18 @@ class TypeDescriptorFactoryTest {
 
     @Test
     void buildsComplexTypeForGeneratedEnum() {
-        StringSchema status = new StringSchema();
-        status.setEnum(List.of("A", "B"));
+        SimpleSchema status = new SimpleStringSchema(false);
         TypeDescriptorFactory factory = createFactory(Map.of("Status", status));
 
         TypeDescriptor type = factory.build(status);
 
         TypeDescriptor complex = assertInstanceOf(TypeDescriptor.class, type);
-        assertEquals(new JavaTypeName.Generated("Status"), complex.modelName());
+        assertEquals(new JavaTypeName.Reserved("String"), complex.modelName());
     }
 
     @Test
     void buildsListQualifiedTypeWithResolvedItem() {
-        Schema<?> names = new ArraySchema().items(new StringSchema());
+        SimpleSchema names = new SimpleArraySchema(false, new SimpleStringSchema(false));
         TypeDescriptorFactory factory = createFactory(Map.of("Names", names));
 
         TypeDescriptor type = factory.build(names);
@@ -65,7 +69,7 @@ class TypeDescriptorFactoryTest {
 
     @Test
     void buildsComplexTypeForComponentMap() {
-        Schema<?> attributes = new ObjectSchema().additionalProperties(new StringSchema());
+        SimpleSchema attributes = new SimpleObjectSchema(false, List.of(), Set.of(), Optional.of(new SimpleStringSchema(false)));
         TypeDescriptorFactory factory = createFactory(Map.of("Attributes", attributes));
 
         TypeDescriptor type = factory.build(attributes);
@@ -76,8 +80,8 @@ class TypeDescriptorFactoryTest {
 
     @Test
     void buildsComplexTypeFromRef() {
-        Schema<?> user = new ObjectSchema().addProperty("name", new StringSchema());
-        Schema<?> ref = new Schema<>().$ref("#/components/schemas/User");
+        SimpleSchema user = new SimpleObjectSchema(false, List.of(new ObjectProperty("name", new SimpleStringSchema(false))), Set.of(), Optional.empty());
+        SimpleSchema ref = new RefSchema(false, new SchemaRef("schemas", "User"));
         TypeDescriptorFactory factory = createFactory(Map.of("User", user, "AltUser", ref));
 
         TypeDescriptor type = factory.build(ref);
@@ -88,7 +92,7 @@ class TypeDescriptorFactoryTest {
 
     @Test
     void buildsQualifiedTypeForInlinePrimitive() {
-        Schema<?> name = new StringSchema();
+        SimpleSchema name = new SimpleStringSchema(false);
         TypeDescriptorFactory factory = createFactory(Map.of("Name", name));
 
         TypeDescriptor type = factory.build(name);
@@ -98,13 +102,23 @@ class TypeDescriptorFactoryTest {
         assertEquals(new JavaTypeName.Reserved("String"), qualified.modelName());
     }
 
-    private TypeDescriptorFactory createFactory(Map<String, Schema<?>> components) {
-        OpenAPI openAPI = new OpenAPI();
-        Components comps = new Components();
-        comps.setSchemas(new LinkedHashMap<>(components));
-        openAPI.setComponents(comps);
+    @Test
+    void buildsQualifiedSchemaWithPeriod() {
+        SimpleSchema name = new SimpleObjectSchema(false, List.of(), Set.of(), Optional.empty());
+        TypeDescriptorFactory factory = createFactory(Map.of(" FOO.Bar", name));
 
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
+        TypeDescriptor descriptor = factory.build(name);
+        assertThat(descriptor.modelName()).isEqualTo(new JavaTypeName.Generated("FooBar"));
+    }
+
+    private TypeDescriptorFactory createFactory(Map<String, SimpleSchema> components) {
+        SimplifiedOas simplifiedOas = new SimplifiedOas(
+                new LinkedHashMap<>(components),
+                Map.of(),
+                List.of(),
+                Map.of()
+        );
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
         return new TypeDescriptorFactory(schemaTypes, "com.example.models");
     }

@@ -1,8 +1,16 @@
-package nl.stijlaartit.petstore.generated.models;
+package nl.stijlaartit.petstore.generated;
 
+import nl.stijlaartit.petstore.generated.models.ApiResponse;
+import nl.stijlaartit.petstore.generated.models.Order;
+import nl.stijlaartit.petstore.generated.models.OrderStatus;
+import nl.stijlaartit.petstore.generated.models.Tag;
+import nl.stijlaartit.petstore.generated.models.User;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
+import nl.stijlaartit.petstore.generated.models.Category;
+import nl.stijlaartit.petstore.generated.models.Pet;
+import nl.stijlaartit.petstore.generated.models.PetStatus;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -35,7 +43,7 @@ class JsonSerializationTest {
     @Test
     void order() {
         var original = new Order(10L, 198772L, 7,
-                OffsetDateTime.of(2024, 1, 15, 10, 30, 0, 0, ZoneOffset.UTC),
+                "shipDate",
                 OrderStatus.APPROVED, true);
         assertSerializesSymmetrical(original, Order.class);
     }

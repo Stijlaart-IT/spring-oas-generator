@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
@@ -35,7 +34,7 @@ class JsonSerializationTest {
     @Test
     void order() {
         var original = new Order(10L, 198772L, 7,
-                OffsetDateTime.of(2024, 1, 15, 10, 30, 0, 0, ZoneOffset.UTC),
+                "shipDate",
                 OrderStatus.APPROVED, true);
         assertSerializesSymmetrical(original, Order.class);
     }

@@ -2,6 +2,7 @@ package nl.stijlaartit.spring.oas.generator.engine.domain.path;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public record SchemaPath(PathRoot root, List<PathSegment> segments) {
 
@@ -38,5 +39,31 @@ public record SchemaPath(PathRoot root, List<PathSegment> segments) {
         final var segments = new ArrayList<>(this.segments);
         segments.add(PathSegment.additionalProperties());
         return new SchemaPath(root, segments);
+    }
+
+    public Optional<NamedPathRoot> isComponentRootPath() {
+        return segments.isEmpty() ? isComponentPath() : Optional.empty();
+    }
+
+    public Optional<NamedPathRoot> isComponentPath() {
+        return switch (root) {
+            case PathRoot.ComponentParameter ignored -> Optional.of(ignored);
+            case PathRoot.ComponentSchema ignored -> Optional.of(ignored);
+            case PathRoot.RequestBody ignored -> Optional.empty();
+            case PathRoot.RequestParam ignored -> Optional.empty();
+            case PathRoot.ResponseBody ignored -> Optional.empty();
+            case PathRoot.SharedPathParam ignored -> Optional.empty();
+        };
+    }
+
+    public boolean isOperationPath() {
+        return switch (root) {
+            case PathRoot.ComponentSchema ignored -> false;
+            case PathRoot.RequestBody ignored -> true;
+            case PathRoot.RequestParam ignored -> true;
+            case PathRoot.ResponseBody ignored -> true;
+            case PathRoot.ComponentParameter ignored -> false;
+            case PathRoot.SharedPathParam ignored -> false;
+        };
     }
 }

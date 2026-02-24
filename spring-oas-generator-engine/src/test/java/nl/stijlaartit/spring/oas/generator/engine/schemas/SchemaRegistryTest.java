@@ -1,32 +1,32 @@
 package nl.stijlaartit.spring.oas.generator.engine.schemas;
 
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.Paths;
-import io.swagger.v3.oas.models.media.ArraySchema;
-import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.MediaType;
-import io.swagger.v3.oas.models.media.ObjectSchema;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.media.StringSchema;
-import io.swagger.v3.oas.models.parameters.RequestBody;
-import io.swagger.v3.oas.models.responses.ApiResponse;
-import io.swagger.v3.oas.models.responses.ApiResponses;
 import nl.stijlaartit.spring.oas.generator.engine.domain.HttpMethod;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
 import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathRoot;
+import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathSegment;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.CompositeSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ObjectProperty;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ParamIn;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleAnySchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleParam;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleReponse;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleStringSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOperation;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.UnionSchema;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -34,206 +34,226 @@ class SchemaRegistryTest {
 
     @Test
     void collectsComponentRootSchema() {
-        Schema<?> user = new ObjectSchema()
-                .addProperty("name", new StringSchema());
+        SimplifiedOas simplifiedOas = new SimplifiedOas(
+                Map.of("User", new SimpleStringSchema(false)),
+                Map.of(),
+                List.of(),
+                Map.of()
+        );
 
-        OpenAPI openAPI = new OpenAPI()
-                .components(new Components().schemas(Map.of("User", user)));
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-
-        SchemaInstance instance = findBySchema(registry, user);
+        SchemaInstance instance = findByRootType(registry, PathRoot.ComponentSchema.class);
         assertNotNull(instance);
-
-        assertInstanceOf(PathRoot.ComponentSchema.class, instance.path().root());
         PathRoot.ComponentSchema root = (PathRoot.ComponentSchema) instance.path().root();
         assertEquals("User", root.name());
     }
 
     @Test
     void collectsNestedComponentSchemas() {
-        Schema<?> address = new ObjectSchema()
-                .addProperty("city", new StringSchema());
-        Schema<?> user = new ObjectSchema()
-                .addProperty("address", address);
+        SimpleSchema nested = new SimpleAnySchema(false);
+        SimpleSchema rootSchema = objectSchema(new ObjectProperty("nested", nested));
+        SimplifiedOas simplifiedOas = new SimplifiedOas(
+                Map.of("User", rootSchema),
+                Map.of(),
+                List.of(),
+                Map.of()
+        );
 
-        OpenAPI openAPI = new OpenAPI()
-                .components(new Components().schemas(Map.of("User", user)));
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-
-        SchemaInstance addressInstance = findBySchema(registry, address);
-        assertNotNull(addressInstance);
-        assertInstanceOf(PathRoot.ComponentSchema.class, addressInstance.path().root());
-        PathRoot.ComponentSchema root = (PathRoot.ComponentSchema) addressInstance.path().root();
-        assertSame("User", root.name());
+        SchemaInstance nestedInstance = registry.getInstances().stream()
+                .filter(instance -> instance.path().segments().stream().anyMatch(PathSegment.Property.class::isInstance))
+                .findFirst()
+                .orElseThrow();
+        assertInstanceOf(PathRoot.ComponentSchema.class, nestedInstance.path().root());
+        PathRoot.ComponentSchema root = (PathRoot.ComponentSchema) nestedInstance.path().root();
+        assertEquals("User", root.name());
     }
 
     @Test
     void collectsAllOfSchemas() {
-        Schema<?> partA = new ObjectSchema().addProperty("a", new StringSchema());
-        Schema<?> partB = new ObjectSchema().addProperty("b", new StringSchema());
-        Schema<?> wrapper = new Schema<>().allOf(List.of(partA, partB));
+        SimpleSchema wrapper = new CompositeSchema(false, List.of(new SimpleStringSchema(false), new SimpleAnySchema(false)));
+        SimplifiedOas simplifiedOas = new SimplifiedOas(
+                Map.of("Wrapper", wrapper),
+                Map.of(),
+                List.of(),
+                Map.of()
+        );
 
-        OpenAPI openAPI = new OpenAPI()
-                .components(new Components().schemas(Map.of("Wrapper", wrapper)));
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-
-        assertNotNull(findBySchema(registry, partA));
-        assertNotNull(findBySchema(registry, partB));
+        long allOfChildren = registry.getInstances().stream()
+                .filter(instance -> instance.path().segments().stream().anyMatch(PathSegment.Variant.class::isInstance))
+                .count();
+        assertThat(allOfChildren).isEqualTo(2);
     }
 
     @Test
     void collectsOneOfSchemas() {
-        Schema<?> optionA = new ObjectSchema().addProperty("a", new StringSchema());
-        Schema<?> optionB = new ObjectSchema().addProperty("b", new StringSchema());
-        Schema<?> wrapper = new Schema<>().oneOf(List.of(optionA, optionB));
+        SimpleSchema wrapper = new UnionSchema(false, List.of(new SimpleStringSchema(false), new SimpleAnySchema(false)), null);
+        SimplifiedOas simplifiedOas = new SimplifiedOas(
+                Map.of("Wrapper", wrapper),
+                Map.of(),
+                List.of(),
+                Map.of()
+        );
 
-        OpenAPI openAPI = new OpenAPI()
-                .components(new Components().schemas(Map.of("Wrapper", wrapper)));
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-
-        assertNotNull(findBySchema(registry, optionA));
-        assertNotNull(findBySchema(registry, optionB));
-    }
-
-    @Test
-    void collectsAnyOfSchemas() {
-        Schema<?> optionA = new ObjectSchema().addProperty("a", new StringSchema());
-        Schema<?> optionB = new ObjectSchema().addProperty("b", new StringSchema());
-        Schema<?> wrapper = new Schema<>().anyOf(List.of(optionA, optionB));
-
-        OpenAPI openAPI = new OpenAPI()
-                .components(new Components().schemas(Map.of("Wrapper", wrapper)));
-
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-
-        assertNotNull(findBySchema(registry, optionA));
-        assertNotNull(findBySchema(registry, optionB));
-    }
-
-    @Test
-    void collectsArrayItemsSchemas() {
-        Schema<?> item = new ObjectSchema().addProperty("id", new StringSchema());
-        Schema<?> wrapper = new ArraySchema().items(item);
-
-        OpenAPI openAPI = new OpenAPI()
-                .components(new Components().schemas(Map.of("Wrapper", wrapper)));
-
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-
-        assertNotNull(findBySchema(registry, item));
+        long oneOfChildren = registry.getInstances().stream()
+                .filter(instance -> instance.path().segments().stream().anyMatch(PathSegment.Variant.class::isInstance))
+                .count();
+        assertThat(oneOfChildren).isEqualTo(2);
     }
 
     @Test
     void collectsAdditionalPropertiesSchemas() {
-        Schema<?> additional = new ObjectSchema().addProperty("meta", new StringSchema());
-        Schema<?> wrapper = new ObjectSchema().additionalProperties(additional);
+        SimpleSchema schema = new nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleObjectSchema(
+                false,
+                List.of(),
+                Set.of(),
+                Optional.of(new SimpleStringSchema(false))
+        );
+        SimplifiedOas simplifiedOas = new SimplifiedOas(
+                Map.of("Container", schema),
+                Map.of(),
+                List.of(),
+                Map.of()
+        );
 
-        OpenAPI openAPI = new OpenAPI()
-                .components(new Components().schemas(Map.of("Wrapper", wrapper)));
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
+        assertThat(registry.getInstances().stream()
+                .anyMatch(instance -> instance.path().segments().stream().anyMatch(PathSegment.AdditionalProperties.class::isInstance)))
+                .isTrue();
+    }
 
-        assertNotNull(findBySchema(registry, additional));
+    @Test
+    void collectsComponentParameterSchemas() {
+        SimplifiedOas simplifiedOas = new SimplifiedOas(
+                Map.of(),
+                Map.of("Limit", new SimpleStringSchema(false)),
+                List.of(),
+                Map.of()
+        );
+
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
+
+        SchemaInstance instance = findByRootType(registry, PathRoot.ComponentParameter.class);
+        assertNotNull(instance);
+        PathRoot.ComponentParameter root = (PathRoot.ComponentParameter) instance.path().root();
+        assertEquals("Limit", root.name());
     }
 
     @Test
     void collectsRequestBodySchemas() {
-        Schema<?> requestSchema = new ObjectSchema()
-                .addProperty("name", new StringSchema());
-        RequestBody requestBody = new RequestBody()
-                .content(new Content().addMediaType("application/json", new MediaType().schema(requestSchema)));
+        SimplifiedOperation operation = new SimplifiedOperation(
+                "/users",
+                HttpMethod.POST,
+                null,
+                Set.of("default"),
+                List.of(),
+                List.of(),
+                new SimpleStringSchema(false)
+        );
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
 
-        Operation operation = new Operation().requestBody(requestBody);
-        OpenAPI openAPI = openApiWithOperation("/users", operation);
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-
-        SchemaInstance instance = findBySchema(registry, requestSchema);
+        SchemaInstance instance = findByRootType(registry, PathRoot.RequestBody.class);
         assertNotNull(instance);
-        assertInstanceOf(PathRoot.RequestBody.class, instance.path().root());
         PathRoot.RequestBody root = (PathRoot.RequestBody) instance.path().root();
         assertThat(root.operationName()).isEqualTo(OperationName.pathAndMethod("/users", HttpMethod.POST));
     }
 
     @Test
     void collectsResponseBodySchemasWithStatus() {
-        Schema<?> responseSchema = new ObjectSchema()
-                .addProperty("status", new StringSchema());
-        ApiResponses responses = new ApiResponses()
-                .addApiResponse("404", new ApiResponse()
-                        .content(new Content().addMediaType("application/json",
-                                new MediaType().schema(responseSchema))));
+        SimplifiedOperation operation = new SimplifiedOperation(
+                "/users",
+                HttpMethod.POST,
+                null,
+                Set.of("default"),
+                List.of(),
+                List.of(new SimpleReponse("404", new SimpleStringSchema(false))),
+                null
+        );
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
 
-        Operation operation = new Operation().responses(responses);
-        OpenAPI openAPI = openApiWithOperation("/users", operation);
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-
-        SchemaInstance instance = findBySchema(registry, responseSchema);
+        SchemaInstance instance = findByRootType(registry, PathRoot.ResponseBody.class);
         assertNotNull(instance);
-        assertInstanceOf(PathRoot.ResponseBody.class, instance.path().root());
-        PathRoot.ResponseBody root =
-                (PathRoot.ResponseBody) instance.path().root();
-        assertThat(OperationName.pathAndMethod("/users", HttpMethod.POST)).isEqualTo(root.operationName());
+        PathRoot.ResponseBody root = (PathRoot.ResponseBody) instance.path().root();
+        assertThat(root.operationName()).isEqualTo(OperationName.pathAndMethod("/users", HttpMethod.POST));
+        assertThat(root.status()).isEqualTo("404");
     }
 
     @Test
-    void prefersApplicationJsonButFallsBackToFirstMediaType() {
-        Schema<?> textSchema = new ObjectSchema().addProperty("text", new StringSchema());
-        Content content = new Content().addMediaType("text/plain", new MediaType().schema(textSchema));
+    void collectsOperationParameterSchemas() {
+        SimplifiedOperation operation = new SimplifiedOperation(
+                "/users",
+                HttpMethod.POST,
+                null,
+                Set.of("default"),
+                List.of(new SimpleParam("limit", ParamIn.Query, new SimpleStringSchema(false), false)),
+                List.of(),
+                null
+        );
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
 
-        Operation operation = new Operation()
-                .requestBody(new RequestBody().content(content));
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
-        OpenAPI openAPI = openApiWithOperation("/text", operation);
-
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
-
-        assertNotNull(findBySchema(registry, textSchema));
+        SchemaInstance instance = findByRootType(registry, PathRoot.RequestParam.class);
+        assertNotNull(instance);
+        PathRoot.RequestParam root = (PathRoot.RequestParam) instance.path().root();
+        assertThat(root.operationName()).isEqualTo(OperationName.pathAndMethod("/users", HttpMethod.POST));
+        assertThat(root.paramName()).isEqualTo("limit");
     }
 
     @Test
-    void ignoresNullComponentSchemas() {
-        Components components = new Components();
-        java.util.Map<String, Schema> schemas = new java.util.LinkedHashMap<>();
-        schemas.put("NullSchema", null);
-        components.setSchemas(schemas);
-        OpenAPI openAPI = new OpenAPI().components(components);
+    void collectsSharedPathParameterSchemas() {
+        SimplifiedOas simplifiedOas = new SimplifiedOas(
+                Map.of(),
+                Map.of(),
+                List.of(),
+                Map.of("/users/{id}", List.of(new SimpleParam("id", ParamIn.Path, new SimpleStringSchema(false), true)))
+        );
 
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
-        assertTrue(registry.getInstances().isEmpty());
+        SchemaInstance instance = findByRootType(registry, PathRoot.SharedPathParam.class);
+        assertNotNull(instance);
+        PathRoot.SharedPathParam root = (PathRoot.SharedPathParam) instance.path().root();
+        assertThat(root.path()).isEqualTo("/users/{id}");
+        assertThat(root.name()).isEqualTo("id");
     }
 
     @Test
     void throwsOnReferenceCycle() {
-        ObjectSchema schema = new ObjectSchema();
-        schema.addProperty("self", schema);
-        OpenAPI openAPI = new OpenAPI()
-                .components(new Components().schemas(Map.of("Self", schema)));
+        List<SimpleSchema> components = new ArrayList<>();
+        CompositeSchema schema = new CompositeSchema(false, components);
+        components.add(schema);
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of("Node", schema), Map.of(), List.of(), Map.of());
 
         IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> SchemaRegistry.resolve(openAPI));
+                () -> SchemaRegistry.resolve(simplifiedOas));
         assertTrue(ex.getMessage().contains("cycle"));
     }
 
-    private static OpenAPI openApiWithOperation(String path, Operation operation) {
-        OpenAPI openAPI = new OpenAPI();
-        Paths paths = new Paths();
-        PathItem pathItem = new PathItem().post(operation);
-        paths.addPathItem(path, pathItem);
-        openAPI.setPaths(paths);
-        return openAPI;
-    }
-
-    private static SchemaInstance findBySchema(SchemaRegistry registry, Schema<?> schema) {
+    private static SchemaInstance findByRootType(SchemaRegistry registry, Class<? extends PathRoot> rootType) {
         return registry.getInstances().stream()
-                .filter(instance -> instance.schema() == schema)
+                .filter(instance -> rootType.isInstance(instance.path().root()))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private static nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleObjectSchema objectSchema(ObjectProperty... properties) {
+        return new nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleObjectSchema(
+                false,
+                List.of(properties),
+                Set.of(),
+                Optional.empty()
+        );
     }
 }

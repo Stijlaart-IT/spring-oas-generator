@@ -1,10 +1,10 @@
 package nl.stijlaartit.spring.oas.generator.engine.naming;
 
-import io.swagger.v3.oas.models.media.StringSchema;
 import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
 import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathRoot;
 import nl.stijlaartit.spring.oas.generator.engine.domain.path.SchemaPath;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleStringSchema;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
 import org.junit.jupiter.api.Test;
 
@@ -28,12 +28,12 @@ class NamingUtilTest {
     @Test
     void resolvesShortestComponentPath() {
         SchemaInstance first = new SchemaInstance(
-                new StringSchema(),
+                new SimpleStringSchema(false),
                 SchemaPath.forRoot(PathRoot.componentSchema("pet")).property("name")
         );
 
         SchemaInstance second = new SchemaInstance(
-                new StringSchema(),
+                new SimpleStringSchema(false),
                 SchemaPath.forRoot(PathRoot.componentSchema("pet")).property("name").property("other")
         );
 
@@ -43,14 +43,15 @@ class NamingUtilTest {
         assertThat(path).isEqualTo(first.path());
     }
 
+
     @Test
     void resolvesOperationParameterPath() {
         SchemaInstance first = new SchemaInstance(
-                new StringSchema(),
+                new SimpleStringSchema(false),
                 SchemaPath.forRoot(PathRoot.requestParam(OperationName.id("getPet"), "petId")).property("name")
         );
         SchemaInstance second = new SchemaInstance(
-                new StringSchema(),
+                new SimpleStringSchema(false),
                 SchemaPath.forRoot(PathRoot.requestParam(OperationName.id("getPet"), "petId")).property("name").property("other")
         );
 

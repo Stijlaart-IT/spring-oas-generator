@@ -1,28 +1,33 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
-import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
-import nl.stijlaartit.spring.oas.generator.domain.file.RecordField;
-import nl.stijlaartit.spring.oas.generator.domain.file.ModelFile;
-import nl.stijlaartit.spring.oas.generator.domain.file.RecordModel;
-import nl.stijlaartit.spring.oas.generator.serialization.ImplementsByMapping;
-import nl.stijlaartit.spring.oas.generator.serialization.RecordModelSerializer;
-import nl.stijlaartit.spring.oas.generator.serialization.RecordModelWriterConfig;
-import nl.stijlaartit.spring.oas.generator.serialization.SerializedFile;
-import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.domain.file.ModelFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.RecordField;
+import nl.stijlaartit.spring.oas.generator.domain.file.RecordModel;
+import nl.stijlaartit.spring.oas.generator.engine.OasSimplifier;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
+import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypes;
+import nl.stijlaartit.spring.oas.generator.serialization.ImplementsByMapping;
+import nl.stijlaartit.spring.oas.generator.serialization.RecordModelSerializer;
+import nl.stijlaartit.spring.oas.generator.serialization.RecordModelWriterConfig;
+import nl.stijlaartit.spring.oas.generator.serialization.SerializedFile;
 import org.junit.jupiter.api.Test;
 
 import java.net.URL;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class InlineAllOfExternalUrlsTest {
 
@@ -52,7 +57,9 @@ class InlineAllOfExternalUrlsTest {
 
     private List<ModelFile> resolveModels() {
         OpenAPI openAPI = parseSpec();
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
+        OasSimplifier oasSimplifier = new OasSimplifier(Logger.noOp());
+        final SimplifiedOas simplifiedOas = oasSimplifier.simplify(openAPI);
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
         TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
         ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());

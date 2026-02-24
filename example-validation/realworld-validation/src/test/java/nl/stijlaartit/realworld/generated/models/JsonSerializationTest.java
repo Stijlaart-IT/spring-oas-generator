@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,8 +24,8 @@ class JsonSerializationTest {
         var original = new Article("how-to-train-your-dragon", "How to train your dragon",
                 "Ever wonder how?", "It takes a Lifetime of training",
                 List.of("reactjs", "angularjs", "dragons"),
-                OffsetDateTime.parse("2016-02-18T03:22:56.637Z"),
-                OffsetDateTime.parse("2016-02-18T03:48:35.824Z"),
+                "createdAt",
+                "updatedAt",
                 false, 0, profile);
         assertSerializesSymmetrical(original, Article.class);
     }
@@ -35,8 +34,8 @@ class JsonSerializationTest {
     void comment() {
         var profile = new Profile("jake", "I work at State Farm", "https://i.stack.imgur.com/xHWG8.jpg", false);
         var original = new Comment(1,
-                OffsetDateTime.parse("2016-02-18T03:22:56.637Z"),
-                OffsetDateTime.parse("2016-02-18T03:22:56.637Z"),
+                "createdAt",
+                "updatedAt",
                 "It takes a Lifetime of training.", profile);
         assertSerializesSymmetrical(original, Comment.class);
     }
@@ -87,7 +86,8 @@ class JsonSerializationTest {
 
     @Test
     void updateUser() {
-        var original = new UpdateUser("jake@jake.jake", "newpassword", "jacob", "I like to skateboard", "https://i.stack.imgur.com/xHWG8.jpg");
+        var original = new UpdateUser("jake@jake.jake", "newpassword", "jacob", new NullWrapper<>("createdAt"),
+                new NullWrapper<>("https://i.stack.imgur.com/xHWG8.jpg"));
         assertSerializesSymmetrical(original, UpdateUser.class);
     }
 

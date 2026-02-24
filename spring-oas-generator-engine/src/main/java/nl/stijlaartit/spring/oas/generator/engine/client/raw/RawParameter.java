@@ -1,12 +1,12 @@
 package nl.stijlaartit.spring.oas.generator.engine.client.raw;
 
-import io.swagger.v3.oas.models.media.Schema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
 
 public record RawParameter(
 
         String name,
         ParameterLocation location,
-        Schema schema,
+        SimpleSchema schema,
         boolean required
 
 ) {

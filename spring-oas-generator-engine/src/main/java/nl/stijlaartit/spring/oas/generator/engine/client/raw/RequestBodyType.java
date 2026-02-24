@@ -1,6 +1,6 @@
 package nl.stijlaartit.spring.oas.generator.engine.client.raw;
 
-import io.swagger.v3.oas.models.media.Schema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
 
 public sealed interface RequestBodyType permits RequestBodyType.Resource, RequestBodyType.None, RequestBodyType.Unknown, RequestBodyType.Typed {
 
@@ -13,6 +13,6 @@ public sealed interface RequestBodyType permits RequestBodyType.Resource, Reques
     record Unknown() implements RequestBodyType {
     }
 
-    record Typed(Schema schema) implements RequestBodyType {
+    record Typed(SimpleSchema schema) implements RequestBodyType {
     }
 }

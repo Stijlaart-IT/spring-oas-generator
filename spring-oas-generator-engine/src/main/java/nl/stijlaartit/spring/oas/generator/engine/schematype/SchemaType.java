@@ -1,6 +1,6 @@
 package nl.stijlaartit.spring.oas.generator.engine.schematype;
 
-import io.swagger.v3.oas.models.media.Schema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
 
 import java.util.List;
@@ -9,7 +9,7 @@ public sealed interface SchemaType permits ConcreteSchemaType, RefSchemaType, De
 
     List<SchemaInstance> instances();
 
-    default Schema<?> schema() {
+    default SimpleSchema schema() {
         return instances().getFirst().schema();
     }
 }

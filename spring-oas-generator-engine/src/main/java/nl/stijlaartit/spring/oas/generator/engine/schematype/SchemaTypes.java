@@ -1,8 +1,8 @@
 package nl.stijlaartit.spring.oas.generator.engine.schematype;
 
-import io.swagger.v3.oas.models.media.Schema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.SchemaRef;
 import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathRoot;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
 
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ public final class SchemaTypes {
         return List.copyOf(generated);
     }
 
-    public SchemaType resolveFromSchema(Schema<?> schema) {
+    public SchemaType resolveFromSchema(SimpleSchema schema) {
         for (SchemaType type : types) {
             for (var instance : type.instances()) {
                 if (instance.schema() == schema) {
@@ -42,7 +42,7 @@ public final class SchemaTypes {
         throw new IllegalStateException("Could not find schema in schema types");
     }
 
-    public ConcreteSchemaType resolveConcrete(Schema<?> schema) {
+    public ConcreteSchemaType resolveConcrete(SimpleSchema schema) {
         final var schemaType = resolveFromSchema(schema);
         return resolveConcrete(schemaType);
     }

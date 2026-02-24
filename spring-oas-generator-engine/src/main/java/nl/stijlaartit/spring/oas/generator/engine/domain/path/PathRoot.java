@@ -35,12 +35,12 @@ public sealed interface PathRoot permits PathRoot.ComponentParameter, PathRoot.C
             Objects.requireNonNull(name, "name");
         }
     }
-    record ComponentSchema(String name) implements PathRoot {
+    record ComponentSchema(String name) implements PathRoot, NamedPathRoot {
         public ComponentSchema {
             Objects.requireNonNull(name, "name");
         }
     }
-    record ComponentParameter(String name) implements PathRoot {
+    record ComponentParameter(String name) implements PathRoot, NamedPathRoot {
         public ComponentParameter {
             Objects.requireNonNull(name, "name");
         }

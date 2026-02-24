@@ -1,7 +1,6 @@
 package nl.stijlaartit.variants.generated;
 
 import nl.stijlaartit.variants.generated.models.AdditionalPropertiesEmptyObject;
-import nl.stijlaartit.variants.generated.models.AdditionalPropertiesTrue;
 import nl.stijlaartit.variants.generated.models.AdditionalPropertiesWithOtherProperties;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
@@ -28,12 +27,6 @@ public class AdditionalPropertiesTest {
                 original,
                 AdditionalPropertiesWithOtherProperties.class
         );
-    }
-
-    @Test
-    void shouldSymmetricallySerializeAdditionalPropertiesTrue() {
-        assertSerializesSymmetrical(new AdditionalPropertiesTrue(Map.of()), AdditionalPropertiesTrue.class);
-        assertSerializesSymmetrical(new AdditionalPropertiesTrue(Map.of("foo", "bar")), AdditionalPropertiesTrue.class);
     }
 
     @Test

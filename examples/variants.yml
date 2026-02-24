@@ -96,7 +96,71 @@ components:
           type: integer
       required:
         - age
+    UseMixedAllOf:
+      type: object
+      required:
+        - mixed
+      properties:
+        mixed:
+          $ref: "#/components/schemas/MixedAllOf"
     MixedAllOf:
         allOf:
           - type: number
           - type: integer
+    PagingObject:
+      type: object
+      x-spotify-docs-type: PagingObject
+      required:
+        - href
+        - items
+        - limit
+        - next
+      properties:
+        href:
+          type: string
+        limit:
+          type: integer
+        next:
+          type: string
+          nullable: true
+    PagingThingObject:
+      type: object
+      x-spotify-docs-type: PagingArtistObject
+      allOf:
+        - $ref: "#/components/schemas/PagingObject"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: string
+    Vehicle:
+      oneOf:
+        - $ref: "#/components/schemas/Car"
+        - $ref: "#/components/schemas/Bike"
+      discriminator:
+        propertyName: type
+    Car:
+      type: object
+      required:
+        - type
+        - brand
+      properties:
+        type:
+          type: string
+          enum:
+            - car
+        brand:
+          type: string
+    Bike:
+      type: object
+      required:
+        - type
+        - model
+      properties:
+        type:
+          type: string
+          enum:
+            - bike
+        model:
+          type: string

@@ -1,9 +1,6 @@
 package nl.stijlaartit.spring.oas.generator.domain.file;
 
-import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
-
 import java.util.List;
-import java.util.Objects;
 
 public record TypeDescriptor(String packageName, JavaTypeName modelName,
                              List<TypeDescriptor> generics) {

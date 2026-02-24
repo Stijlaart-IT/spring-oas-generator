@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.Paths;
 import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.Discriminator;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.MediaType;
@@ -19,6 +20,9 @@ import io.swagger.v3.oas.models.responses.ApiResponses;
 import nl.stijlaartit.spring.oas.generator.domain.file.RecordField;
 import nl.stijlaartit.spring.oas.generator.domain.file.ModelFile;
 import nl.stijlaartit.spring.oas.generator.domain.file.RecordModel;
+import nl.stijlaartit.spring.oas.generator.domain.file.UnionModelFile;
+import nl.stijlaartit.spring.oas.generator.engine.OasSimplifier;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.domain.file.JavaParameterName;
 import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
@@ -41,7 +45,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ModelResolverTest {
 
     private List<ModelFile> resolveModels(OpenAPI openAPI) {
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
+        OasSimplifier oasSimplifier = new OasSimplifier(Logger.noOp());
+        final SimplifiedOas simplifiedOas = oasSimplifier.simplify(openAPI);
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
         TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
         ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());
@@ -131,6 +137,79 @@ class ModelResolverTest {
     }
 
     @Test
+    void resolvesOneOfSchemasWithDiscriminatorProperty() {
+        Schema<?> wrapper = new Schema<>()
+                .oneOf(List.of(
+                        new Schema<>().$ref("#/components/schemas/Car"),
+                        new Schema<>().$ref("#/components/schemas/Bike")
+                ));
+        wrapper.setDiscriminator(new Discriminator().propertyName("type"));
+
+        StringSchema carType = new StringSchema();
+        carType.setEnum(List.of("car"));
+        Schema<?> car = new ObjectSchema()
+                .addProperty("type", carType)
+                .addProperty("brand", new StringSchema());
+        StringSchema bikeType = new StringSchema();
+        bikeType.setEnum(List.of("bike"));
+        Schema<?> bike = new ObjectSchema()
+                .addProperty("type", bikeType)
+                .addProperty("model", new StringSchema());
+
+        OpenAPI openAPI = new OpenAPI()
+                .components(new Components().schemas(Map.of(
+                        "Wrapper", wrapper,
+                        "Car", car,
+                        "Bike", bike
+                )));
+
+        List<ModelFile> models = resolveModels(openAPI);
+
+        UnionModelFile union = models.stream()
+                .filter(model -> model instanceof UnionModelFile)
+                .map(model -> (UnionModelFile) model)
+                .findFirst()
+                .orElseThrow();
+        assertThat(union.discriminatorProperty()).isEqualTo("type");
+        assertThat(union.variants()).extracting(v -> v.discriminatorValue()).containsExactly("car", "bike");
+    }
+
+    @Test
+    void resolvesPagingSchemas_allFieldsInBothModelsAreRequired() {
+        Schema<?> pagingObject = new ObjectSchema()
+                .required(List.of("href", "items", "limit", "next"))
+                .addProperty("href", new StringSchema())
+                .addProperty("limit", new IntegerSchema())
+                .addProperty("next", new StringSchema().nullable(true));
+
+        Schema<?> pagingThingObject = new Schema<>().allOf(List.of(
+                new Schema<>().$ref("#/components/schemas/PagingObject"),
+                new ObjectSchema()
+                        .addProperty("items", new ArraySchema().items(new StringSchema()))
+        ));
+
+        OpenAPI openAPI = new OpenAPI()
+                .components(new Components().schemas(Map.of(
+                        "PagingObject", pagingObject,
+                        "PagingThingObject", pagingThingObject
+                )));
+
+        List<ModelFile> models = resolveModels(openAPI);
+
+        RecordModel paging = (RecordModel) models.stream()
+                .filter(model -> model.name().equals("PagingObject"))
+                .findFirst()
+                .orElseThrow();
+        RecordModel pagingThing = (RecordModel) models.stream()
+                .filter(model -> model.name().equals("PagingThingObject"))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(paging.fields()).isNotEmpty().allMatch(RecordField::required);
+        assertThat(pagingThing.fields()).isNotEmpty().allMatch(RecordField::required);
+    }
+
+    @Test
     void resolvesPrimitiveComponentReferencedFromObject() {
         Schema<?> primitiveRef = new Schema<>();
         primitiveRef.set$ref("#/components/schemas/PrimitiveKey");
@@ -162,21 +241,28 @@ class ModelResolverTest {
                 ));
 
         OpenAPI openAPI = new OpenAPI()
-                .components(new Components().schemas(Map.of("MixedAllOf", allOf)));
+                .components(new Components().schemas(Map.of(
+                        "UseMixedAllOf", new ObjectSchema().addProperty("mixed", new Schema().$ref("#/components/schemas/MixedAllOf")),
+                        "MixedAllOf", allOf
+                )));
 
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
+        OasSimplifier oasSimplifier = new OasSimplifier(Logger.noOp());
+        final SimplifiedOas simplifiedOas = oasSimplifier.simplify(openAPI);
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
         TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
         ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());
         List<ModelFile> models = resolver.resolve();
 
-        assertEquals(1, models.size());
-        assertThat(models.getFirst()).isEqualTo(new RecordModel(new JavaTypeName.Generated("MixedAllOf"), List.of(), false));
+        assertThat(models).hasSize(1);
+        assertThat(models.getFirst().name()).isEqualTo("UseMixedAllOf");
+        assertThat(((RecordModel) models.getFirst()).fields()).hasSize(1);
+        assertThat(((RecordModel) models.getFirst()).fields().getFirst().name()).isEqualTo(new JavaParameterName("mixed"));
+        assertThat(((RecordModel) models.getFirst()).fields().getFirst().type()).isEqualTo(
+                TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Object"))
+        );
 
-        assertThat(schemaTypes.types()).hasSize(3);
-        assertThat(schemaTypes.types().get(0)).isInstanceOf(CompositeSchemaType.class);
-        assertThat(schemaTypes.types().get(1)).isInstanceOf(StringSchemaType.class);
-        assertThat(schemaTypes.types().get(2)).isInstanceOf(IntegerSchemaType.class);
+        assertThat(schemaTypes.types()).hasSize(5);
     }
 
     @Test
@@ -198,7 +284,9 @@ class ModelResolverTest {
                         ))
                 )));
 
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
+        OasSimplifier oasSimplifier = new OasSimplifier(Logger.noOp());
+        final SimplifiedOas simplifiedOas = oasSimplifier.simplify(openAPI);
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
         TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
         ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());

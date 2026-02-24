@@ -1,12 +1,11 @@
 package nl.stijlaartit.spring.oas.generator.engine;
 
-import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
-import net.bytebuddy.build.Plugin;
-import nl.stijlaartit.spring.oas.generator.engine.client.ClientResolver;
 import nl.stijlaartit.spring.oas.generator.domain.file.GenerationFile;
+import nl.stijlaartit.spring.oas.generator.engine.client.ClientResolver;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.engine.model.ModelResolver;
 import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
@@ -31,7 +30,10 @@ public class EngineIntegrationTest {
         String modelsPackage = "com.example.models";
         String apiPackage = "com.example.api";
 
-        final var registry = SchemaRegistry.resolve(openAPI);
+        OasSimplifier oasSimplifier = new OasSimplifier(logger);
+        final SimplifiedOas simplifiedOas = oasSimplifier.simplify(openAPI);
+
+        final var registry = SchemaRegistry.resolve(simplifiedOas);
         final var nameProvider = NameProvider.create();
 
         final var schemaTypeResolver = new SchemaTypeResolver(registry, nameProvider, logger);
@@ -45,7 +47,7 @@ public class EngineIntegrationTest {
         final var utilityResolver = new UtilityResolver(modelsPackage, apiPackage);
 
         final var modelFiles = modelResolver.resolve();
-        final var clientFiles = clientResolver.resolve(openAPI);
+        final var clientFiles = clientResolver.resolve(simplifiedOas);
         final var utilityFiles = utilityResolver.resolve(modelFiles, clientFiles);
 
         final var generationFiles = new ArrayList<GenerationFile>();

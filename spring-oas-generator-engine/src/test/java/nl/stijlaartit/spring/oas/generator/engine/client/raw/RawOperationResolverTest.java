@@ -1,18 +1,19 @@
 package nl.stijlaartit.spring.oas.generator.engine.client.raw;
 
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.Operation;
-import io.swagger.v3.oas.models.PathItem;
-import io.swagger.v3.oas.models.Paths;
-import io.swagger.v3.oas.models.media.Content;
-import io.swagger.v3.oas.models.media.MediaType;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.oas.models.responses.ApiResponse;
-import io.swagger.v3.oas.models.responses.ApiResponses;
+import nl.stijlaartit.spring.oas.generator.engine.domain.HttpMethod;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ParamIn;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleIntegerSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleParam;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleReponse;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleStringSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOperation;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -21,18 +22,16 @@ class RawOperationResolverTest {
 
     @Test
     void resolvesMultiple2xxResponsesWithEquivalentInlineSchemas() {
-        Schema<?> schema200 = new Schema<>().type("string").format("uuid");
-        Schema<?> schema201 = new Schema<>().type("string").format("uuid");
+        SimpleSchema schema200 = new SimpleStringSchema(false);
+        SimpleSchema schema201 = new SimpleStringSchema(false);
 
-        assertThat(schema200).isNotSameAs(schema201);
-        assertThat(schema200).isEqualTo(schema201);
+        List<SimpleReponse> responses = List.of(
+                new SimpleReponse("200", schema200),
+                new SimpleReponse("201", schema201)
+        );
 
-        ApiResponses responses = new ApiResponses()
-                .addApiResponse("200", responseWithSchema(schema200))
-                .addApiResponse("201", responseWithSchema(schema201));
-
-        OpenAPI openAPI = openApiWithResponses("getThings", responses);
-        RawOperationResolver resolver = new RawOperationResolver(Logger.noOp(), openAPI);
+        SimplifiedOas simplifiedOas = oasWithResponses("getThings", responses);
+        RawOperationResolver resolver = new RawOperationResolver(Logger.noOp(), simplifiedOas);
 
         List<RawOperation> operations = resolver.resolve();
         assertThat(operations).hasSize(1);
@@ -42,39 +41,61 @@ class RawOperationResolverTest {
         assertThat(operation.responseBodyType()).isInstanceOf(ResponseBodyType.SchemaType.class);
 
         ResponseBodyType.SchemaType responseBodyType = (ResponseBodyType.SchemaType) operation.responseBodyType();
-        assertThat(responseBodyType.schema()).isSameAs(schema200);
+        assertThat(responseBodyType.schema()).isEqualTo(schema200);
     }
 
     @Test
     void failsWhenMultiple2xxResponsesDefineDifferentSchemas() {
-        Schema<?> schema200 = new Schema<>().type("string");
-        Schema<?> schema201 = new Schema<>().type("integer");
+        List<SimpleReponse> responses = List.of(
+                new SimpleReponse("200", new SimpleStringSchema(false)),
+                new SimpleReponse("201", new SimpleIntegerSchema(false))
+        );
 
-        ApiResponses responses = new ApiResponses()
-                .addApiResponse("200", responseWithSchema(schema200))
-                .addApiResponse("201", responseWithSchema(schema201));
-
-        OpenAPI openAPI = openApiWithResponses("getThings", responses);
-        RawOperationResolver resolver = new RawOperationResolver(Logger.noOp(), openAPI);
+        SimplifiedOas simplifiedOas = oasWithResponses("getThings", responses);
+        RawOperationResolver resolver = new RawOperationResolver(Logger.noOp(), simplifiedOas);
 
         assertThatThrownBy(resolver::resolve)
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Multiple 2xx responses with body defined for operation");
     }
 
-    private static OpenAPI openApiWithResponses(String operationId, ApiResponses responses) {
-        Operation operation = new Operation()
-                .operationId(operationId)
-                .responses(responses);
+    @Test
+    void resolvesHeaderParameterLocation() {
+        SimplifiedOperation operation = new SimplifiedOperation(
+                "/things",
+                HttpMethod.GET,
+                "getThings",
+                java.util.Set.of("default"),
+                List.of(new SimpleParam("x-api-key", ParamIn.Header, new SimpleStringSchema(false), true)),
+                List.of(new SimpleReponse("200", new SimpleStringSchema(false))),
+                null
+        );
 
-        PathItem pathItem = new PathItem().get(operation);
-        Paths paths = new Paths().addPathItem("/things", pathItem);
-        return new OpenAPI().paths(paths);
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
+        RawOperationResolver resolver = new RawOperationResolver(Logger.noOp(), simplifiedOas);
+
+        List<RawOperation> operations = resolver.resolve();
+        GeneratableOperation generatableOperation = (GeneratableOperation) operations.getFirst();
+        assertThat(generatableOperation.parameters()).containsExactly(
+                new RawParameter(
+                        "x-api-key",
+                        RawParameter.ParameterLocation.HEADER,
+                        new SimpleStringSchema(false),
+                        true
+                )
+        );
     }
 
-    private static ApiResponse responseWithSchema(Schema<?> schema) {
-        MediaType mediaType = new MediaType().schema(schema);
-        Content content = new Content().addMediaType("application/json", mediaType);
-        return new ApiResponse().content(content);
+    private static SimplifiedOas oasWithResponses(String operationId, List<SimpleReponse> responses) {
+        SimplifiedOperation operation = new SimplifiedOperation(
+                "/things",
+                HttpMethod.GET,
+                operationId,
+                java.util.Set.of("default"),
+                List.of(),
+                responses,
+                null
+        );
+        return new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
     }
 }

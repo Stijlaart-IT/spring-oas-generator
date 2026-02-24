@@ -1,27 +1,25 @@
 package nl.stijlaartit.spring.oas.generator.engine.schematype;
 
-import io.swagger.v3.oas.models.media.Schema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathRoot;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
-import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
-public record SchemaInstanceGroup(Schema<?> schema, List<SchemaInstance> instances, SchemaGroupType groupType) {
-    public SchemaInstanceGroup(Schema<?> schema, List<SchemaInstance> instances, SchemaGroupType groupType) {
-        this.schema = Objects.requireNonNull(schema);
-        this.instances = List.copyOf(instances);
-        this.groupType = Objects.requireNonNull(groupType);
+public record SchemaInstanceGroup(SimpleSchema schema, List<SchemaInstance> instances) {
+    public SchemaInstanceGroup {
+        Objects.requireNonNull(schema);
+        Objects.requireNonNull(instances);
     }
 
     public static SchemaInstanceGroups groupBySchemaEquals(List<SchemaInstance> instances) {
-        Map<Schema<?>, List<SchemaInstance>> grouped = new LinkedHashMap<>();
+        Map<SimpleSchema, List<SchemaInstance>> grouped = new LinkedHashMap<>();
         for (SchemaInstance instance : instances) {
-            Schema<?> schema = instance.schema();
+            SimpleSchema schema = instance.schema();
             if (!grouped.containsKey(schema)) {
                 grouped.put(schema, new ArrayList<>());
             }
@@ -29,104 +27,53 @@ public record SchemaInstanceGroup(Schema<?> schema, List<SchemaInstance> instanc
         }
 
         List<SchemaInstanceGroup> groups = new ArrayList<>();
-        for (Map.Entry<Schema<?>, List<SchemaInstance>> entry : grouped.entrySet()) {
-            final var type = determineSchemaGroupType(entry.getKey());
-            groups.add(new SchemaInstanceGroup(entry.getKey(), entry.getValue(), type));
+        for (Map.Entry<SimpleSchema, List<SchemaInstance>> entry : grouped.entrySet()) {
+            ComponentSplit split = splitRootComponents(entry.getValue());
+            if (split.roots().isEmpty()) {
+                groups.add(new SchemaInstanceGroup(entry.getKey(), entry.getValue()));
+            } else {
+                final var firstInstances = new ArrayList<SchemaInstance>();
+                firstInstances.add(split.roots().getFirst());
+                firstInstances.addAll(split.others());
+                groups.add(new SchemaInstanceGroup(entry.getKey(), firstInstances));
+
+                for (SchemaInstance otherRoot : split.roots.stream().skip(1).toList()) {
+                    groups.add(new SchemaInstanceGroup(entry.getKey(), List.of(otherRoot)));
+                }
+            }
         }
         return new SchemaInstanceGroups(groups);
     }
 
-    public static SchemaGroupType determineSchemaGroupType(Schema<?> schema) {
-        String schemaType = schema.getType();
-        Set<String> schemaTypes = schema.getTypes();
-        if (schemaType == null && schemaTypes != null) {
-            if (schemaTypes.size() == 1) {
-                schemaType = schemaTypes.iterator().next();
-            } else if (schemaTypes.size() > 1) {
-                return SchemaGroupType.INVALID;
-            }
-        }
-
-        if ("boolean".equals(schemaType)) {
-            return SchemaGroupType.BOOLEAN;
-        }
-        if ("integer".equals(schemaType)) {
-            if (schema.getEnum() != null && !schema.getEnum().isEmpty()) {
-                return SchemaGroupType.ENUM;
-            }
-            return SchemaGroupType.INTEGER;
-        }
-        if ("number".equals(schemaType)) {
-            if (schema.getEnum() != null && !schema.getEnum().isEmpty()) {
-                return SchemaGroupType.ENUM;
-            }
-            return SchemaGroupType.NUMBER;
-        }
-        if ("string".equals(schemaType)) {
-            if (schema.getEnum() != null && !schema.getEnum().isEmpty()) {
-                return SchemaGroupType.ENUM;
-            }
-            return SchemaGroupType.STRING;
-        }
-
-        if ("array".equals(schemaType)) {
-            return SchemaGroupType.ARRAY;
-        }
-
-        if (schemaType == null || schemaType.isEmpty() || "object".equals(schemaType)) {
-            // If ref
-            final var ref = schema.get$ref();
-            final var allOf = schema.getAllOf();
-            final var oneOf = schema.getOneOf();
-            final var anyOf = schema.getAnyOf();
-            final var additionalProperties = schema.getAdditionalProperties();
-
-            if (ref != null && allOf == null && oneOf == null && anyOf == null && additionalProperties == null) {
-                return SchemaGroupType.REF;
-            }
-            if (ref == null && allOf != null && oneOf == null && anyOf == null && additionalProperties == null) {
-                if (allOf.isEmpty()) {
-                    return SchemaGroupType.ALL_OF_EMPTY;
-                } else if (allOf.size() == 1) {
-                    return SchemaGroupType.ALL_OF_SINGLE;
-                } else {
-                    return SchemaGroupType.ALL_OF_MULTI;
+    private static ComponentSplit splitRootComponents(List<SchemaInstance> value) {
+        List<SchemaInstance> roots = new ArrayList<>();
+        List<SchemaInstance> others = new ArrayList<>();
+        for (SchemaInstance schemaInstance : value) {
+            switch (schemaInstance.path().root()) {
+                case PathRoot.ComponentParameter ignored -> {
+                    if (schemaInstance.path().segments().isEmpty()) {
+                        roots.add(schemaInstance);
+                    } else {
+                        others.add(schemaInstance);
+                    }
                 }
-            }
-            if (ref == null && allOf == null && oneOf != null && anyOf == null && additionalProperties == null) {
-                if (oneOf.isEmpty()) {
-                    return SchemaGroupType.ONE_OF_EMPTY;
-                } else if (oneOf.size() == 1) {
-                    return SchemaGroupType.ONE_OF_SINGLE;
-                } else {
-                    return SchemaGroupType.ONE_OF_MULTI;
+                case PathRoot.ComponentSchema ignored -> {
+                    if (schemaInstance.path().segments().isEmpty()) {
+                        roots.add(schemaInstance);
+                    } else {
+                        others.add(schemaInstance);
+                    }
                 }
+                case PathRoot.RequestBody ignored -> others.add(schemaInstance);
+                case PathRoot.RequestParam ignored -> others.add(schemaInstance);
+                case PathRoot.ResponseBody ignored -> others.add(schemaInstance);
+                case PathRoot.SharedPathParam ignored -> others.add(schemaInstance);
             }
-
-            if (ref == null && allOf == null && oneOf == null && anyOf != null && additionalProperties == null) {
-                if (anyOf.isEmpty()) {
-                    return SchemaGroupType.ANY_OF_EMPTY;
-                } else if (anyOf.size() == 1) {
-                    return SchemaGroupType.ANY_OF_SINGLE;
-                } else {
-                    return SchemaGroupType.ANY_OF_MULTI;
-                }
-            }
-
-            // None
-            if (!"object".equals(schemaType) && ref == null && allOf == null && oneOf == null && anyOf == null && additionalProperties == null) {
-                return SchemaGroupType.EMPTY;
-            }
-
-            if ("object".equals(schemaType)) {
-                return SchemaGroupType.OBJECT;
-            }
-
-            // Handle oneof, any of ect.
-            throw new IllegalStateException("Unsupported schema (a): " + schema);
         }
+        return new ComponentSplit(roots, others);
+    }
 
-        throw new IllegalStateException("Unsupported schema (b): " + schema);
+    record ComponentSplit(List<SchemaInstance> roots, List<SchemaInstance> others) {
 
     }
 }

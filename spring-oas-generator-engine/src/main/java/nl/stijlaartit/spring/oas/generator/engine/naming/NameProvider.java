@@ -1,6 +1,8 @@
+
 package nl.stijlaartit.spring.oas.generator.engine.naming;
 
 import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
+import nl.stijlaartit.spring.oas.generator.engine.domain.path.NamedPathRoot;
 import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathRoot;
 import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathSegment;
 import nl.stijlaartit.spring.oas.generator.engine.domain.path.SchemaPath;
@@ -10,13 +12,12 @@ import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.findShortestComponentPath;
 import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.findShortestOperationPath;
-import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.hasComponentPath;
 import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.hasOperationPath;
-import static nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil.toPascalCase;
 
 public class NameProvider {
 
@@ -29,7 +30,10 @@ public class NameProvider {
 
     public JavaTypeName resolveUniqueName(List<SchemaInstance> instances) {
         JavaTypeName resolvedName = resolveName(instances);
-        String baseName = resolvedName.value();
+        String baseName = switch (resolvedName) {
+            case JavaTypeName.Generated generated -> generated.value();
+            case JavaTypeName.Reserved reserved -> "Type" + reserved.value();
+        };
         String uniqueName = baseName;
         int suffix = 2;
         while (usedNames.contains(uniqueName)) {
@@ -41,14 +45,13 @@ public class NameProvider {
 
     private JavaTypeName resolveName(List<SchemaInstance> instances) {
         for (SchemaInstance instance : instances) {
-            if (instance.path().root() instanceof PathRoot.ComponentSchema(
-                    String name
-            ) && instance.path().segments().isEmpty()) {
-                return new JavaTypeName.Generated(toPascalCase(name));
+            Optional<NamedPathRoot> componentRootPath = instance.path().isComponentRootPath();
+            if (componentRootPath.isPresent()) {
+                 return NamingUtil.toJavaTypeName(List.of(componentRootPath.get().name()));
             }
         }
 
-        if (hasComponentPath(instances)) {
+        if (instances.stream().anyMatch(v -> v.path().isComponentPath().isPresent())) {
             SchemaPath componentPath = findShortestComponentPath(instances);
             return schemaPathToString(componentPath);
         }
@@ -58,8 +61,6 @@ public class NameProvider {
             return schemaPathToString(operationPath);
         }
 
-        // TODO. Do we need to support this? Or just throw?
-//        return new JavaTypeName.Generated(inlineName);
         throw new IllegalStateException("Could not resolve name for instances: " + instances);
     }
 

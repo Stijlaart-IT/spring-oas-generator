@@ -1,26 +1,26 @@
 package nl.stijlaartit.spring.oas.generator.engine.client;
 
-import io.swagger.v3.oas.models.OpenAPI;
+import nl.stijlaartit.spring.oas.generator.domain.file.ApiFile;
+import nl.stijlaartit.spring.oas.generator.domain.file.ApiHttpMethod;
+import nl.stijlaartit.spring.oas.generator.domain.file.ApiOperation;
+import nl.stijlaartit.spring.oas.generator.domain.file.JavaMethodName;
 import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.domain.file.ParameterLocation;
+import nl.stijlaartit.spring.oas.generator.domain.file.ParameterModel;
+import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
 import nl.stijlaartit.spring.oas.generator.engine.client.raw.GeneratableOperation;
 import nl.stijlaartit.spring.oas.generator.engine.client.raw.NonGeneratableOperation;
 import nl.stijlaartit.spring.oas.generator.engine.client.raw.RawOperationResolver;
 import nl.stijlaartit.spring.oas.generator.engine.client.raw.RawParameter;
 import nl.stijlaartit.spring.oas.generator.engine.client.raw.RequestBodyType;
 import nl.stijlaartit.spring.oas.generator.engine.client.raw.ResponseBodyType;
-import nl.stijlaartit.spring.oas.generator.domain.file.ApiFile;
-import nl.stijlaartit.spring.oas.generator.domain.file.ApiHttpMethod;
-import nl.stijlaartit.spring.oas.generator.domain.file.ApiOperation;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
-import nl.stijlaartit.spring.oas.generator.domain.file.ParameterLocation;
-import nl.stijlaartit.spring.oas.generator.domain.file.ParameterModel;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
-import nl.stijlaartit.spring.oas.generator.serialization.JavaIdentifierUtils;
-import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
 import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
-import nl.stijlaartit.spring.oas.generator.domain.file.JavaMethodName;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil;
 import nl.stijlaartit.spring.oas.generator.engine.naming.OperationIdNaming;
+import nl.stijlaartit.spring.oas.generator.serialization.JavaIdentifierUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,8 +39,8 @@ public class ClientResolver {
     }
 
 
-    public List<ApiFile> resolve(OpenAPI openAPI) {
-        final var rawOperationResolver = new RawOperationResolver(logger, openAPI);
+    public List<ApiFile> resolve(SimplifiedOas simplifiedOas) {
+        final var rawOperationResolver = new RawOperationResolver(logger, simplifiedOas);
         final var rawOperations = rawOperationResolver.resolve();
 
         List<GeneratableOperation> generatableOperations = new ArrayList<>();
@@ -72,7 +72,7 @@ public class ClientResolver {
                 .map(operation -> rawOperationToOperationModel(operation, typeDescriptorFactory))
                 .toList();
 
-        String interfaceName = toPascalCase(tag) + "Api";
+        String interfaceName = toPascalCase(removeInvalidTypeNameCharacters(tag)) + "Api";
         return new ApiFile(interfaceName, apiOperations);
     }
 
@@ -147,6 +147,35 @@ public class ClientResolver {
         }
         String camel = toCamelCase(input);
         return Character.toUpperCase(camel.charAt(0)) + camel.substring(1);
+    }
+
+    private static String removeInvalidTypeNameCharacters(String input) {
+        StringBuilder result = new StringBuilder();
+        boolean capitalizeNext = false;
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (!Character.isJavaIdentifierPart(c)) {
+                if (c == ' ' || c == '_' || c == '-' || c == '.') {
+                    capitalizeNext = true;
+                }
+                continue;
+            }
+            if (result.isEmpty()) {
+                if (!Character.isJavaIdentifierStart(c)) {
+                    continue;
+                }
+                result.append(Character.toLowerCase(c));
+                capitalizeNext = false;
+                continue;
+            }
+            if (capitalizeNext) {
+                result.append(Character.toUpperCase(c));
+                capitalizeNext = false;
+            } else {
+                result.append(c);
+            }
+        }
+        return result.toString();
     }
 
     static String toCamelCase(String input) {

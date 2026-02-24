@@ -19,7 +19,7 @@ public final class NamingUtil {
         int bestLength = Integer.MAX_VALUE;
         for (SchemaInstance instance : instances) {
             final var path = instance.path();
-            if (!(path.root() instanceof PathRoot.ComponentSchema)) {
+            if (!(path.root() instanceof PathRoot.ComponentSchema) && !(path.root() instanceof PathRoot.ComponentParameter)) {
                 continue;
             }
             int length = path.segments().size();
@@ -32,15 +32,6 @@ public final class NamingUtil {
             throw new IllegalStateException("No component path found for schema model.");
         }
         return best;
-    }
-
-    public static boolean hasComponentPath(List<SchemaInstance> instances) {
-        for (SchemaInstance instance : instances) {
-            if (instance.path().root() instanceof PathRoot.ComponentSchema) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static SchemaPath findShortestOperationPath(List<SchemaInstance> instances) {
@@ -74,14 +65,7 @@ public final class NamingUtil {
 
     public static boolean hasOperationPath(List<SchemaInstance> instances) {
         for (SchemaInstance instance : instances) {
-            final var hasOperationRoot = switch (instance.path().root()) {
-                case PathRoot.ComponentSchema ignored -> false;
-                case PathRoot.RequestBody ignored -> true;
-                case PathRoot.RequestParam ignored -> true;
-                case PathRoot.ResponseBody ignored -> true;
-                case PathRoot.ComponentParameter ignored -> false;
-                case PathRoot.SharedPathParam ignored -> false;
-            };
+            final var hasOperationRoot = instance.path().isOperationPath();
             if (hasOperationRoot) {
                 return true;
             }

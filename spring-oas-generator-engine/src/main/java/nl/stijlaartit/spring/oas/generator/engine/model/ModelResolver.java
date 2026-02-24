@@ -1,6 +1,5 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
-import io.swagger.v3.oas.models.media.Schema;
 import nl.stijlaartit.spring.oas.generator.domain.file.EnumModel;
 import nl.stijlaartit.spring.oas.generator.domain.file.EnumValueType;
 import nl.stijlaartit.spring.oas.generator.domain.file.RecordField;
@@ -13,25 +12,29 @@ import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.serialization.JavaIdentifierUtils;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.IntegerEnumSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.NumberEnumSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleBooleanSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleNumberSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleIntegerSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleObjectSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleStringSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.StringEnumSchema;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaInstance;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaUtil;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.CompositeSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.ConcreteSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.EnumSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.GeneratedSchemaType;
-import nl.stijlaartit.spring.oas.generator.engine.schematype.JavaSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.ObjectSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypes;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.UnionSchemaType;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.Optional;
 
 public class ModelResolver {
 
@@ -48,41 +51,35 @@ public class ModelResolver {
     public List<ModelFile> resolve() {
         return schemaTypes.generatedSchemaTypes()
                 .stream()
-                .map(this::createModelFile)
+                .flatMap(schemType -> createModelFile(schemType).stream())
                 .toList();
     }
 
-    private ModelFile createModelFile(GeneratedSchemaType generatedSchemaType) {
+    private Optional<ModelFile> createModelFile(GeneratedSchemaType generatedSchemaType) {
         return switch (generatedSchemaType) {
-            case ObjectSchemaType n -> createModelFileForObjectSchemaType(n);
-            case EnumSchemaType enumSchemaType -> createModelFileForEnumSchemaType(enumSchemaType);
-            case UnionSchemaType unionSchemaType -> createModelFileForUnionSchemaType(unionSchemaType);
+            case ObjectSchemaType n -> Optional.of(createModelFileForObjectSchemaType(n));
+            case EnumSchemaType enumSchemaType -> Optional.of(createModelFileForEnumSchemaType(enumSchemaType));
+            case UnionSchemaType unionSchemaType -> Optional.of(createModelFileForUnionSchemaType(unionSchemaType));
             case CompositeSchemaType compositeSchemaType -> createModelFileForCompositeSchemaType(compositeSchemaType);
         };
     }
 
     private RecordModel createModelFileForObjectSchemaType(ObjectSchemaType objectSchemaType) {
-        Schema<?> schema = objectSchemaType.schema();
+        final SimpleObjectSchema objectSchema = objectSchemaType.objectSchema();
 
-        boolean additionalProperties = schema.getAdditionalProperties() instanceof Schema<?>
-                || Boolean.TRUE.equals(schema.getAdditionalProperties());
-
-        Set<String> requiredProperties = collectRequired(schema);
-        // TODO: not handling nested properties is ok for this right? That should be composite?
-        final var fields = (schema.getProperties() == null ? Map.<String, Schema>of() : schema.getProperties())
-                .entrySet()
+        final var fields = objectSchema.properties()
                 .stream()
                 .map(property -> {
-                    String jsonName = property.getKey();
+                    String jsonName = property.propertyName();
                     final var javaName = new JavaParameterName(JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(jsonName)));
-                    TypeDescriptor type = typeDescriptorFactory.build(property.getValue());
-                    boolean nullable = Boolean.TRUE.equals(property.getValue().getNullable());
-                    boolean isRequired = requiredProperties.contains(jsonName);
+                    TypeDescriptor type = typeDescriptorFactory.build(property.schema());
+                    boolean nullable = property.schema().isNullable();
+                    boolean isRequired = objectSchema.requiredProperties().contains(jsonName);
                     return new RecordField(javaName, jsonName, type, isRequired, nullable, false);
                 })
                 .toList();
 
-        return new RecordModel(objectSchemaType.name(), fields, additionalProperties);
+        return new RecordModel(objectSchemaType.name(), fields, objectSchema.additionalProperties().isPresent());
     }
 
     private ModelFile createModelFileForEnumSchemaType(EnumSchemaType enumSchemaType) {
@@ -90,44 +87,49 @@ public class ModelResolver {
         if (instances.isEmpty()) {
             throw new IllegalStateException("Enum schema " + enumSchemaType.name() + " has no instances.");
         }
-        Schema<?> schema = instances.getFirst().schema();
+        final SimpleSchema schema = instances.getFirst().schema();
 
-        List<String> values = schema.getEnum() != null
-                ? schema.getEnum().stream().map(String::valueOf).toList()
-                : List.of();
+        List<String> values = resolveEnumValues(schema);
         EnumValueType valueType = resolveEnumValueType(schema);
         return new EnumModel(enumSchemaType.name(), valueType, values);
     }
 
     private ModelFile createModelFileForUnionSchemaType(UnionSchemaType unionSchemaType) {
-        Schema<?> schema = unionSchemaType.instances().isEmpty() ? null : unionSchemaType.instances().getFirst().schema();
-
-        String discriminator = resolveDiscriminatorProperty(schema);
+        String discriminator = unionSchemaType.discriminatorProperty();
         List<OneOfVariant> variants = new ArrayList<>();
         List<SchemaInstance> variantInstances = unionSchemaType.variantInstances();
-        for (SchemaInstance variantInstance : variantInstances) {
-            Schema<?> variantSchema = variantInstance.schema();
+        boolean unresolvedDiscriminatorValue = false;
+        for (int i = 0; i < variantInstances.size(); i++) {
+            SchemaInstance variantInstance = variantInstances.get(i);
+            SimpleSchema variantSchema = variantInstance.schema();
             ConcreteSchemaType concreteSchemaType = schemaTypes.resolveConcrete(variantSchema);
-            String discriminatorValue = resolveDiscriminatorValue(variantSchema, discriminator);
+            String discriminatorValue = null;
+            if (discriminatorValue == null && discriminator != null && !discriminator.isBlank()) {
+                discriminatorValue = inferDiscriminatorValue(variantSchema, concreteSchemaType, discriminator);
+            }
+            if (discriminator != null && !discriminator.isBlank() && (discriminatorValue == null || discriminatorValue.isBlank())) {
+                unresolvedDiscriminatorValue = true;
+            }
             variants.add(new OneOfVariant(concreteSchemaType.name(), discriminatorValue));
         }
 
+        if (unresolvedDiscriminatorValue) {
+            discriminator = null;
+            variants = variants.stream()
+                    .map(variant -> new OneOfVariant(variant.modelName(), null))
+                    .toList();
+        }
 
         return new UnionModelFile(unionSchemaType.name(), variants, discriminator);
     }
 
-    private ModelFile createModelFileForCompositeSchemaType(CompositeSchemaType compositeSchemaType) {
-        Schema<?> schema = compositeSchemaType.schema();
-
-        boolean additionalProperties = schema.getAdditionalProperties() instanceof Schema<?>
-                || Boolean.TRUE.equals(schema.getAdditionalProperties());
-
-        Set<String> requiredProperties = collectRequired(schema);
-        CompositeObjectPropertiesHelper.Result result = new CompositeObjectPropertiesHelper(schemaTypes).collectCompositeObjectProperties(compositeSchemaType);
+    private Optional<ModelFile> createModelFileForCompositeSchemaType(CompositeSchemaType compositeSchemaType) {
+        CompositeObjectPropertiesHelper compositeObjectPropertiesHelper = new CompositeObjectPropertiesHelper(schemaTypes);
+        CompositeObjectPropertiesHelper.Result result = compositeObjectPropertiesHelper.collectCompositeObjectProperties(compositeSchemaType);
         return switch (result) {
             case CompositeObjectPropertiesHelper.Result.Mixed mixed -> {
-                logger.warn("Found composite object with different mixed-type schemas with name [" + compositeSchemaType.name().value() + "]. Generating empty record model.");
-                yield new RecordModel(compositeSchemaType.name(), List.of(), false);
+                logger.warn("Found composite object with different mixed-type schemas with name [" + compositeSchemaType.name().value() + "]. Not generating a model for this schema.");
+                yield Optional.empty();
             }
 
             case CompositeObjectPropertiesHelper.Result.Props props -> {
@@ -136,154 +138,90 @@ public class ModelResolver {
                         .stream()
                         .map(property -> {
                             String jsonName = property.getKey();
+                            final var objectProperty = property.getValue();
                             final var javaName = new JavaParameterName(JavaIdentifierUtils.sanitize(NamingUtil.toCamelCase(jsonName)));
-                            TypeDescriptor type = typeDescriptorFactory.build(property.getValue());
-                            boolean nullable = Boolean.TRUE.equals(property.getValue().getNullable());
-                            boolean isRequired = requiredProperties.contains(jsonName);
+                            TypeDescriptor type = typeDescriptorFactory.build(objectProperty.schema());
+                            boolean nullable = objectProperty.schema().isNullable();
+                            boolean isRequired = props.requiredProperties().contains(jsonName);
                             return new RecordField(javaName, jsonName, type, isRequired, nullable, false);
                         })
                         .toList();
 
-                yield new RecordModel(compositeSchemaType.name(), fields, additionalProperties);
+                yield Optional.of(new RecordModel(compositeSchemaType.name(), fields, false));
             }
         };
     }
 
-    @Nullable
-    private String resolveDiscriminatorProperty(@Nullable Schema<?> schema) {
-        if (schema == null) {
-            return null;
-        }
-        if (schema.getDiscriminator() != null) {
-            String propertyName = schema.getDiscriminator().getPropertyName();
-            if (propertyName != null && !propertyName.isBlank()) {
-                return propertyName;
-            }
-        }
-        final var variants = schema.getOneOf();
-        return inferDiscriminatorProperty(variants);
+    private EnumValueType resolveEnumValueType(SimpleSchema schema) {
+        return switch (schema) {
+            case SimpleIntegerSchema ignored -> EnumValueType.INTEGER;
+            case IntegerEnumSchema ignored -> EnumValueType.INTEGER;
+            case SimpleNumberSchema ignored -> EnumValueType.NUMBER;
+            case NumberEnumSchema ignored -> EnumValueType.NUMBER;
+            case SimpleBooleanSchema ignored -> EnumValueType.BOOLEAN;
+            case SimpleStringSchema ignored -> EnumValueType.STRING;
+            case StringEnumSchema ignored -> EnumValueType.STRING;
+            default -> EnumValueType.STRING;
+        };
     }
 
-    @Nullable
-    private String resolveDiscriminatorValue(Schema<?> variant, @Nullable String discriminatorProperty) {
-        if (discriminatorProperty == null || discriminatorProperty.isBlank()) {
-            return null;
+    private List<String> resolveEnumValues(SimpleSchema schema) {
+        return switch (schema) {
+            case StringEnumSchema enumSchema -> enumSchema.enumValues();
+            case IntegerEnumSchema enumSchema -> enumSchema.enumValues().stream().map(String::valueOf).toList();
+            case NumberEnumSchema enumSchema -> enumSchema.enumValues().stream().map(String::valueOf).toList();
+            default -> List.of();
+        };
+    }
+
+    private String inferDiscriminatorValue(SimpleSchema variantSchema, ConcreteSchemaType concreteSchemaType, @Nullable String discriminatorProperty) {
+        SimpleObjectSchema objectSchema = null;
+        if (variantSchema instanceof SimpleObjectSchema simpleObjectSchema) {
+            objectSchema = simpleObjectSchema;
+        } else if (concreteSchemaType instanceof ObjectSchemaType objectSchemaType) {
+            objectSchema = objectSchemaType.objectSchema();
+        }
+        if (objectSchema != null) {
+            return inferDiscriminatorValueFromSchema(objectSchema, discriminatorProperty);
         }
 
-        ConcreteSchemaType resolvedVariant = schemaTypes.resolveConcrete(variant);
-        final var properties = collectProperties(resolvedVariant);
-        Schema<?> discriminatorSchema = properties.get(discriminatorProperty);
-        if (discriminatorSchema == null) {
-            return null;
-        }
-
-        ConcreteSchemaType concreteSchemaType = schemaTypes.resolveConcrete(discriminatorSchema);
-        SchemaInstance schemaInstance = concreteSchemaType.instances().getFirst();
-        final var resolvedProperty = schemaInstance.schema();
-        if (resolvedProperty.getEnum() != null && resolvedProperty.getEnum().size() == 1) {
-            return String.valueOf(resolvedProperty.getEnum().getFirst());
+        if (concreteSchemaType instanceof CompositeSchemaType compositeSchemaType) {
+            CompositeObjectPropertiesHelper compositeObjectPropertiesHelper = new CompositeObjectPropertiesHelper(schemaTypes);
+            CompositeObjectPropertiesHelper.Result result = compositeObjectPropertiesHelper.collectCompositeObjectProperties(compositeSchemaType);
+            if (result instanceof CompositeObjectPropertiesHelper.Result.Props props) {
+                final var property = props.properties().get(discriminatorProperty);
+                if (property != null) {
+                    return switch (property.schema()) {
+                        case StringEnumSchema enumSchema when enumSchema.enumValues().size() == 1 ->
+                                enumSchema.enumValues().getFirst();
+                        case IntegerEnumSchema enumSchema when enumSchema.enumValues().size() == 1 ->
+                                String.valueOf(enumSchema.enumValues().getFirst());
+                        case NumberEnumSchema enumSchema when enumSchema.enumValues().size() == 1 ->
+                                String.valueOf(enumSchema.enumValues().getFirst());
+                        default -> null;
+                    };
+                }
+            }
         }
         return null;
     }
 
-    @Nullable
-    private String inferDiscriminatorProperty(@Nullable List<Schema> variants) {
-        if (variants == null || variants.isEmpty()) {
+    private String inferDiscriminatorValueFromSchema(SimpleObjectSchema objectSchema, @Nullable String discriminatorProperty) {
+        if (objectSchema == null) {
             return null;
         }
-        Set<String> candidates = null;
-        for (Schema<?> variant : variants) {
-            final var resolvedConcrete = schemaTypes.resolveConcrete(variant);
-            final var properties = collectProperties(resolvedConcrete);
-            Set<String> localCandidates = new LinkedHashSet<>();
-            for (final var entry : properties.entrySet()) {
-                final var concreteProperty = schemaTypes.resolveConcrete(entry.getValue());
-                Schema<?> property = concreteProperty.instances().getFirst().schema();
-                if (property.getEnum() != null && property.getEnum().size() == 1) {
-                    localCandidates.add(entry.getKey());
-                }
-            }
-            if (candidates == null) {
-                candidates = new LinkedHashSet<>(localCandidates);
-            } else {
-                candidates.retainAll(localCandidates);
-            }
-            if (candidates.isEmpty()) {
-                return null;
-            }
-        }
-        if (candidates.contains("type")) {
-            return "type";
-        }
-        return candidates.stream().sorted().findFirst().orElse(null);
-    }
-
-    private Map<String, Schema> collectProperties(ConcreteSchemaType concreteSchemaType) {
-        return switch (concreteSchemaType) {
-            case GeneratedSchemaType generatedSchemaType -> switch (generatedSchemaType) {
-                case ObjectSchemaType objectSchemaType -> collectProperties(objectSchemaType.schema());
-                case EnumSchemaType enumSchemaType -> collectProperties(enumSchemaType.schema());
-                case UnionSchemaType unionSchemaType -> collectProperties(unionSchemaType.schema());
-                case CompositeSchemaType compositeSchemaType -> collectProperties(compositeSchemaType.schema());
-            };
-            case JavaSchemaType ignored -> Map.of();
-        };
-    }
-
-    private Map<String, Schema> collectProperties(Schema<?> schema) {
-        Map<String, Schema> properties = new LinkedHashMap<>();
-        if (schema.getAllOf() != null) {
-            for (Schema<?> part : schema.getAllOf()) {
-                final var partSchemaType = schemaTypes.resolveConcrete(part);
-                properties.putAll(collectProperties(partSchemaType));
-            }
-        }
-        if (schema.getProperties() != null) {
-            properties.putAll(schema.getProperties());
-        }
-        return properties;
-    }
-
-    private Set<String> collectRequired(ConcreteSchemaType concreteSchemaType) {
-        return switch (concreteSchemaType) {
-            case GeneratedSchemaType generatedSchemaType -> switch (generatedSchemaType) {
-                case ObjectSchemaType objectSchemaType -> collectRequired(objectSchemaType.schema());
-                case EnumSchemaType enumSchemaType -> collectRequired(enumSchemaType.schema());
-                case UnionSchemaType unionSchemaType -> collectRequired(unionSchemaType.schema());
-                case CompositeSchemaType compositeSchemaType -> collectRequired(compositeSchemaType.schema());
-            };
-            case JavaSchemaType ignored -> Set.of();
-        };
-    }
-
-    private Set<String> collectRequired(Schema<?> schema) {
-        Set<String> required = new LinkedHashSet<>();
-        if (schema.getAllOf() != null) {
-            for (Schema<?> part : schema.getAllOf()) {
-                final var partSchemaType = schemaTypes.resolveConcrete(part);
-                required.addAll(collectRequired(partSchemaType));
-            }
-        }
-        if (schema.getRequired() != null) {
-            required.addAll(schema.getRequired());
-        }
-        return required;
-    }
-
-    private EnumValueType resolveEnumValueType(Schema<?> schema) {
-        String type = SchemaUtil.schemaTypeName(schema);
-        if ("integer".equals(type)) {
-            return EnumValueType.INTEGER;
-        }
-        if ("number".equals(type)) {
-            return EnumValueType.NUMBER;
-        }
-        if ("boolean".equals(type)) {
-            return EnumValueType.BOOLEAN;
-        }
-        if ("string".equals(type)) {
-            return EnumValueType.STRING;
-        }
-        throw new IllegalStateException("Unsupported enum schema: " + type);
+        return objectSchema.properties().stream()
+                .filter(property -> property.propertyName().equals(discriminatorProperty))
+                .findFirst()
+                .map(property -> switch (property.schema()) {
+                    case StringEnumSchema enumSchema when enumSchema.enumValues().size() == 1 ->
+                            enumSchema.enumValues().getFirst();
+                    case IntegerEnumSchema enumSchema when enumSchema.enumValues().size() == 1 ->
+                            String.valueOf(enumSchema.enumValues().getFirst());
+                    case NumberEnumSchema enumSchema when enumSchema.enumValues().size() == 1 ->
+                            String.valueOf(enumSchema.enumValues().getFirst());
+                    default -> null;
+                })
+                .orElse(null);
     }
 }

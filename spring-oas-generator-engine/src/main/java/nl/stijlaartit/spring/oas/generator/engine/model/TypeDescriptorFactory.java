@@ -1,16 +1,25 @@
 package nl.stijlaartit.spring.oas.generator.engine.model;
 
-import io.swagger.v3.oas.models.media.Schema;
 import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
 import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
-import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaUtil;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.IntegerEnumSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.NumberEnumSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleBinarySchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleBooleanSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleIntegerSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleLongSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleNumberSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleStringSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.StringEnumSchema;
+import nl.stijlaartit.spring.oas.generator.engine.schematype.CompositeSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.GeneratedSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.JavaSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.ListSchemaType;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypes;
-import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public final class TypeDescriptorFactory {
 
@@ -23,56 +32,40 @@ public final class TypeDescriptorFactory {
     }
 
 
-    public TypeDescriptor build(Schema<?> schema) {
-        final var concreteSchema = schemaTypes.resolveConcrete(schema);
-
-        switch (concreteSchema) {
-            case GeneratedSchemaType generated -> {
-                return TypeDescriptor.qualified(modelsPackage, generated.name());
-            }
-            case ListSchemaType listType -> {
-                TypeDescriptor elementType = build(listType.itemInstance().schema());
-                return TypeDescriptor.list(elementType);
-            }
-            case JavaSchemaType ignored -> {
-                return resolvePrimitiveType(concreteSchema.schema());
-            }
-            case null, default -> {
+    public TypeDescriptor build(SimpleSchema schema) {
+        final var schemaType = schemaTypes.resolveConcrete(schema);
+        if (schemaType instanceof CompositeSchemaType compositeSchemaType) {
+            CompositeObjectPropertiesHelper compositeObjectPropertiesHelper = new CompositeObjectPropertiesHelper(schemaTypes);
+            CompositeObjectPropertiesHelper.Result result = compositeObjectPropertiesHelper.collectCompositeObjectProperties(compositeSchemaType);
+            if (result instanceof CompositeObjectPropertiesHelper.Result.Mixed) {
+                return TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Object"));
             }
         }
 
-        return resolvePrimitiveType(concreteSchema.schema());
-    }
+        final var concreteSchema = schemaTypes.resolveConcrete(schema);
 
-    private TypeDescriptor resolvePrimitiveType(Schema<?> schema) {
-        String type = SchemaUtil.schemaTypeName(schema);
-        String format = schema.getFormat();
-        return switch (type != null ? type : "") {
-            case "string" -> mapStringType(format);
-            case "integer" -> switch (format != null ? format : "") {
-                case "int64" -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Long"));
-                case "int32" -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Integer"));
-                default -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Integer"));
-            };
-            case "number" -> switch (format != null ? format : "") {
-                case "float" -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Float"));
-                case "double" -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Double"));
-                default -> TypeDescriptor.qualified("java.math", new JavaTypeName.Reserved("BigDecimal"));
-            };
-            case "boolean" -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Boolean"));
-            default -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Object"));
+        return switch (concreteSchema) {
+            case GeneratedSchemaType generated -> TypeDescriptor.qualified(modelsPackage, generated.name());
+            case ListSchemaType listType -> {
+                TypeDescriptor elementType = build(listType.itemInstance().schema());
+                yield TypeDescriptor.list(elementType);
+            }
+            case JavaSchemaType ignored -> resolvePrimitiveType(concreteSchema.schema());
         };
     }
 
-    private TypeDescriptor mapStringType(@Nullable String format) {
-        if (format == null) {
-            return TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("String"));
-        }
-        return switch (format) {
-            case "date" -> TypeDescriptor.qualified("java.time", new JavaTypeName.Generated("LocalDate"));
-            case "date-time" -> TypeDescriptor.qualified("java.time", new JavaTypeName.Generated("OffsetDateTime"));
-            case "uuid" -> TypeDescriptor.qualified("java.util", new JavaTypeName.Generated("UUID"));
-            default -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("String"));
+    private TypeDescriptor resolvePrimitiveType(SimpleSchema schema) {
+        return switch (schema) {
+            case SimpleStringSchema ignored -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("String"));
+            case StringEnumSchema ignored -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("String"));
+            case SimpleIntegerSchema ignored -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Integer"));
+            case SimpleLongSchema ignored -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Long"));
+            case IntegerEnumSchema ignored -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Integer"));
+            case SimpleNumberSchema ignored -> TypeDescriptor.qualified("java.math", new JavaTypeName.Reserved("BigDecimal"));
+            case NumberEnumSchema ignored -> TypeDescriptor.qualified("java.math", new JavaTypeName.Reserved("BigDecimal"));
+            case SimpleBinarySchema ignored -> TypeDescriptor.qualified("org.springframework.core.io", new JavaTypeName.Generated("Resource"));
+            case SimpleBooleanSchema ignored -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Boolean"));
+            default -> TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Object"));
         };
     }
 }

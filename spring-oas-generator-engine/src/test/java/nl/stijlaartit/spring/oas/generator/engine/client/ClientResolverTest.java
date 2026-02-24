@@ -3,9 +3,10 @@ package nl.stijlaartit.spring.oas.generator.engine.client;
 import nl.stijlaartit.spring.oas.generator.domain.file.ApiFile;
 import nl.stijlaartit.spring.oas.generator.domain.file.ApiHttpMethod;
 import nl.stijlaartit.spring.oas.generator.domain.file.ApiOperation;
-import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
+import nl.stijlaartit.spring.oas.generator.engine.OasSimplifier;
 import nl.stijlaartit.spring.oas.generator.domain.file.ParameterLocation;
 import nl.stijlaartit.spring.oas.generator.domain.file.ParameterModel;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
 import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
@@ -29,6 +30,7 @@ import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
+import io.swagger.v3.oas.models.SpecVersion;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypes;
 import org.junit.jupiter.api.Nested;
@@ -43,10 +45,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class ClientResolverTest {
 
     private List<ApiFile> resolveClient(OpenAPI openAPI) {
-        SchemaRegistry registry = SchemaRegistry.resolve(openAPI);
+        OasSimplifier oasSimplifier = new OasSimplifier(Logger.noOp());
+        final SimplifiedOas simplifiedOas = oasSimplifier.simplify(openAPI);
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
         final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
-        return new ClientResolver(Logger.noOp(), typeDescriptorFactory).resolve(openAPI);
+        return new ClientResolver(Logger.noOp(), typeDescriptorFactory).resolve(simplifiedOas);
     }
 
     @Nested
@@ -105,6 +109,26 @@ class ClientResolverTest {
 
             assertEquals(1, clients.size());
             assertEquals("UserAndAuthenticationApi", clients.getFirst().name());
+        }
+
+        @Test
+        void removesAllCharactersInvalidForJavaTypeNameWhenGeneratingApiName() {
+            OpenAPI openAPI = new OpenAPI();
+            Paths paths = new Paths();
+
+            PathItem pathItem = new PathItem();
+            Operation operation = new Operation()
+                    .operationId("uploadPhoto")
+                    .tags(List.of("1.Foto's.v2!"))
+                    .responses(new ApiResponses());
+            pathItem.setPost(operation);
+            paths.addPathItem("/photos/upload", pathItem);
+            openAPI.setPaths(paths);
+
+            List<ApiFile> clients = resolveClient(openAPI);
+
+            assertEquals(1, clients.size());
+            assertEquals("FotosV2Api", clients.getFirst().name());
         }
 
         @Test
@@ -237,7 +261,7 @@ class ClientResolverTest {
             );
 
             final var exception = assertThrows(IllegalArgumentException.class, () -> resolveClient(openAPI));
-            assertEquals("Parameter reference not found: #/components/parameters/offsetParam", exception.getMessage());
+            assertEquals("Parameter reference not found: offsetParam", exception.getMessage());
         }
 
         @Test
@@ -271,6 +295,7 @@ class ClientResolverTest {
                     "/articles", "get", "getArticles", "articles",
                     List.of(tagParam), null, null
             );
+            openAPI.setSpecVersion(SpecVersion.V31);
 
             List<ApiFile> clients = resolveClient(openAPI);
             ParameterModel param = clients.getFirst().getOperations().getFirst().parameters().getFirst();
@@ -290,6 +315,7 @@ class ClientResolverTest {
                     "/articles", "get", "getArticles", "articles",
                     List.of(tagParam), null, null
             );
+            openAPI.setSpecVersion(SpecVersion.V31);
 
             List<ApiFile> clients = resolveClient(openAPI);
             ParameterModel param = clients.getFirst().getOperations().getFirst().parameters().getFirst();
@@ -617,8 +643,6 @@ class ClientResolverTest {
             assertEquals(ApiHttpMethod.PATCH, ops.get(4).method());
         }
     }
-
-    // --- Helper methods ---
 
     private static Operation taggedOp(String operationId, String tag) {
         return new Operation()
