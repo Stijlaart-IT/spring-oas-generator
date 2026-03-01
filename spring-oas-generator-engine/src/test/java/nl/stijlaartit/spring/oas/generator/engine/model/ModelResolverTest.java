@@ -49,8 +49,8 @@ class ModelResolverTest {
         final SimplifiedOas simplifiedOas = oasSimplifier.simplify(openAPI);
         SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
-        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
-        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());
+        TypeInfoResolver typeInfoResolver = TypeInfoResolver.resolve(schemaTypes, "com.example.models");
+        ModelResolver resolver = new ModelResolver(schemaTypes, typeInfoResolver, Logger.noOp());
         return resolver.resolve();
     }
 
@@ -250,8 +250,8 @@ class ModelResolverTest {
         final SimplifiedOas simplifiedOas = oasSimplifier.simplify(openAPI);
         SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
-        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
-        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());
+        TypeInfoResolver typeInfoResolver = TypeInfoResolver.resolve(schemaTypes, "com.example.models");
+        ModelResolver resolver = new ModelResolver(schemaTypes, typeInfoResolver, Logger.noOp());
         List<ModelFile> models = resolver.resolve();
 
         assertThat(models).hasSize(1);
@@ -288,8 +288,8 @@ class ModelResolverTest {
         final SimplifiedOas simplifiedOas = oasSimplifier.simplify(openAPI);
         SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
-        TypeDescriptorFactory typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
-        ModelResolver resolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());
+        TypeInfoResolver typeInfoResolver = TypeInfoResolver.resolve(schemaTypes, "com.example.models");
+        ModelResolver resolver = new ModelResolver(schemaTypes, typeInfoResolver, Logger.noOp());
         List<ModelFile> models = resolver.resolve();
 
         assertEquals(3, models.size());

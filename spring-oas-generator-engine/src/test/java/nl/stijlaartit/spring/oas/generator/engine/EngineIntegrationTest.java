@@ -8,7 +8,7 @@ import nl.stijlaartit.spring.oas.generator.engine.client.ClientResolver;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.engine.model.ModelResolver;
-import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
+import nl.stijlaartit.spring.oas.generator.engine.model.TypeInfoResolver;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
@@ -39,10 +39,10 @@ public class EngineIntegrationTest {
         final var schemaTypeResolver = new SchemaTypeResolver(registry, nameProvider, logger);
         final var schemaTypes = schemaTypeResolver.resolve();
 
-        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, modelsPackage);
+        final var typeInfoResolver = TypeInfoResolver.resolve(schemaTypes, modelsPackage);
 
-        final var modelResolver = new ModelResolver(schemaTypes, typeDescriptorFactory, Logger.noOp());
-        final var clientResolver = new ClientResolver(logger, typeDescriptorFactory);
+        final var modelResolver = new ModelResolver(schemaTypes, typeInfoResolver, Logger.noOp());
+        final var clientResolver = new ClientResolver(logger, typeInfoResolver);
 
         final var utilityResolver = new UtilityResolver(modelsPackage, apiPackage);
 

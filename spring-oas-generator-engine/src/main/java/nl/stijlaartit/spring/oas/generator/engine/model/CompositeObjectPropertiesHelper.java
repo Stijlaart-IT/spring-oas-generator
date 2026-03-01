@@ -23,68 +23,11 @@ import java.util.Set;
 
 public class CompositeObjectPropertiesHelper {
 
-    sealed interface Result permits Result.Mixed, Result.Props {
-        record Mixed(JavaTypeName javaTypeName, String error) implements Result {
-        }
-
-        record Props(Map<String, ObjectProperty> properties, Set<String> requiredProperties) implements Result {
-            public Props {
-                Objects.requireNonNull(properties);
-                Objects.requireNonNull(requiredProperties);
-            }
-        }
-
-    }
-
     private final SchemaTypes schemaTypes;
 
     public CompositeObjectPropertiesHelper(SchemaTypes schemaTypes) {
         this.schemaTypes = schemaTypes;
     }
 
-    public Result collectCompositeObjectProperties(ConcreteSchemaType concreteSchemaType) {
-        return switch (concreteSchemaType) {
-            case GeneratedSchemaType generatedSchemaType -> switch (generatedSchemaType) {
-                case ObjectSchemaType objectSchemaType -> {
-                    if (objectSchemaType.schema() instanceof SimpleObjectSchema simpleObjectSchema) {
-                        final Map<String, ObjectProperty> props = new LinkedHashMap<>();
-                        for (ObjectProperty property : simpleObjectSchema.properties()) {
-                            props.put(property.propertyName(), property);
-                        }
-                        yield new Result.Props(props, new LinkedHashSet<>(simpleObjectSchema.requiredProperties()));
-                    }
-                    yield new Result.Props(Map.of(), Set.of());
-                }
-                case EnumSchemaType enumSchemaType -> new Result.Mixed(enumSchemaType.name(), "Enum not supported in composite types");
-                case UnionSchemaType unionSchemaType -> new Result.Mixed(unionSchemaType.name(), "Union not supported in composite types");
-                case CompositeSchemaType compositeSchemaType -> collectNestedProperties(compositeSchemaType.schema());
-            };
-            case JavaSchemaType ignored -> new Result.Mixed(ignored.name(), "Primitives not supported");
-        };
-    }
-
-    private Result collectNestedProperties(SimpleSchema schema) {
-        if (!(schema instanceof CompositeSchema compositeSchema)) {
-            return new Result.Props(Map.of(), Set.of());
-        }
-        List<SimpleSchema> allOf = Objects.requireNonNull(compositeSchema.components());
-        // Use a linked hashmap to preserve order
-        Map<String, ObjectProperty> properties = new LinkedHashMap<>();
-        Set<String> requiredProperties = new LinkedHashSet<>();
-        for (SimpleSchema part : allOf) {
-            final var partSchemaType = schemaTypes.resolveConcrete(part);
-            Result collectProperties = collectCompositeObjectProperties(partSchemaType);
-            switch (collectProperties) {
-                case Result.Mixed mixed -> {
-                    return mixed;
-                }
-                case Result.Props props -> {
-                    properties.putAll(props.properties());
-                    requiredProperties.addAll(props.requiredProperties());
-                }
-            }
-        }
-        return new Result.Props(properties, requiredProperties);
-    }
 
 }

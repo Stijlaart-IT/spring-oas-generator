@@ -17,7 +17,7 @@ import nl.stijlaartit.spring.oas.generator.engine.client.raw.ResponseBodyType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
-import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
+import nl.stijlaartit.spring.oas.generator.engine.model.TypeInfoResolver;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NamingUtil;
 import nl.stijlaartit.spring.oas.generator.engine.naming.OperationIdNaming;
 import nl.stijlaartit.spring.oas.generator.serialization.JavaIdentifierUtils;
@@ -31,11 +31,11 @@ public class ClientResolver {
 
     public static final TypeDescriptor SPRING_RESOURCE_TYPE_DESCRIPTOR = TypeDescriptor.qualified("org.springframework.core.io", new JavaTypeName.Generated("Resource"));
     private final Logger logger;
-    private final TypeDescriptorFactory typeDescriptorFactory;
+    private final TypeInfoResolver typeInfoResolver;
 
-    public ClientResolver(Logger logger, TypeDescriptorFactory typeDescriptorFactory) {
+    public ClientResolver(Logger logger, TypeInfoResolver typeInfoResolver) {
         this.logger = logger;
-        this.typeDescriptorFactory = typeDescriptorFactory;
+        this.typeInfoResolver = typeInfoResolver;
     }
 
 
@@ -60,24 +60,22 @@ public class ClientResolver {
                 .collect(Collectors.toSet());
 
         return tags.stream()
-                .map(tag -> apiFileFromTag(tag, generatableOperations, typeDescriptorFactory))
+                .map(tag -> apiFileFromTag(tag, generatableOperations))
                 .toList();
     }
 
-    private ApiFile apiFileFromTag(String tag, List<GeneratableOperation> operations,
-                                   TypeDescriptorFactory typeDescriptorFactory) {
+    private ApiFile apiFileFromTag(String tag, List<GeneratableOperation> operations) {
         final List<ApiOperation> apiOperations = operations
                 .stream()
                 .filter(operation -> operation.hasTag(tag))
-                .map(operation -> rawOperationToOperationModel(operation, typeDescriptorFactory))
+                .map(this::rawOperationToOperationModel)
                 .toList();
 
         String interfaceName = toPascalCase(removeInvalidTypeNameCharacters(tag)) + "Api";
         return new ApiFile(interfaceName, apiOperations);
     }
 
-    private ApiOperation rawOperationToOperationModel(GeneratableOperation operation,
-                                                      TypeDescriptorFactory typeDescriptorFactory) {
+    private ApiOperation rawOperationToOperationModel(GeneratableOperation operation) {
         String operationId = operation.operationId();
         final OperationName rawName = (operationId == null || operationId.isBlank()) ?
                 OperationName.pathAndMethod(operation.path(), operation.method())
@@ -88,20 +86,20 @@ public class ClientResolver {
             case RequestBodyType.Resource ignored -> SPRING_RESOURCE_TYPE_DESCRIPTOR;
             case RequestBodyType.Unknown ignored ->
                     TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Object"));
-            case RequestBodyType.Typed typed -> typeDescriptorFactory.build(typed.schema());
+            case RequestBodyType.Typed typed -> typeInfoResolver.get(typed.schema()).typeDescriptor();
         };
 
         TypeDescriptor responseType = switch (operation.responseBodyType()) {
             case ResponseBodyType.None ignored -> null;
             // TODO Missing Resource? or Unknown?
-            case ResponseBodyType.SchemaType typed -> typeDescriptorFactory.build(typed.schema());
+            case ResponseBodyType.SchemaType typed -> typeInfoResolver.get(typed.schema()).typeDescriptor();
         };
 
         return new ApiOperation(
                 methodNameFromOperationName(rawName),
                 toApiHttpMethod(operation.method()),
                 operation.path(),
-                operation.parameters().stream().map(param -> rawParameterToParameterModel(param, typeDescriptorFactory)).toList(),
+                operation.parameters().stream().map(this::rawParameterToParameterModel).toList(),
                 requestBodyType,
                 responseType,
                 operation.deprecated()
@@ -126,8 +124,7 @@ public class ClientResolver {
         })));
     }
 
-    private ParameterModel rawParameterToParameterModel(RawParameter parameter,
-                                                        TypeDescriptorFactory typeDescriptorFactory) {
+    private ParameterModel rawParameterToParameterModel(RawParameter parameter) {
         return new ParameterModel(
                 parameter.name(),
                 switch (parameter.location()) {
@@ -135,7 +132,7 @@ public class ClientResolver {
                     case QUERY -> ParameterLocation.QUERY;
                     case HEADER -> ParameterLocation.HEADER;
                 },
-                typeDescriptorFactory.build(parameter.schema()),
+                typeInfoResolver.get(parameter.schema()).typeDescriptor(),
                 parameter.required()
         );
     }

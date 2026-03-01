@@ -96,7 +96,7 @@ public final class SchemaTypeResolver {
                 SchemaRef ref = resolveRef(group.schema());
                 yield new RefSchemaType(group.instances(), ref);
             }
-            case CompositeSchema  compositeSchema -> {
+            case CompositeSchema compositeSchema -> {
                 if (compositeSchema.components().isEmpty()) {
                     logger.warn("AllOf schema without items");
                     yield new EmptySchemaType(group.instances());
@@ -105,7 +105,7 @@ public final class SchemaTypeResolver {
                     yield new DeferredSchemaType(group.instances(), single);
                 } else {
                     JavaTypeName name = nameProvider.resolveUniqueName(group.instances());
-                    yield new CompositeSchemaType(name, group.instances());
+                    yield new CompositeSchemaType(name, group.instances(), compositeSchema);
                 }
             }
             case UnionSchema unionSchema -> {

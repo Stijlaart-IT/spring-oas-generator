@@ -9,9 +9,9 @@ import nl.stijlaartit.spring.oas.generator.domain.file.ParameterModel;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.domain.file.TypeDescriptor;
-import nl.stijlaartit.spring.oas.generator.engine.model.TypeDescriptorFactory;
 import nl.stijlaartit.spring.oas.generator.domain.file.JavaMethodName;
 import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
+import nl.stijlaartit.spring.oas.generator.engine.model.TypeInfoResolver;
 import nl.stijlaartit.spring.oas.generator.engine.naming.NameProvider;
 import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -49,8 +49,8 @@ class ClientResolverTest {
         final SimplifiedOas simplifiedOas = oasSimplifier.simplify(openAPI);
         SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
         SchemaTypes schemaTypes = new SchemaTypeResolver(registry, NameProvider.create(), Logger.noOp()).resolve();
-        final var typeDescriptorFactory = new TypeDescriptorFactory(schemaTypes, "com.example.models");
-        return new ClientResolver(Logger.noOp(), typeDescriptorFactory).resolve(simplifiedOas);
+        final var typeInfoResolver = TypeInfoResolver.resolve(schemaTypes, "com.example.models");
+        return new ClientResolver(Logger.noOp(), typeInfoResolver).resolve(simplifiedOas);
     }
 
     @Nested
