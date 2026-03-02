@@ -1,6 +1,11 @@
 package nl.stijlaartit.spring.oas.generator.maven;
 
 import nl.stijlaartit.spring.oas.generator.engine.Generator;
+import nl.stijlaartit.spring.oas.generator.engine.GeneratorConfig;
+import nl.stijlaartit.spring.oas.generator.serialization.BuilderMode;
+import nl.stijlaartit.spring.oas.generator.serialization.JacksonVersion;
+import nl.stijlaartit.spring.oas.generator.serialization.NullWrapperSerializerConfig;
+import nl.stijlaartit.spring.oas.generator.serialization.RecordModelWriterConfig;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -20,6 +25,9 @@ public class GenerateMojo extends AbstractMojo {
 
     @Parameter(name = "outputPackage", property = "outputPackage", required = true)
     private String outputPackage;
+
+    @Parameter
+    private ModelConfiguration recordModel = new ModelConfiguration();
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
@@ -52,8 +60,24 @@ public class GenerateMojo extends AbstractMojo {
 
         Path outputDir = Path.of(project.getBuild().getDirectory(), "generated-sources");
         try {
+            BuilderMode builderMode = BuilderMode.parse(recordModel.builderMode())
+                    .orElseThrow(() -> new MojoExecutionException(
+                            "Invalid recordModel.builderMode: " + recordModel.builderMode()
+                                    + ". Allowed values: DISABLED, STRICT, RELAXED."
+                    ));
+            JacksonVersion jacksonVersion = JacksonVersion.parse(recordModel.jacksonVersion())
+                    .orElseThrow(() -> new MojoExecutionException(
+                            "Invalid recordModel.jacksonVersion: " + recordModel.jacksonVersion()
+                                    + ". Allowed values: 2, 3."
+                    ));
+            RecordModelWriterConfig recordModelWriterConfig =
+                    new RecordModelWriterConfig(builderMode, recordModel.disableJacksonRequired());
+            GeneratorConfig generatorConfig = new GeneratorConfig(specPath, outputDir, trimmedPackage)
+                    .withRecordModelWriterConfig(recordModelWriterConfig)
+                    .withNullWrapperSerializerConfig(new NullWrapperSerializerConfig(jacksonVersion));
+
             Files.createDirectories(outputDir);
-            new Generator(logger).generate(specPath, outputDir, trimmedPackage);
+            new Generator(logger).generate(generatorConfig);
             project.addCompileSourceRoot(outputDir.toString());
         } catch (Exception ex) {
             throw new MojoExecutionException("Failed to generate sources.", ex);

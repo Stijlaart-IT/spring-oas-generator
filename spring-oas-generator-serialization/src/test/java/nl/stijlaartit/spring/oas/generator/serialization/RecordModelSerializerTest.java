@@ -89,6 +89,24 @@ class RecordModelSerializerTest {
     }
 
     @Test
+    void disableJacksonRequiredForcesJsonPropertyRequiredFalse() {
+        RecordModelSerializer serializer = new RecordModelSerializer(
+                "com.example.models",
+                new RecordModelWriterConfig(BuilderMode.STRICT, true),
+                ImplementsByMapping.empty()
+        );
+        RecordModel model = new RecordModel(new JavaTypeName.Generated("User"), List.of(
+                new RecordField(new JavaParameterName("name"), "name",
+                        TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("String")), true, false, false)
+        ), false);
+
+        String source = serializer.toJavaFile(model).toString();
+
+        assertTrue(source.contains("@JsonProperty(required = false)"));
+        assertFalse(source.contains("@JsonProperty(required = true)"));
+    }
+
+    @Test
     void addsNullableForNullableProperty() {
         RecordModel model = new RecordModel(new JavaTypeName.Generated("User"), List.of(
                 new RecordField(new JavaParameterName("age"), "age",
@@ -280,7 +298,7 @@ class RecordModelSerializerTest {
     void builderStrictModeCanBeDisabled() {
         RecordModelSerializer relaxedWriter = new RecordModelSerializer(
                 "com.example.models",
-                new RecordModelWriterConfig(RecordModelWriterConfig.BuilderMode.RELAXED),
+                new RecordModelWriterConfig(BuilderMode.RELAXED),
                 ImplementsByMapping.empty()
         );
 

@@ -8,36 +8,38 @@ import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.ParameterizedTypeName;
-import com.palantir.javapoet.TypeVariableName;
 import com.palantir.javapoet.TypeSpec;
+import com.palantir.javapoet.TypeVariableName;
 import nl.stijlaartit.spring.oas.generator.domain.file.GenerationFile;
 import nl.stijlaartit.spring.oas.generator.domain.file.NullWrapperFile;
 
 import javax.lang.model.element.Modifier;
 
-public final class NullWrapperSerializer implements GenerationFileSerializer<NullWrapperFile> {
+public final class JacksonV2NullWrapperSerializer implements GenerationFileSerializer<NullWrapperFile> {
     private static final ClassName JSON_VALUE =
             ClassName.get("com.fasterxml.jackson.annotation", "JsonValue");
     private static final ClassName JSON_DESERIALIZE =
-            ClassName.get("tools.jackson.databind.annotation", "JsonDeserialize");
+            ClassName.get("com.fasterxml.jackson.databind.annotation", "JsonDeserialize");
     private static final ClassName NULLABLE =
             ClassName.get("org.jspecify.annotations", "Nullable");
     private static final ClassName JSON_PARSER =
-            ClassName.get("tools.jackson.core", "JsonParser");
+            ClassName.get("com.fasterxml.jackson.core", "JsonParser");
     private static final ClassName JSON_TOKEN =
-            ClassName.get("tools.jackson.core", "JsonToken");
+            ClassName.get("com.fasterxml.jackson.core", "JsonToken");
     private static final ClassName BEAN_PROPERTY =
-            ClassName.get("tools.jackson.databind", "BeanProperty");
+            ClassName.get("com.fasterxml.jackson.databind", "BeanProperty");
     private static final ClassName DESERIALIZATION_CONTEXT =
-            ClassName.get("tools.jackson.databind", "DeserializationContext");
+            ClassName.get("com.fasterxml.jackson.databind", "DeserializationContext");
     private static final ClassName JAVA_TYPE =
-            ClassName.get("tools.jackson.databind", "JavaType");
-    private static final ClassName VALUE_DESERIALIZER =
-            ClassName.get("tools.jackson.databind", "ValueDeserializer");
+            ClassName.get("com.fasterxml.jackson.databind", "JavaType");
+    private static final ClassName JSON_DESERIALIZER =
+            ClassName.get("com.fasterxml.jackson.databind", "JsonDeserializer");
+    private static final ClassName CONTEXTUAL_DESERIALIZER =
+            ClassName.get("com.fasterxml.jackson.databind.deser", "ContextualDeserializer");
 
     private final String modelsPackage;
 
-    public NullWrapperSerializer(String modelsPackage) {
+    public JacksonV2NullWrapperSerializer(String modelsPackage) {
         this.modelsPackage = modelsPackage;
     }
 
@@ -79,7 +81,7 @@ public final class NullWrapperSerializer implements GenerationFileSerializer<Nul
     }
 
     private TypeSpec deserializerType(ClassName nullWrapper) {
-        ParameterizedTypeName baseType = ParameterizedTypeName.get(VALUE_DESERIALIZER,
+        ParameterizedTypeName baseType = ParameterizedTypeName.get(JSON_DESERIALIZER,
                 ParameterizedTypeName.get(nullWrapper, ClassName.get("java.lang", "Object")));
 
         FieldSpec valueTypeField = FieldSpec.builder(JAVA_TYPE, "valueType", Modifier.PRIVATE, Modifier.FINAL)
@@ -131,7 +133,7 @@ public final class NullWrapperSerializer implements GenerationFileSerializer<Nul
         MethodSpec createContextual = MethodSpec.methodBuilder("createContextual")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
-                .returns(VALUE_DESERIALIZER)
+                .returns(JSON_DESERIALIZER)
                 .addParameter(DESERIALIZATION_CONTEXT, "ctxt")
                 .addParameter(BEAN_PROPERTY, "property")
                 .beginControlFlow("if (property == null)")
@@ -145,6 +147,7 @@ public final class NullWrapperSerializer implements GenerationFileSerializer<Nul
         return TypeSpec.classBuilder("Deserializer")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
                 .superclass(baseType)
+                .addSuperinterface(CONTEXTUAL_DESERIALIZER)
                 .addField(valueTypeField)
                 .addMethod(constructorDefault)
                 .addMethod(constructor)

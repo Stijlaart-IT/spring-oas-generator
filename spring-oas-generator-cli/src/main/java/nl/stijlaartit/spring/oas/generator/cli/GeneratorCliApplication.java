@@ -1,6 +1,7 @@
 package nl.stijlaartit.spring.oas.generator.cli;
 
 import nl.stijlaartit.spring.oas.generator.engine.Generator;
+import nl.stijlaartit.spring.oas.generator.engine.GeneratorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -60,6 +61,6 @@ public class GeneratorCliApplication implements CommandLineRunner {
         }
         final var logger = new Slf4jLogger(LOG);
 
-        new Generator(logger).generate(specPath, outputDir, trimmedPackage);
+        new Generator(logger).generate(new GeneratorConfig(specPath, outputDir, trimmedPackage));
     }
 }

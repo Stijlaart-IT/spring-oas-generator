@@ -14,25 +14,20 @@ import nl.stijlaartit.spring.oas.generator.engine.schemas.SchemaRegistry;
 import nl.stijlaartit.spring.oas.generator.engine.schematype.SchemaTypeResolver;
 import nl.stijlaartit.spring.oas.generator.engine.utility.UtilityResolver;
 import nl.stijlaartit.spring.oas.generator.serialization.ClientSerializer;
-import nl.stijlaartit.spring.oas.generator.serialization.ClientWriterConfig;
 import nl.stijlaartit.spring.oas.generator.serialization.EnumModelSerializer;
 import nl.stijlaartit.spring.oas.generator.serialization.GenerationFileSerializer;
 import nl.stijlaartit.spring.oas.generator.serialization.ImplementsByMapping;
-import nl.stijlaartit.spring.oas.generator.serialization.NullWrapperSerializer;
+import nl.stijlaartit.spring.oas.generator.serialization.JacksonV2NullWrapperSerializer;
+import nl.stijlaartit.spring.oas.generator.serialization.JacksonV3NullWrapperSerializer;
 import nl.stijlaartit.spring.oas.generator.serialization.PackageInfoSerializer;
 import nl.stijlaartit.spring.oas.generator.serialization.RecordModelSerializer;
-import nl.stijlaartit.spring.oas.generator.serialization.RecordModelWriterConfig;
 import nl.stijlaartit.spring.oas.generator.serialization.SerializedFile;
 import nl.stijlaartit.spring.oas.generator.serialization.UnionModelSerializer;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-
-import static io.swagger.v3.oas.models.SpecVersion.V30;
-import static io.swagger.v3.oas.models.SpecVersion.V31;
 
 public class Generator {
 
@@ -42,19 +37,15 @@ public class Generator {
         this.logger = logger;
     }
 
-    public void generate(Path specFile, Path outputDirectory, String outputPackage) throws Exception {
-        Objects.requireNonNull(specFile, "specFile");
-        Objects.requireNonNull(outputDirectory, "outputDirectory");
-        Objects.requireNonNull(outputPackage, "outputPackage");
+    public void generate(GeneratorConfig config) throws Exception {
+        String modelsPackage = config.outputPackage() + ".models";
+        String clientPackage = config.outputPackage() + ".client";
 
-        String modelsPackage = outputPackage + ".models";
-        String clientPackage = outputPackage + ".client";
-
-        SwaggerParseResult result = new OpenAPIV3Parser().readLocation(specFile.toString(), null, null);
+        SwaggerParseResult result = new OpenAPIV3Parser().readLocation(config.specFile().toString(), null, null);
         OpenAPI openAPI = result.getOpenAPI();
 
         if (openAPI == null) {
-            StringBuilder error = new StringBuilder("Failed to parse OpenAPI spec: " + specFile);
+            StringBuilder error = new StringBuilder("Failed to parse OpenAPI spec: " + config.specFile());
             if (result.getMessages() != null && !result.getMessages().isEmpty()) {
                 for (String message : result.getMessages()) {
                     error.append(System.lineSeparator()).append(message);
@@ -92,13 +83,18 @@ public class Generator {
         generationFiles.addAll(utilityFiles);
 
         ImplementsByMapping implementsByModel = ImplementsByMapping.create(generationFiles);
+        GenerationFileSerializer<? extends GenerationFile> nullWrapperSerializer =
+                switch (config.nullWrapperSerializerConfig().jacksonVersion()) {
+                    case V2 -> new JacksonV2NullWrapperSerializer(modelsPackage);
+                    case V3 -> new JacksonV3NullWrapperSerializer(modelsPackage);
+                };
         final var serializers = List.of(
-                new RecordModelSerializer(modelsPackage, RecordModelWriterConfig.defaultConfig(), implementsByModel),
+                new RecordModelSerializer(modelsPackage, config.recordModelWriterConfig(), implementsByModel),
                 new EnumModelSerializer(modelsPackage, implementsByModel),
                 new UnionModelSerializer(modelsPackage),
-                new ClientSerializer(clientPackage, modelsPackage, ClientWriterConfig.defaultConfig()),
+                new ClientSerializer(clientPackage, modelsPackage, config.clientWriterConfig()),
                 new PackageInfoSerializer(),
-                new NullWrapperSerializer(modelsPackage)
+                nullWrapperSerializer
         );
 
         final var serializedFiles = new ArrayList<SerializedFile>();
@@ -117,7 +113,7 @@ public class Generator {
         logger.info("Serialized [" + serializedFiles.size() + "] file(s)");
 
         for (SerializedFile serializedFile : serializedFiles) {
-            Path outputPath = serializedFile.writeTo(outputDirectory);
+            Path outputPath = serializedFile.writeTo(config.outputDirectory());
             logger.debug("Wrote to [" + outputPath + "]");
         }
 

@@ -1,14 +1,18 @@
 package nl.stijlaartit.spring.oas.generator.serialization;
 
-public record RecordModelWriterConfig(BuilderMode builderMode) {
+import java.util.Objects;
 
-    public static RecordModelWriterConfig defaultConfig() {
-        return new RecordModelWriterConfig(BuilderMode.STRICT);
+public record RecordModelWriterConfig(BuilderMode builderMode, boolean disableJacksonRequired) {
+
+    public RecordModelWriterConfig {
+        Objects.requireNonNull(builderMode, "builderMode");
     }
 
-    public enum BuilderMode {
-        DISABLED,
-        STRICT,
-        RELAXED
+    public RecordModelWriterConfig(BuilderMode builderMode) {
+        this(builderMode, false);
+    }
+
+    public static RecordModelWriterConfig defaultConfig() {
+        return new RecordModelWriterConfig(BuilderMode.STRICT, false);
     }
 }

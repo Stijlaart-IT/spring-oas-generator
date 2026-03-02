@@ -71,8 +71,9 @@ public class RecordModelSerializer implements GenerationFileSerializer<RecordMod
                 paramBuilder.addAnnotation(AnnotationSpec.builder(NULLABLE).build());
             }
 
+            boolean jsonRequired = !config.disableJacksonRequired() && field.required();
             AnnotationSpec.Builder jsonProperty = AnnotationSpec.builder(JSON_PROPERTY)
-                    .addMember("required", "$L", field.required());
+                    .addMember("required", "$L", jsonRequired);
             if (!field.name().value().equals(field.jsonName())) {
                 jsonProperty.addMember("value", "$S", field.jsonName());
             }
@@ -109,7 +110,7 @@ public class RecordModelSerializer implements GenerationFileSerializer<RecordMod
             }
         }
 
-        if (config.builderMode() != RecordModelWriterConfig.BuilderMode.DISABLED) {
+        if (config.builderMode() != BuilderMode.DISABLED) {
             recordBuilder.addMethod(builderMethod(model));
             recordBuilder.addType(builderType(model));
         }
@@ -193,7 +194,7 @@ public class RecordModelSerializer implements GenerationFileSerializer<RecordMod
     private MethodSpec builderBuildMethod(RecordModel model) {
         ClassName recordType = ClassName.get(modelsPackage, model.name());
         CodeBlock.Builder args = CodeBlock.builder();
-        boolean strictMode = config.builderMode() == RecordModelWriterConfig.BuilderMode.STRICT;
+        boolean strictMode = config.builderMode() == BuilderMode.STRICT;
         for (int i = 0; i < model.fields().size(); i++) {
             RecordField field = model.fields().get(i);
             if (i > 0) {
