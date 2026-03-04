@@ -89,6 +89,6 @@ public class RequiredAndNullableIntegrationTest {
 
 
         assertThat(response1).isEqualTo(body1);
-        assertThat(response2).isEqualTo(new RequiredAndNullable(null, "required", null, null));
+        assertThat(response2).isEqualTo(new RequiredAndNullable(null, "required", new NullWrapper<>(null), null));
     }
 }
