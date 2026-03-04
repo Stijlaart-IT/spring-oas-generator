@@ -4,5 +4,6 @@ petstore-validation/src/main/java/nl/stijlaartit/petstore/generated
 session-validation/src/main/java/nl/stijlaartit/session/generated
 inline-request-body-validation/src/main/java/nl/stijlaartit/inlinerequestbody/generated
 variants-validation/src/main/java/nl/stijlaartit/variants/generated
+variants-validation-jackson2/src/main/java/nl/stijlaartit/variants/jackson2/generated
 pokeapi-validation/src/main/java/nl/stijlaartit/pokeapi/generated
 petstore-validation-maven-plugin/target/generated-sources

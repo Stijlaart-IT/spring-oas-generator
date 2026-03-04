@@ -24,6 +24,7 @@
 
     <modules>
         <module>variants-validation</module>
+        <module>variants-validation-jackson2</module>
         <module>pokeapi-validation</module>
         <module>spotify-validation</module>
         <module>petstore-validation</module>

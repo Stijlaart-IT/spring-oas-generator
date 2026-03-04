@@ -14,6 +14,7 @@ import nl.stijlaartit.spring.oas.generator.domain.file.GenerationFile;
 import nl.stijlaartit.spring.oas.generator.domain.file.NullWrapperFile;
 
 import javax.lang.model.element.Modifier;
+import java.io.IOException;
 
 public final class JacksonV2NullWrapperSerializer implements GenerationFileSerializer<NullWrapperFile> {
     private static final ClassName JSON_VALUE =
@@ -102,7 +103,7 @@ public final class JacksonV2NullWrapperSerializer implements GenerationFileSeria
                 .addAnnotation(Override.class)
                 .addAnnotation(AnnotationSpec.builder(NULLABLE).build())
                 .addModifiers(Modifier.PUBLIC)
-                .returns(Object.class)
+                .returns(ParameterizedTypeName.get(nullWrapper, ClassName.get("java.lang", "Object")))
                 .addParameter(DESERIALIZATION_CONTEXT, "ctxt")
                 .addCode(CodeBlock.builder()
                         .beginControlFlow("if ($N.getParser().currentToken() == $T.VALUE_NULL)", "ctxt", JSON_TOKEN)
@@ -117,6 +118,7 @@ public final class JacksonV2NullWrapperSerializer implements GenerationFileSeria
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(ParameterizedTypeName.get(nullWrapper, ClassName.get("java.lang", "Object")))
+                .addException(IOException.class)
                 .addParameter(JSON_PARSER, "p")
                 .addParameter(DESERIALIZATION_CONTEXT, "ctxt")
                 .addCode(CodeBlock.builder()
