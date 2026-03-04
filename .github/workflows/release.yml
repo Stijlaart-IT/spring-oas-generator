@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - '*'
+  workflow_dispatch:
 
 jobs:
   release:
@@ -25,6 +26,11 @@ jobs:
 
           if [[ -z "$TAG" ]]; then
             echo "::error::No tag provided."
+            exit 1
+          fi
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.ref_type }}" != "tag" ]]; then
+            echo "::error::workflow_dispatch must be started from a tag ref, got ref '${{ github.ref }}' with type '${{ github.ref_type }}'."
             exit 1
           fi
 
