@@ -1,0 +1,73 @@
+name: Create GitHub Release
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing Git tag to release (for example: 0.1.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure manual runs use main
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::workflow_dispatch is only supported on the main branch."
+          exit 1
+
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+
+          if [[ -z "$TAG" ]]; then
+            echo "::error::No tag provided."
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout release tag
+        shell: bash
+        run: |
+          git rev-parse "refs/tags/${{ steps.tag.outputs.tag }}" >/dev/null
+          git checkout "refs/tags/${{ steps.tag.outputs.tag }}"
+
+      - name: Set up Java 21 + Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Set version from release tag
+        run: mvn versions:set -DnewVersion=${{ steps.tag.outputs.tag }}
+
+      - name: Run tests
+        run: mvn -B -ntp verify
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          files: spring-oas-generator-cli/target/spring-oas-generator-cli-*.jar

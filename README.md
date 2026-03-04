@@ -52,3 +52,5 @@ mvn -f example-validation/pom.xml test
 ## Dependency version management
 
 Dependency versions are managed centrally in the root `pom.xml` using the `<properties>` and `<dependencyManagement>` sections. Child modules declare dependencies without explicit versions.
+
+Release and publishing instructions are documented in `docs/maven-release.md`.
