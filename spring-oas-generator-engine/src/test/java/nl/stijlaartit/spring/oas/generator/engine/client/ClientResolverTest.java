@@ -454,6 +454,30 @@ class ClientResolverTest {
         }
 
         @Test
+        void resolvesResponseFromComponentsResponseRef() {
+            ApiResponses responses = new ApiResponses()
+                    .addApiResponse("200", new ApiResponse().$ref("#/components/responses/RefResponse"));
+            OpenAPI openAPI = openApiWithOperation(
+                    "/ref-response-body", "get", "getRefResponseBody", "default",
+                    List.of(), null, responses
+            );
+            openAPI.getComponents()
+                    .addResponses("RefResponse", new ApiResponse()
+                            .description("A ref response")
+                            .content(new Content()
+                                    .addMediaType("application/json",
+                                            new MediaType().schema(new ObjectSchema()
+                                                    .addProperty("refResponseDescription", new StringSchema())
+                                                    .addRequiredItem("refResponseDescription")))));
+
+            List<ApiFile> clients = resolveClient(openAPI);
+            ApiOperation operation = clients.getFirst().getOperations().getFirst();
+
+            assertEquals(new JavaMethodName("getRefResponseBody"), operation.name());
+            assertEquals(TypeDescriptor.qualified("com.example.models", new JavaTypeName.Generated("RefResponse")), operation.responseType());
+        }
+
+        @Test
         void ignores2xxWithoutBodyWhenSingleBodyPresent() {
             Schema<?> petRef = new Schema<>().$ref("#/components/schemas/Pet");
             ApiResponses responses = new ApiResponses()

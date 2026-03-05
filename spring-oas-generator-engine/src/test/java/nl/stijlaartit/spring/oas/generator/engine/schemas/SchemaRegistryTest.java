@@ -38,6 +38,7 @@ class SchemaRegistryTest {
         SimplifiedOas simplifiedOas = new SimplifiedOas(
                 Map.of("User", new SimpleStringSchema(false)),
                 Map.of(),
+                Map.of(),
                 List.of(),
                 Map.of()
         );
@@ -56,6 +57,7 @@ class SchemaRegistryTest {
         SimpleSchema rootSchema = objectSchema(new ObjectProperty("nested", nested));
         SimplifiedOas simplifiedOas = new SimplifiedOas(
                 Map.of("User", rootSchema),
+                Map.of(),
                 Map.of(),
                 List.of(),
                 Map.of()
@@ -78,6 +80,7 @@ class SchemaRegistryTest {
         SimplifiedOas simplifiedOas = new SimplifiedOas(
                 Map.of("Wrapper", wrapper),
                 Map.of(),
+                Map.of(),
                 List.of(),
                 Map.of()
         );
@@ -95,6 +98,7 @@ class SchemaRegistryTest {
         SimpleSchema wrapper = new UnionSchema(false, List.of(new SimpleStringSchema(false), new SimpleAnySchema(false)), null);
         SimplifiedOas simplifiedOas = new SimplifiedOas(
                 Map.of("Wrapper", wrapper),
+                Map.of(),
                 Map.of(),
                 List.of(),
                 Map.of()
@@ -119,6 +123,7 @@ class SchemaRegistryTest {
         SimplifiedOas simplifiedOas = new SimplifiedOas(
                 Map.of("Container", schema),
                 Map.of(),
+                Map.of(),
                 List.of(),
                 Map.of()
         );
@@ -133,6 +138,7 @@ class SchemaRegistryTest {
     @Test
     void collectsComponentParameterSchemas() {
         SimplifiedOas simplifiedOas = new SimplifiedOas(
+                Map.of(),
                 Map.of(),
                 Map.of("Limit", new SimpleStringSchema(false)),
                 List.of(),
@@ -158,7 +164,7 @@ class SchemaRegistryTest {
                 List.of(),
                 new SimpleStringSchema(false)
         );
-        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), Map.of(), List.of(operation), Map.of());
 
         SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
@@ -179,7 +185,7 @@ class SchemaRegistryTest {
                 List.of(new SimpleReponse("404", new SimpleStringSchema(false), ResponseMediaType.APPLICATION_JSON)),
                 null
         );
-        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), Map.of(), List.of(operation), Map.of());
 
         SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
@@ -201,7 +207,7 @@ class SchemaRegistryTest {
                 List.of(),
                 null
         );
-        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), Map.of(), List.of(operation), Map.of());
 
         SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
 
@@ -215,6 +221,7 @@ class SchemaRegistryTest {
     @Test
     void collectsSharedPathParameterSchemas() {
         SimplifiedOas simplifiedOas = new SimplifiedOas(
+                Map.of(),
                 Map.of(),
                 Map.of(),
                 List.of(),
@@ -235,7 +242,7 @@ class SchemaRegistryTest {
         List<SimpleSchema> components = new ArrayList<>();
         CompositeSchema schema = new CompositeSchema(false, components);
         components.add(schema);
-        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of("Node", schema), Map.of(), List.of(), Map.of());
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of("Node", schema), Map.of(), Map.of(), List.of(), Map.of());
 
         IllegalStateException ex = assertThrows(IllegalStateException.class,
                 () -> SchemaRegistry.resolve(simplifiedOas));

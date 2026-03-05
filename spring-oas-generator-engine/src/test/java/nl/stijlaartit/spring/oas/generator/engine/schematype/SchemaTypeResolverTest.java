@@ -185,6 +185,7 @@ class SchemaTypeResolverTest {
         SimplifiedOas simplifiedOas = new SimplifiedOas(
                 schemas,
                 Map.of(),
+                Map.of(),
                 List.of(),
                 Map.of()
         );

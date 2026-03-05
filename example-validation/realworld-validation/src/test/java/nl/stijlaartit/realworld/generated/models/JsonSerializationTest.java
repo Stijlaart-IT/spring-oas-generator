@@ -79,6 +79,14 @@ class JsonSerializationTest {
     }
 
     @Test
+    void singleCommentResponse() {
+        var profile = new Profile("jake", "I work at State Farm", "https://i.stack.imgur.com/xHWG8.jpg", false);
+        var comment = new Comment(1, "createdAt", "updatedAt", "It takes a Lifetime of training.", profile);
+        var original = new SingleCommentResponse(comment);
+        assertSerializesSymmetrical(original, SingleCommentResponse.class);
+    }
+
+    @Test
     void updateArticle() {
         var original = new UpdateArticle("Did you train your dragon?", "Ever wonder how?", "Updated body");
         assertSerializesSymmetrical(original, UpdateArticle.class);

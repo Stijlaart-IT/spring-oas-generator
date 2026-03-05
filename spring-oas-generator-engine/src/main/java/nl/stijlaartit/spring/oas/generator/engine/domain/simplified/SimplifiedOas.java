@@ -6,13 +6,14 @@ import java.util.Objects;
 
 public record SimplifiedOas(
         Map<String, SimpleSchema> componentSchema,
+        Map<String, SimpleSchema> componentResponses,
         Map<String, SimpleSchema> componentParameters,
         List<SimplifiedOperation> operations,
         Map<String, List<SimpleParam>> pathParams
 ) {
-
     public SimplifiedOas {
         Objects.requireNonNull(componentSchema);
+        Objects.requireNonNull(componentResponses);
         Objects.requireNonNull(componentParameters);
         Objects.requireNonNull(operations);
         Objects.requireNonNull(pathParams);

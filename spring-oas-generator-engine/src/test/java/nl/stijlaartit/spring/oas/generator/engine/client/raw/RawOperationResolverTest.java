@@ -74,7 +74,7 @@ class RawOperationResolverTest {
                 null
         );
 
-        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), Map.of(), List.of(operation), Map.of());
         RawOperationResolver resolver = new RawOperationResolver(Logger.noOp(), simplifiedOas);
 
         List<RawOperation> operations = resolver.resolve();
@@ -104,7 +104,7 @@ class RawOperationResolverTest {
                 null
         );
 
-        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), Map.of(), List.of(operation), Map.of());
         RawOperationResolver resolver = new RawOperationResolver(Logger.noOp(), simplifiedOas);
 
         List<RawOperation> operations = resolver.resolve();
@@ -132,6 +132,6 @@ class RawOperationResolverTest {
                 responses,
                 null
         );
-        return new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
+        return new SimplifiedOas(Map.of(), Map.of(), Map.of(), List.of(operation), Map.of());
     }
 }

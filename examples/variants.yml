@@ -3,6 +3,12 @@ info:
   title: Variants Example
   version: 0.0.0
 paths:
+  /ref-response-body:
+    get:
+      operationId: getRefResponseBody
+      responses:
+        '200':
+          $ref: '#/components/responses/RefResponse'
   /inline-request-body:
     put:
       requestBody:
@@ -38,6 +44,18 @@ paths:
                       type: string
           description: "Ok"
 components:
+  responses:
+    RefResponse:
+      description: A ref response
+      content:
+        application/json:
+          schema:
+            required:
+              - refResponseDescription
+            type: object
+            properties:
+              refResponseDescription:
+                type: string
   schemas:
     RequiredAndNullable:
       type: object

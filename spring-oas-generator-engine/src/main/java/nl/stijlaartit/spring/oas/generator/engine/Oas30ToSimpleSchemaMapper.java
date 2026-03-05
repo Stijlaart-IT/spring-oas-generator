@@ -14,6 +14,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.parameters.RequestBody;
+import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import nl.stijlaartit.spring.oas.generator.engine.domain.HttpMethod;
 import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
@@ -72,11 +73,12 @@ public final class Oas30ToSimpleSchemaMapper {
         Objects.requireNonNull(openAPI);
 
         final Map<String, SimpleSchema> componentSchemas = resolveComponentSchemas(openAPI);
+        final Map<String, SimpleSchema> componentResponses = resolveComponentResponseSchemas(openAPI, componentSchemas);
         final Map<String, SimpleSchema> componentParameters = resolveComponentParameters(openAPI);
         final Map<String, List<SimpleParam>> pathParams = new LinkedHashMap<>();
         final List<SimplifiedOperation> operations = resolveOperations(openAPI, pathParams);
 
-        return new SimplifiedOas(componentSchemas, componentParameters, operations, pathParams);
+        return new SimplifiedOas(componentSchemas, componentResponses, componentParameters, operations, pathParams);
     }
 
     private Map<String, SimpleSchema> resolveComponentSchemas(OpenAPI openAPI) {
@@ -92,6 +94,35 @@ public final class Oas30ToSimpleSchemaMapper {
             }
             final var path = SchemaPath.forRoot(PathRoot.componentSchema(entry.getKey()));
             mapped.put(entry.getKey(), mapSchema(schema, path));
+        }
+        return mapped;
+    }
+
+    private Map<String, SimpleSchema> resolveComponentResponseSchemas(OpenAPI openAPI, Map<String, SimpleSchema> componentSchemas) {
+        final Map<String, SimpleSchema> mapped = new LinkedHashMap<>();
+        if (openAPI.getComponents() == null || openAPI.getComponents().getResponses() == null) {
+            return mapped;
+        }
+
+        for (var entry : openAPI.getComponents().getResponses().entrySet()) {
+            if (componentSchemas.containsKey(entry.getKey())) {
+                continue;
+            }
+            final ApiResponse resolved = resolveResponseRef(openAPI, entry.getValue());
+            if (resolved == null) {
+                continue;
+            }
+            final List<ResolvedContent> resolvedContents = resolveContentSchemas(resolved.getContent());
+            if (resolvedContents.isEmpty()) {
+                continue;
+            }
+            final ResolvedContent firstContent = resolvedContents.getFirst();
+            final var path = SchemaPath.forRoot(PathRoot.componentSchema(entry.getKey()));
+            final SimpleSchema schema = firstContent.mediaType() == ResponseMediaType.APPLICATION_OCTET_STREAM
+                    && isBinaryStringSchema(firstContent.schema())
+                    ? new SimpleBinarySchema(isNullable(firstContent.schema()))
+                    : mapSchema(firstContent.schema(), path);
+            mapped.put(entry.getKey(), schema);
         }
         return mapped;
     }
@@ -161,13 +192,13 @@ public final class Oas30ToSimpleSchemaMapper {
                 ? Set.of("default")
                 : new LinkedHashSet<>(operation.getTags());
         final List<SimpleParam> params = mapParams(openAPI, operation.getParameters(), false);
-        final List<SimpleReponse> responses = mapResponses(operationName, operation.getResponses());
+        final List<SimpleReponse> responses = mapResponses(openAPI, operationName, operation.getResponses());
         final SimpleSchema requestBody = mapRequestBody(operationName, operation.getRequestBody());
 
         operations.add(new SimplifiedOperation(path, method, operationId, tags, params, responses, requestBody));
     }
 
-    private List<SimpleReponse> mapResponses(OperationName operationName, @Nullable ApiResponses responses) {
+    private List<SimpleReponse> mapResponses(OpenAPI openAPI, OperationName operationName, @Nullable ApiResponses responses) {
         if (responses == null) {
             return List.of();
         }
@@ -175,17 +206,28 @@ public final class Oas30ToSimpleSchemaMapper {
         final List<SimpleReponse> mapped = new ArrayList<>();
         for (var entry : responses.entrySet()) {
             final String status = entry.getKey();
-            final var response = entry.getValue();
+            final ApiResponse response = resolveResponseRef(openAPI, entry.getValue());
             if (response == null) {
                 continue;
             }
             final List<ResolvedContent> resolvedContents = resolveContentSchemas(response.getContent());
+            final SchemaRef responseRef = entry.getValue() != null && entry.getValue().get$ref() != null
+                    ? SchemaRef.parseFromRefValue(entry.getValue().get$ref())
+                    : null;
             for (ResolvedContent resolvedContent : resolvedContents) {
-                final SchemaPath path = SchemaPath.forRoot(PathRoot.responseBody(operationName, status));
-                final SimpleSchema schema = resolvedContent.mediaType() == ResponseMediaType.APPLICATION_OCTET_STREAM
-                        && isBinaryStringSchema(resolvedContent.schema())
-                        ? new SimpleBinarySchema(isNullable(resolvedContent.schema()))
-                        : mapSchema(resolvedContent.schema(), path);
+                final SimpleSchema schema;
+                if (responseRef != null) {
+                    if (!"responses".equals(responseRef.type())) {
+                        throw new IllegalArgumentException("Only component response refs are supported: " + entry.getValue().get$ref());
+                    }
+                    schema = new RefSchema(false, new SchemaRef("schemas", responseRef.name()));
+                } else {
+                    final SchemaPath path = SchemaPath.forRoot(PathRoot.responseBody(operationName, status));
+                    schema = resolvedContent.mediaType() == ResponseMediaType.APPLICATION_OCTET_STREAM
+                            && isBinaryStringSchema(resolvedContent.schema())
+                            ? new SimpleBinarySchema(isNullable(resolvedContent.schema()))
+                            : mapSchema(resolvedContent.schema(), path);
+                }
                 mapped.add(new SimpleReponse(status, schema, resolvedContent.mediaType()));
             }
         }
@@ -270,6 +312,34 @@ public final class Oas30ToSimpleSchemaMapper {
             current = componentParameters.get(ref.name());
             if (current == null) {
                 throw new IllegalArgumentException("Parameter reference not found: " + ref.name());
+            }
+        }
+        return current;
+    }
+
+    private ApiResponse resolveResponseRef(OpenAPI openAPI, ApiResponse response) {
+        if (response == null || response.get$ref() == null) {
+            return response;
+        }
+
+        final Map<String, ApiResponse> componentResponses = openAPI.getComponents() == null
+                || openAPI.getComponents().getResponses() == null
+                ? Map.of()
+                : openAPI.getComponents().getResponses();
+
+        ApiResponse current = response;
+        Set<SchemaRef> visitedRefs = new HashSet<>();
+        while (current.get$ref() != null) {
+            final SchemaRef ref = SchemaRef.parseFromRefValue(current.get$ref());
+            if (!"responses".equals(ref.type())) {
+                throw new IllegalArgumentException("Only component response refs are supported: " + current.get$ref());
+            }
+            if (!visitedRefs.add(ref)) {
+                throw new IllegalArgumentException("Circular response reference detected: " + ref.name());
+            }
+            current = componentResponses.get(ref.name());
+            if (current == null) {
+                throw new IllegalArgumentException("Response reference not found: " + ref.name());
             }
         }
         return current;

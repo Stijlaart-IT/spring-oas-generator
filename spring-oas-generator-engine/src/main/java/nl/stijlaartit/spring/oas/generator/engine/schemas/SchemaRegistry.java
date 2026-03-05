@@ -45,6 +45,15 @@ public final class SchemaRegistry {
             collect(simpleSchema, schemaPath, instances, visiting);
         }
 
+        for (var entry : simplifiedOas.componentResponses().entrySet()) {
+            SimpleSchema simpleSchema = entry.getValue();
+            if (simpleSchema == null) {
+                continue;
+            }
+            SchemaPath schemaPath = SchemaPath.forRoot(PathRoot.componentSchema(entry.getKey()));
+            collect(simpleSchema, schemaPath, instances, visiting);
+        }
+
         for (var entry : simplifiedOas.componentParameters().entrySet()) {
             SimpleSchema parameterSchema = entry.getValue();
             if (parameterSchema == null) {

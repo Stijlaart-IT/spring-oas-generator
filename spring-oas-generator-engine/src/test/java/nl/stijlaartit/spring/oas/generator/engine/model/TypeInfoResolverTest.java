@@ -224,6 +224,7 @@ class TypeInfoResolverTest {
         SimplifiedOas simplifiedOas = new SimplifiedOas(
                 new LinkedHashMap<>(components),
                 Map.of(),
+                Map.of(),
                 List.of(),
                 Map.of()
         );
