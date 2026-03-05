@@ -1,6 +1,7 @@
 package nl.stijlaartit.spring.oas.generator.engine.client.raw;
 
 import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ResponseMediaType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleBinarySchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleParam;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleReponse;
@@ -8,6 +9,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOperation;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
+import nl.stijlaartit.spring.oas.generator.engine.naming.OperationIdNaming;
 import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
@@ -29,17 +31,17 @@ public class RawOperationResolver {
     public List<RawOperation> resolve() {
         List<RawOperation> operations = new ArrayList<>();
         for (SimplifiedOperation operation : simplifiedOas.operations()) {
-            operations.add(buildGeneratableOperation(operation));
+            operations.addAll(buildGeneratableOperations(operation));
         }
         return List.copyOf(operations);
     }
 
-    private GeneratableOperation buildGeneratableOperation(SimplifiedOperation operation) {
+    private List<GeneratableOperation> buildGeneratableOperations(SimplifiedOperation operation) {
         List<String> tags = operation.tags().isEmpty()
                 ? List.of("default")
                 : operation.tags().stream().sorted().toList();
         List<RawParameter> parameters = resolveParameters(operation.path(), operation.params());
-        String operationId = operation.operationId();
+        String operationId = normalizeOperationId(operation.operationId());
 
         final var operationName = operation.operationId() == null
                 ? OperationName.pathAndMethod(operation.path(), operation.method())
@@ -50,9 +52,53 @@ public class RawOperationResolver {
                 : operation.requestBody() instanceof SimpleBinarySchema
                 ? new RequestBodyType.Resource()
                 : new RequestBodyType.Typed(operation.requestBody());
-        ResponseBodyType responseBodyType = resolveResponseType(operationName, operation.responses());
+        ResponseBodyType jsonResponseType = resolveResponseType(
+                operationName,
+                operation.responses(),
+                ResponseMediaType.APPLICATION_JSON
+        );
+        ResponseBodyType octetResponseType = resolveResponseType(
+                operationName,
+                operation.responses(),
+                ResponseMediaType.APPLICATION_OCTET_STREAM
+        );
 
-        return new GeneratableOperation(
+        boolean hasJsonResponse = jsonResponseType instanceof ResponseBodyType.SchemaType;
+        boolean hasBinaryResponse = octetResponseType instanceof ResponseBodyType.SchemaType;
+
+        if (hasJsonResponse && hasBinaryResponse) {
+            String binaryOperationId = binaryOperationId(operation);
+            return List.of(
+                    new GeneratableOperation(
+                            operation.path(),
+                            operation.method(),
+                            operationId,
+                            parameters,
+                            requestBodyType,
+                            jsonResponseType,
+                            tags,
+                            false
+                    ),
+                    new GeneratableOperation(
+                            operation.path(),
+                            operation.method(),
+                            binaryOperationId,
+                            parameters,
+                            requestBodyType,
+                            octetResponseType,
+                            tags,
+                            false
+                    )
+            );
+        }
+
+        ResponseBodyType responseBodyType = hasJsonResponse
+                ? jsonResponseType
+                : hasBinaryResponse
+                ? octetResponseType
+                : resolveResponseType(operationName, operation.responses(), ResponseMediaType.UNKNOWN);
+
+        return List.of(new GeneratableOperation(
                 operation.path(),
                 operation.method(),
                 operationId,
@@ -61,11 +107,13 @@ public class RawOperationResolver {
                 responseBodyType,
                 tags,
                 false
-        );
+        ));
     }
 
     @NonNull
-    private ResponseBodyType resolveResponseType(OperationName operationName, List<SimpleReponse> responses) {
+    private ResponseBodyType resolveResponseType(OperationName operationName,
+                                                 List<SimpleReponse> responses,
+                                                 ResponseMediaType mediaType) {
         SimpleReponse responseWithBody = null;
         String responseWithBodyCode = null;
         Optional<SimpleSchema> responseWithBodySchema = null;
@@ -76,15 +124,22 @@ public class RawOperationResolver {
             if (code == null || !code.startsWith("2")) {
                 continue;
             }
+            if (mediaType != ResponseMediaType.UNKNOWN && response.mediaType() != mediaType) {
+                continue;
+            }
             successCodes.add(code);
             Optional<SimpleSchema> statusContentSchema = Optional.of(response.schema());
             if (responseWithBody != null) {
                 if (statusContentSchema.equals(responseWithBodySchema)) {
-                    logger.warn("Operation '" + operationName.format() + "' defines multiple 2xx responses with same body. Using first response body.");
+                    logger.warn("Operation '" + operationName.format()
+                            + "' defines multiple 2xx responses with same body"
+                            + mediaTypeMessageSuffix(mediaType)
+                            + ". Using first response body.");
                     continue;
                 }
                 throw new IllegalArgumentException("Multiple 2xx responses with body defined for operation '"
-                        + operationName.format() + "': " + responseWithBodyCode + " and " + code);
+                        + operationName.format() + "'" + mediaTypeMessageSuffix(mediaType)
+                        + ": " + responseWithBodyCode + " and " + code);
             }
             responseWithBody = response;
             responseWithBodyCode = code;
@@ -93,14 +148,34 @@ public class RawOperationResolver {
 
         if (responseWithBody != null && successCodes.size() > 1) {
             logger.warn("Operation '" + operationName.format()
-                    + "' defines multiple 2xx responses. Using response " + responseWithBodyCode + ".");
-            return new ResponseBodyType.SchemaType(responseWithBody.schema());
+                    + "' defines multiple 2xx responses" + mediaTypeMessageSuffix(mediaType)
+                    + ". Using response " + responseWithBodyCode + ".");
+            return new ResponseBodyType.SchemaType(responseWithBody.schema(), responseWithBody.mediaType());
         }
 
         if (responseWithBody != null) {
-            return new ResponseBodyType.SchemaType(responseWithBody.schema());
+            return new ResponseBodyType.SchemaType(responseWithBody.schema(), responseWithBody.mediaType());
         }
         return new ResponseBodyType.None();
+    }
+
+    private static String mediaTypeMessageSuffix(ResponseMediaType mediaType) {
+        if (!mediaType.isKnown()) {
+            return "";
+        }
+        return " for media type " + mediaType.value();
+    }
+
+    private static String normalizeOperationId(String operationId) {
+        return (operationId == null || operationId.isBlank()) ? null : operationId;
+    }
+
+    private static String binaryOperationId(SimplifiedOperation operation) {
+        String base = normalizeOperationId(operation.operationId());
+        if (base == null) {
+            base = OperationIdNaming.fallbackOperationId(operation.method(), operation.path());
+        }
+        return base + "Binary";
     }
 
     private List<RawParameter> resolveParameters(String path, List<SimpleParam> operationParameters) {

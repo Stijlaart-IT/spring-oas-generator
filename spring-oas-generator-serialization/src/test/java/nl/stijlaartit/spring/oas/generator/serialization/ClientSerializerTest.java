@@ -355,4 +355,24 @@ class ClientSerializerTest {
         assertTrue(source.contains("@Deprecated"));
         assertTrue(source.contains("void deletePet("));
     }
+
+    @Test
+    void includesAcceptPropertyWhenProvided() {
+        ApiFile client = new ApiFile("FileApi", List.of(
+                new ApiOperation(new JavaMethodName("getFileBinary"), ApiHttpMethod.GET,
+                        "/files/{id}",
+                        List.of(new ParameterModel("id",
+                                ParameterLocation.PATH,
+                                TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("String")), true)),
+                        null,
+                        TypeDescriptor.qualified("org.springframework.core.io", new JavaTypeName.Generated("Resource")),
+                        "application/octet-stream",
+                        false)
+        ));
+
+        String source = writer.toJavaFile(client).toString();
+
+        assertTrue(source.contains("@GetExchange("));
+        assertTrue(source.contains("accept = \"application/octet-stream\""));
+    }
 }

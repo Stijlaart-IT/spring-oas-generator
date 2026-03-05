@@ -25,6 +25,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ParamIn;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.RefSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.IntegerEnumSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.NumberEnumSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ResponseMediaType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleAnySchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleArraySchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleBinarySchema;
@@ -165,6 +166,7 @@ class Oas30ToSimpleSchemaMapperTest {
         assertEquals(1, operation.responses().size());
         SimpleReponse ok = operation.responses().getFirst();
         assertEquals("200", ok.status());
+        assertEquals(ResponseMediaType.APPLICATION_JSON, ok.mediaType());
         RefSchema responseRef = assertInstanceOf(RefSchema.class, ok.schema());
         assertEquals(new SchemaRef("schemas", "Pet"), responseRef.ref());
 
@@ -317,6 +319,30 @@ class Oas30ToSimpleSchemaMapperTest {
         assertThat(simplified.operations()).hasSize(1);
         assertThat(simplified.operations().getFirst().requestBody())
                 .isEqualTo(new SimpleBinarySchema(false));
+    }
+
+    @Test
+    void resolve_mapsJsonAndOctetStreamResponsesAsSeparateEntries() {
+        ApiResponses responses = new ApiResponses()
+                .addApiResponse("200", new ApiResponse().content(new Content()
+                        .addMediaType("application/json", new MediaType().schema(new StringSchema()))
+                        .addMediaType("application/octet-stream", new MediaType().schema(new StringSchema().format("binary")))));
+
+        Operation getFile = new Operation()
+                .operationId("getFile")
+                .responses(responses);
+
+        OpenAPI openAPI = new OpenAPI()
+                .paths(new Paths().addPathItem("/files/{id}", new PathItem().get(getFile)));
+
+        SimplifiedOas simplified = mapper.resolve(openAPI);
+        assertThat(simplified.operations()).hasSize(1);
+        List<SimpleReponse> mappedResponses = simplified.operations().getFirst().responses();
+        assertThat(mappedResponses).hasSize(2);
+        assertThat(mappedResponses).extracting(SimpleReponse::mediaType)
+                .containsExactlyInAnyOrder(ResponseMediaType.APPLICATION_JSON, ResponseMediaType.APPLICATION_OCTET_STREAM);
+        assertThat(mappedResponses).extracting(SimpleReponse::schema)
+                .anyMatch(SimpleBinarySchema.class::isInstance);
     }
 
     private static final class CapturingLogger implements Logger {

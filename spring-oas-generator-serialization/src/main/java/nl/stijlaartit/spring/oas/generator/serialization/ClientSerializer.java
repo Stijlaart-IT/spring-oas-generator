@@ -90,7 +90,7 @@ public class ClientSerializer implements GenerationFileSerializer<ApiFile> {
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addAnnotation(exchangeAnnotation(operation.method(), operation.path()));
+                .addAnnotation(exchangeAnnotation(operation.method(), operation.path(), operation.accept()));
 
         if (operation.deprecated()) {
             methodBuilder.addAnnotation(Deprecated.class);
@@ -141,7 +141,7 @@ public class ClientSerializer implements GenerationFileSerializer<ApiFile> {
         return baseType;
     }
 
-    private AnnotationSpec exchangeAnnotation(ApiHttpMethod method, String path) {
+    private AnnotationSpec exchangeAnnotation(ApiHttpMethod method, String path, String accept) {
         ClassName annotationType = switch (method) {
             case GET -> GET_EXCHANGE;
             case POST -> POST_EXCHANGE;
@@ -149,9 +149,12 @@ public class ClientSerializer implements GenerationFileSerializer<ApiFile> {
             case DELETE -> DELETE_EXCHANGE;
             case PATCH -> PATCH_EXCHANGE;
         };
-        return AnnotationSpec.builder(annotationType)
-                .addMember("value", "$S", path)
-                .build();
+        AnnotationSpec.Builder annotationBuilder = AnnotationSpec.builder(annotationType)
+                .addMember("value", "$S", path);
+        if (accept != null && !accept.isBlank()) {
+            annotationBuilder.addMember("accept", "$S", accept);
+        }
+        return annotationBuilder.build();
     }
 
     private ParameterSpec toParameterSpec(ParameterModel param) {

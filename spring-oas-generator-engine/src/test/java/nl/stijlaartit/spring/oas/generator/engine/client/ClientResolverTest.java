@@ -611,6 +611,32 @@ class ClientResolverTest {
 
             assertEquals(TypeDescriptor.qualified("com.example.models", new JavaTypeName.Generated("GetUserStatus200Response")), response);
         }
+
+        @Test
+        void createsJsonAndBinaryMethodsWhenBothResponseMediaTypesExist() {
+            ApiResponses responses = new ApiResponses()
+                    .addApiResponse("200", new ApiResponse()
+                            .content(new Content()
+                                    .addMediaType("application/json",
+                                            new MediaType().schema(new StringSchema()))
+                                    .addMediaType("application/octet-stream",
+                                            new MediaType().schema(new StringSchema().format("binary")))));
+
+            OpenAPI openAPI = openApiWithOperation(
+                    "/files/{id}", "get", "getFile", "files",
+                    List.of(pathParam("id", "string", null)),
+                    null, responses
+            );
+
+            List<ApiFile> clients = resolveClient(openAPI);
+            assertEquals(1, clients.size());
+            List<ApiOperation> operations = clients.getFirst().getOperations();
+            assertEquals(2, operations.size());
+            assertTrue(operations.stream().anyMatch(op -> op.name().equals(new JavaMethodName("getFile"))));
+            assertTrue(operations.stream().anyMatch(op -> op.name().equals(new JavaMethodName("getFileBinary"))));
+            assertTrue(operations.stream().anyMatch(op -> "application/json".equals(op.accept())));
+            assertTrue(operations.stream().anyMatch(op -> "application/octet-stream".equals(op.accept())));
+        }
     }
 
     @Nested

@@ -2,6 +2,7 @@ package nl.stijlaartit.spring.oas.generator.engine.client.raw;
 
 import nl.stijlaartit.spring.oas.generator.engine.domain.HttpMethod;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ParamIn;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ResponseMediaType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleIntegerSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleParam;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleReponse;
@@ -17,6 +18,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class RawOperationResolverTest {
 
@@ -26,8 +28,8 @@ class RawOperationResolverTest {
         SimpleSchema schema201 = new SimpleStringSchema(false);
 
         List<SimpleReponse> responses = List.of(
-                new SimpleReponse("200", schema200),
-                new SimpleReponse("201", schema201)
+                new SimpleReponse("200", schema200, ResponseMediaType.APPLICATION_JSON),
+                new SimpleReponse("201", schema201, ResponseMediaType.APPLICATION_JSON)
         );
 
         SimplifiedOas simplifiedOas = oasWithResponses("getThings", responses);
@@ -42,13 +44,14 @@ class RawOperationResolverTest {
 
         ResponseBodyType.SchemaType responseBodyType = (ResponseBodyType.SchemaType) operation.responseBodyType();
         assertThat(responseBodyType.schema()).isEqualTo(schema200);
+        assertThat(responseBodyType.mediaType()).isEqualTo(ResponseMediaType.APPLICATION_JSON);
     }
 
     @Test
     void failsWhenMultiple2xxResponsesDefineDifferentSchemas() {
         List<SimpleReponse> responses = List.of(
-                new SimpleReponse("200", new SimpleStringSchema(false)),
-                new SimpleReponse("201", new SimpleIntegerSchema(false))
+                new SimpleReponse("200", new SimpleStringSchema(false), ResponseMediaType.APPLICATION_JSON),
+                new SimpleReponse("201", new SimpleIntegerSchema(false), ResponseMediaType.APPLICATION_JSON)
         );
 
         SimplifiedOas simplifiedOas = oasWithResponses("getThings", responses);
@@ -67,7 +70,7 @@ class RawOperationResolverTest {
                 "getThings",
                 java.util.Set.of("default"),
                 List.of(new SimpleParam("x-api-key", ParamIn.Header, new SimpleStringSchema(false), true)),
-                List.of(new SimpleReponse("200", new SimpleStringSchema(false))),
+                List.of(new SimpleReponse("200", new SimpleStringSchema(false), ResponseMediaType.APPLICATION_JSON)),
                 null
         );
 
@@ -84,6 +87,39 @@ class RawOperationResolverTest {
                         true
                 )
         );
+    }
+
+    @Test
+    void resolvesJsonAndBinaryResponsesAsSeparateOperations() {
+        SimplifiedOperation operation = new SimplifiedOperation(
+                "/files/{id}",
+                HttpMethod.GET,
+                "getFile",
+                java.util.Set.of("files"),
+                List.of(new SimpleParam("id", ParamIn.Path, new SimpleStringSchema(false), true)),
+                List.of(
+                        new SimpleReponse("200", new SimpleStringSchema(false), ResponseMediaType.APPLICATION_JSON),
+                        new SimpleReponse("200", new SimpleStringSchema(false), ResponseMediaType.APPLICATION_OCTET_STREAM)
+                ),
+                null
+        );
+
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());
+        RawOperationResolver resolver = new RawOperationResolver(Logger.noOp(), simplifiedOas);
+
+        List<RawOperation> operations = resolver.resolve();
+        assertEquals(2, operations.size());
+        assertThat(operations).allMatch(op -> op instanceof GeneratableOperation);
+
+        List<GeneratableOperation> generated = operations.stream()
+                .map(op -> (GeneratableOperation) op)
+                .toList();
+
+        assertThat(generated).extracting(GeneratableOperation::operationId)
+                .containsExactlyInAnyOrder("getFile", "getFileBinary");
+        assertThat(generated)
+                .extracting(op -> ((ResponseBodyType.SchemaType) op.responseBodyType()).mediaType())
+                .containsExactlyInAnyOrder(ResponseMediaType.APPLICATION_JSON, ResponseMediaType.APPLICATION_OCTET_STREAM);
     }
 
     private static SimplifiedOas oasWithResponses(String operationId, List<SimpleReponse> responses) {

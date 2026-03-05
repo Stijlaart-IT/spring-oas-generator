@@ -4,11 +4,13 @@ import java.util.Objects;
 
 public record SimpleReponse(
         String status,
-        SimpleSchema schema
+        SimpleSchema schema,
+        ResponseMediaType mediaType
 ) {
 
     public SimpleReponse {
         Objects.requireNonNull(status);
         Objects.requireNonNull(schema);
+        Objects.requireNonNull(mediaType);
     }
 }

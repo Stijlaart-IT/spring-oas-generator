@@ -19,12 +19,14 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleParam;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.UnionSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.IntegerEnumSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.NumberEnumSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ResponseMediaType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleAnySchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleArraySchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleBinarySchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleIntegerSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleLongSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleObjectSchema;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleReponse;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleStringSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
@@ -283,6 +285,41 @@ class Oas31ToSimpleSchemaMapperTest {
         assertThat(simplified.operations()).hasSize(1);
         assertThat(simplified.operations().getFirst().requestBody())
                 .isEqualTo(new SimpleBinarySchema(false));
+    }
+
+    @Test
+    void resolve_mapsJsonAndOctetStreamResponsesAsSeparateEntries() {
+        OpenAPI openAPI = new OpenAPI()
+                .openapi("3.1.0")
+                .paths(new Paths().addPathItem(
+                        "/files/{id}",
+                        new PathItem().get(
+                                new Operation()
+                                        .operationId("getFile")
+                                        .responses(new ApiResponses().addApiResponse(
+                                                "200",
+                                                new ApiResponse().content(new io.swagger.v3.oas.models.media.Content()
+                                                        .addMediaType("application/json",
+                                                                new io.swagger.v3.oas.models.media.MediaType().schema(
+                                                                        new Schema<>().type("string")
+                                                                ))
+                                                        .addMediaType("application/octet-stream",
+                                                                new io.swagger.v3.oas.models.media.MediaType().schema(
+                                                                        new Schema<>().type("string").format("binary")
+                                                                ))
+                                                )
+                                        ))
+                        )
+                ));
+
+        SimplifiedOas simplified = new Oas31ToSimpleSchemaMapper().resolve(openAPI);
+        assertThat(simplified.operations()).hasSize(1);
+        List<SimpleReponse> mappedResponses = simplified.operations().getFirst().responses();
+        assertThat(mappedResponses).hasSize(2);
+        assertThat(mappedResponses).extracting(SimpleReponse::mediaType)
+                .containsExactlyInAnyOrder(ResponseMediaType.APPLICATION_JSON, ResponseMediaType.APPLICATION_OCTET_STREAM);
+        assertThat(mappedResponses).extracting(SimpleReponse::schema)
+                .anyMatch(SimpleBinarySchema.class::isInstance);
     }
 
     private static final class CapturingLogger implements Logger {

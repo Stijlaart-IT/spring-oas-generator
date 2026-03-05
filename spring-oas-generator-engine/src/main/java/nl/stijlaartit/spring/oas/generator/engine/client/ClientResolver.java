@@ -91,8 +91,13 @@ public class ClientResolver {
 
         TypeDescriptor responseType = switch (operation.responseBodyType()) {
             case ResponseBodyType.None ignored -> null;
-            // TODO Missing Resource? or Unknown?
             case ResponseBodyType.SchemaType typed -> typeInfoResolver.get(typed.schema()).typeDescriptor();
+        };
+        String accept = switch (operation.responseBodyType()) {
+            case ResponseBodyType.None ignored -> null;
+            case ResponseBodyType.SchemaType typed -> typed.mediaType().isKnown()
+                    ? typed.mediaType().value()
+                    : null;
         };
 
         return new ApiOperation(
@@ -102,6 +107,7 @@ public class ClientResolver {
                 operation.parameters().stream().map(this::rawParameterToParameterModel).toList(),
                 requestBodyType,
                 responseType,
+                accept,
                 operation.deprecated()
         );
     }

@@ -7,6 +7,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.path.PathSegment;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.CompositeSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ObjectProperty;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ParamIn;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ResponseMediaType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleAnySchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleParam;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleReponse;
@@ -175,7 +176,7 @@ class SchemaRegistryTest {
                 null,
                 Set.of("default"),
                 List.of(),
-                List.of(new SimpleReponse("404", new SimpleStringSchema(false))),
+                List.of(new SimpleReponse("404", new SimpleStringSchema(false), ResponseMediaType.APPLICATION_JSON)),
                 null
         );
         SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), List.of(operation), Map.of());

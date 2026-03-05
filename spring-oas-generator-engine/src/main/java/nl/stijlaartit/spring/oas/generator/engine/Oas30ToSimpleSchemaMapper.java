@@ -37,6 +37,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleNumber
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleObjectSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleParam;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleReponse;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ResponseMediaType;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleStringSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.StringEnumSchema;
@@ -178,13 +179,15 @@ public final class Oas30ToSimpleSchemaMapper {
             if (response == null) {
                 continue;
             }
-            final Schema<?> schema = resolveContentSchema(response.getContent());
-            if (schema == null) {
-                continue;
+            final List<ResolvedContent> resolvedContents = resolveContentSchemas(response.getContent());
+            for (ResolvedContent resolvedContent : resolvedContents) {
+                final SchemaPath path = SchemaPath.forRoot(PathRoot.responseBody(operationName, status));
+                final SimpleSchema schema = resolvedContent.mediaType() == ResponseMediaType.APPLICATION_OCTET_STREAM
+                        && isBinaryStringSchema(resolvedContent.schema())
+                        ? new SimpleBinarySchema(isNullable(resolvedContent.schema()))
+                        : mapSchema(resolvedContent.schema(), path);
+                mapped.add(new SimpleReponse(status, schema, resolvedContent.mediaType()));
             }
-
-            final SchemaPath path = SchemaPath.forRoot(PathRoot.responseBody(operationName, status));
-            mapped.add(new SimpleReponse(status, mapSchema(schema, path)));
         }
         return mapped;
     }
@@ -194,19 +197,16 @@ public final class Oas30ToSimpleSchemaMapper {
         if (requestBody == null) {
             return null;
         }
-        final Content content = requestBody.getContent();
-        if (content != null) {
-            final MediaType binaryMediaType = content.get("application/octet-stream");
-            if (binaryMediaType != null && isBinaryStringSchema(binaryMediaType.getSchema())) {
-                return new SimpleBinarySchema(isNullable(binaryMediaType.getSchema()));
-            }
-        }
-        final Schema<?> schema = resolveContentSchema(content);
-        if (schema == null) {
+        final ResolvedContent resolvedContent = resolveContentSchema(requestBody.getContent());
+        if (resolvedContent == null) {
             return null;
         }
+        if (resolvedContent.mediaType() == ResponseMediaType.APPLICATION_OCTET_STREAM
+                && isBinaryStringSchema(resolvedContent.schema())) {
+            return new SimpleBinarySchema(isNullable(resolvedContent.schema()));
+        }
         final var path = SchemaPath.forRoot(PathRoot.requestBody(operationName));
-        return mapSchema(schema, path);
+        return mapSchema(resolvedContent.schema(), path);
     }
 
     private List<SimpleParam> mapParams(OpenAPI openAPI, @Nullable List<Parameter> parameters, boolean pathOnly) {
@@ -443,15 +443,54 @@ public final class Oas30ToSimpleSchemaMapper {
     }
 
     @Nullable
-    private static Schema<?> resolveContentSchema(@Nullable Content content) {
+    private static List<ResolvedContent> resolveContentSchemas(@Nullable Content content) {
+        if (content == null || content.isEmpty()) {
+            return List.of();
+        }
+        List<ResolvedContent> resolvedContents = new ArrayList<>(2);
+        MediaType json = content.get(ResponseMediaType.APPLICATION_JSON.value());
+        if (json != null && json.getSchema() != null) {
+            resolvedContents.add(new ResolvedContent(ResponseMediaType.APPLICATION_JSON, json.getSchema()));
+        }
+        MediaType octet = content.get(ResponseMediaType.APPLICATION_OCTET_STREAM.value());
+        if (octet != null && octet.getSchema() != null) {
+            resolvedContents.add(new ResolvedContent(ResponseMediaType.APPLICATION_OCTET_STREAM, octet.getSchema()));
+        }
+        if (!resolvedContents.isEmpty()) {
+            return resolvedContents;
+        }
+        ResolvedContent fallback = resolveContentSchema(content);
+        return fallback == null ? List.of() : List.of(fallback);
+    }
+
+    @Nullable
+    private static ResolvedContent resolveContentSchema(@Nullable Content content) {
         if (content == null || content.isEmpty()) {
             return null;
         }
-        MediaType mediaType = content.get("application/json");
-        if (mediaType == null) {
-            mediaType = content.values().iterator().next();
+
+        MediaType json = content.get(ResponseMediaType.APPLICATION_JSON.value());
+        if (json != null && json.getSchema() != null) {
+            return new ResolvedContent(ResponseMediaType.APPLICATION_JSON, json.getSchema());
         }
-        return mediaType != null ? mediaType.getSchema() : null;
+
+        MediaType octet = content.get(ResponseMediaType.APPLICATION_OCTET_STREAM.value());
+        if (octet != null && octet.getSchema() != null) {
+            return new ResolvedContent(ResponseMediaType.APPLICATION_OCTET_STREAM, octet.getSchema());
+        }
+
+        var firstEntry = content.entrySet().stream().findFirst().orElse(null);
+        if (firstEntry == null || firstEntry.getValue() == null || firstEntry.getValue().getSchema() == null) {
+            return null;
+        }
+
+        return new ResolvedContent(
+                ResponseMediaType.from(firstEntry.getKey()),
+                firstEntry.getValue().getSchema()
+        );
+    }
+
+    private record ResolvedContent(ResponseMediaType mediaType, Schema<?> schema) {
     }
 
     private static OperationName operationName(String path, HttpMethod method, @Nullable String operationId) {
