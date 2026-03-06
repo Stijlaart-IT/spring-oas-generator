@@ -48,6 +48,10 @@ public class ClientSerializer implements GenerationFileSerializer<ApiFile> {
     private static final ClassName MONO =
             ClassName.get("reactor.core.publisher", "Mono");
     private static final JavaTypeName.Reserved LIST_TYPE_NAME = new JavaTypeName.Reserved("List");
+    private static final String APPLICATION_JSON = "application/json";
+    private static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
+    private static final TypeDescriptor SPRING_RESOURCE_TYPE_DESCRIPTOR =
+            TypeDescriptor.qualified("org.springframework.core.io", new JavaTypeName.Generated("Resource"));
 
     private final String clientPackage;
     private final ClientWriterConfig config;
@@ -90,7 +94,12 @@ public class ClientSerializer implements GenerationFileSerializer<ApiFile> {
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                .addAnnotation(exchangeAnnotation(operation.method(), operation.path(), operation.accept()));
+                .addAnnotation(exchangeAnnotation(
+                        operation.method(),
+                        operation.path(),
+                        operation.accept(),
+                        operation.contentType() != null ? operation.contentType() : requestContentType(operation)
+                ));
 
         if (operation.deprecated()) {
             methodBuilder.addAnnotation(Deprecated.class);
@@ -141,7 +150,7 @@ public class ClientSerializer implements GenerationFileSerializer<ApiFile> {
         return baseType;
     }
 
-    private AnnotationSpec exchangeAnnotation(ApiHttpMethod method, String path, String accept) {
+    private AnnotationSpec exchangeAnnotation(ApiHttpMethod method, String path, String accept, String contentType) {
         ClassName annotationType = switch (method) {
             case GET -> GET_EXCHANGE;
             case POST -> POST_EXCHANGE;
@@ -154,7 +163,20 @@ public class ClientSerializer implements GenerationFileSerializer<ApiFile> {
         if (accept != null && !accept.isBlank()) {
             annotationBuilder.addMember("accept", "$S", accept);
         }
+        if (contentType != null && !contentType.isBlank()) {
+            annotationBuilder.addMember("contentType", "$S", contentType);
+        }
         return annotationBuilder.build();
+    }
+
+    private String requestContentType(ApiOperation operation) {
+        if (operation.requestBody() == null) {
+            return null;
+        }
+        if (SPRING_RESOURCE_TYPE_DESCRIPTOR.equals(operation.requestBody())) {
+            return APPLICATION_OCTET_STREAM;
+        }
+        return APPLICATION_JSON;
     }
 
     private ParameterSpec toParameterSpec(ParameterModel param) {

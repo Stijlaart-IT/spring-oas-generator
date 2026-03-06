@@ -14,7 +14,7 @@ public record SimplifiedOperation(
         Set<String> tags,
         List<SimpleParam> params,
         List<SimpleReponse> responses,
-        @Nullable SimpleSchema requestBody
+        @Nullable SimplifiedRequest request
 ) {
 
     public SimplifiedOperation {

@@ -55,7 +55,9 @@ class ClientSerializerTest {
 
         String source = writer.toJavaFile(client).toString();
 
-        assertTrue(source.contains("@PostExchange(\"/pet\")"));
+        assertTrue(source.contains("@PostExchange("));
+        assertTrue(source.contains("value = \"/pet\""));
+        assertTrue(source.contains("contentType = \"application/json\""));
         assertTrue(source.contains("Pet addPet("));
         assertTrue(source.contains("@RequestBody Pet body"));
     }
@@ -298,7 +300,9 @@ class ClientSerializerTest {
 
         String source = writer.toJavaFile(client).toString();
 
-        assertTrue(source.contains("@PutExchange(\"/pet\")"));
+        assertTrue(source.contains("@PutExchange("));
+        assertTrue(source.contains("value = \"/pet\""));
+        assertTrue(source.contains("contentType = \"application/json\""));
     }
 
     @Test
@@ -335,7 +339,9 @@ class ClientSerializerTest {
 
         String source = writer.toJavaFile(client).toString();
 
-        assertTrue(source.contains("@PatchExchange(\"/pet/{petId}\")"));
+        assertTrue(source.contains("@PatchExchange("));
+        assertTrue(source.contains("value = \"/pet/{petId}\""));
+        assertTrue(source.contains("contentType = \"application/json\""));
     }
 
     @Test
@@ -374,5 +380,43 @@ class ClientSerializerTest {
 
         assertTrue(source.contains("@GetExchange("));
         assertTrue(source.contains("accept = \"application/octet-stream\""));
+    }
+
+    @Test
+    void setsBinaryContentTypeForResourceRequestBody() {
+        ApiFile client = new ApiFile("FileApi", List.of(
+                new ApiOperation(new JavaMethodName("uploadFile"), ApiHttpMethod.POST,
+                        "/files",
+                        List.of(),
+                        TypeDescriptor.qualified("org.springframework.core.io", new JavaTypeName.Generated("Resource")),
+                        null,
+                        false)
+        ));
+
+        String source = writer.toJavaFile(client).toString();
+
+        assertTrue(source.contains("@PostExchange("));
+        assertTrue(source.contains("value = \"/files\""));
+        assertTrue(source.contains("contentType = \"application/octet-stream\""));
+    }
+
+    @Test
+    void prefersProvidedContentTypeOverInferredResourceType() {
+        ApiFile client = new ApiFile("FileApi", List.of(
+                new ApiOperation(new JavaMethodName("uploadJpeg"), ApiHttpMethod.POST,
+                        "/files/jpeg",
+                        List.of(),
+                        TypeDescriptor.qualified("org.springframework.core.io", new JavaTypeName.Generated("Resource")),
+                        null,
+                        "image/jpeg",
+                        null,
+                        false)
+        ));
+
+        String source = writer.toJavaFile(client).toString();
+
+        assertTrue(source.contains("@PostExchange("));
+        assertTrue(source.contains("value = \"/files/jpeg\""));
+        assertTrue(source.contains("contentType = \"image/jpeg\""));
     }
 }

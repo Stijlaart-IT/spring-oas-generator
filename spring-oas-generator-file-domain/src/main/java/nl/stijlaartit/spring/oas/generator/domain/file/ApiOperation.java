@@ -7,6 +7,7 @@ import java.util.Objects;
 
 public record ApiOperation(JavaMethodName name, ApiHttpMethod method, String path, List<ParameterModel> parameters,
                            @Nullable TypeDescriptor requestBody, @Nullable TypeDescriptor responseType,
+                           @Nullable String contentType,
                            @Nullable String accept,
                            boolean deprecated) {
     public ApiOperation(JavaMethodName name,
@@ -15,6 +16,7 @@ public record ApiOperation(JavaMethodName name, ApiHttpMethod method, String pat
                         List<ParameterModel> parameters,
                         @Nullable TypeDescriptor requestBody,
                         @Nullable TypeDescriptor responseType,
+                        @Nullable String contentType,
                         @Nullable String accept,
                         boolean deprecated) {
         this.name = Objects.requireNonNull(name);
@@ -23,6 +25,7 @@ public record ApiOperation(JavaMethodName name, ApiHttpMethod method, String pat
         this.parameters = List.copyOf(parameters);
         this.requestBody = requestBody;
         this.responseType = responseType;
+        this.contentType = contentType;
         this.accept = accept;
         this.deprecated = deprecated;
     }
@@ -34,6 +37,17 @@ public record ApiOperation(JavaMethodName name, ApiHttpMethod method, String pat
                         @Nullable TypeDescriptor requestBody,
                         @Nullable TypeDescriptor responseType,
                         boolean deprecated) {
-        this(name, method, path, parameters, requestBody, responseType, null, deprecated);
+        this(name, method, path, parameters, requestBody, responseType, null, null, deprecated);
+    }
+
+    public ApiOperation(JavaMethodName name,
+                        ApiHttpMethod method,
+                        String path,
+                        List<ParameterModel> parameters,
+                        @Nullable TypeDescriptor requestBody,
+                        @Nullable TypeDescriptor responseType,
+                        @Nullable String accept,
+                        boolean deprecated) {
+        this(name, method, path, parameters, requestBody, responseType, null, accept, deprecated);
     }
 }

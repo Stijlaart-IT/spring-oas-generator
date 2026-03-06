@@ -15,6 +15,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleStringSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOperation;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedRequest;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.UnionSchema;
 import org.junit.jupiter.api.Test;
 
@@ -162,7 +163,7 @@ class SchemaRegistryTest {
                 Set.of("default"),
                 List.of(),
                 List.of(),
-                new SimpleStringSchema(false)
+                new SimplifiedRequest.Json(new SimpleStringSchema(false), "application/json")
         );
         SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), Map.of(), List.of(operation), Map.of());
 
@@ -216,6 +217,25 @@ class SchemaRegistryTest {
         PathRoot.RequestParam root = (PathRoot.RequestParam) instance.path().root();
         assertThat(root.operationName()).isEqualTo(OperationName.pathAndMethod("/users", HttpMethod.POST));
         assertThat(root.paramName()).isEqualTo("limit");
+    }
+
+    @Test
+    void doesNotCollectRequestBodySchemaForBinaryRequest() {
+        SimplifiedOperation operation = new SimplifiedOperation(
+                "/users",
+                HttpMethod.POST,
+                null,
+                Set.of("default"),
+                List.of(),
+                List.of(),
+                new SimplifiedRequest.Binary("application/octet-stream")
+        );
+        SimplifiedOas simplifiedOas = new SimplifiedOas(Map.of(), Map.of(), Map.of(), List.of(operation), Map.of());
+
+        SchemaRegistry registry = SchemaRegistry.resolve(simplifiedOas);
+
+        assertThat(registry.getInstances())
+                .noneMatch(instance -> instance.path().root() instanceof PathRoot.RequestBody);
     }
 
     @Test

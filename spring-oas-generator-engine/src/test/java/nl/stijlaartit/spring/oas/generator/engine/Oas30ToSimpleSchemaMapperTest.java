@@ -38,6 +38,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleStringSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOperation;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedRequest;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.StringEnumSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.UnionSchema;
 import org.junit.jupiter.api.Test;
@@ -170,7 +171,9 @@ class Oas30ToSimpleSchemaMapperTest {
         RefSchema responseRef = assertInstanceOf(RefSchema.class, ok.schema());
         assertEquals(new SchemaRef("schemas", "Pet"), responseRef.ref());
 
-        assertInstanceOf(SimpleObjectSchema.class, operation.requestBody());
+        SimplifiedRequest.Json request = assertInstanceOf(SimplifiedRequest.Json.class, operation.request());
+        assertEquals("application/json", request.mediaType());
+        assertInstanceOf(SimpleObjectSchema.class, request.schema());
     }
 
     @Test
@@ -207,6 +210,32 @@ class Oas30ToSimpleSchemaMapperTest {
         SimplifiedOperation operation = simplified.operations().getFirst();
 
         assertEquals(List.of(new SimpleParam("limit", ParamIn.Query, new SimpleIntegerSchema(false), false)), operation.params());
+    }
+
+    @Test
+    void resolve_resolvesRequestBodyReferencesFromComponents() {
+        Components components = new Components()
+                .requestBodies(Map.of(
+                        "UpdateUserRequest",
+                        new RequestBody().content(new Content().addMediaType(
+                                "application/json",
+                                new MediaType().schema(new ObjectSchema().addProperty("name", new StringSchema()))
+                        ))
+                ));
+
+        Operation updateCurrentUser = new Operation()
+                .operationId("UpdateCurrentUser")
+                .requestBody(new RequestBody().$ref("#/components/requestBodies/UpdateUserRequest"))
+                .responses(new ApiResponses().addApiResponse("200", new ApiResponse()));
+
+        OpenAPI openAPI = new OpenAPI()
+                .components(components)
+                .paths(new Paths().addPathItem("/user", new PathItem().put(updateCurrentUser)));
+
+        SimplifiedOas simplified = mapper.resolve(openAPI);
+
+        assertThat(simplified.operations()).hasSize(1);
+        assertThat(simplified.operations().getFirst().request()).isInstanceOf(SimplifiedRequest.Json.class);
     }
 
     @Test
@@ -317,8 +346,103 @@ class Oas30ToSimpleSchemaMapperTest {
 
         SimplifiedOas simplified = mapper.resolve(openAPI);
         assertThat(simplified.operations()).hasSize(1);
-        assertThat(simplified.operations().getFirst().requestBody())
-                .isEqualTo(new SimpleBinarySchema(false));
+        assertThat(simplified.operations().getFirst().request()).isEqualTo(new SimplifiedRequest.Binary("application/octet-stream"));
+    }
+
+    @Test
+    void resolve_mapsNoRequestBodyToNullRequest() {
+        Operation get = new Operation()
+                .operationId("getPet")
+                .responses(new ApiResponses().addApiResponse("204", new ApiResponse()));
+        OpenAPI openAPI = new OpenAPI()
+                .paths(new Paths().addPathItem("/pets/{id}", new PathItem().get(get)));
+
+        SimplifiedOas simplified = mapper.resolve(openAPI);
+
+        assertThat(simplified.operations()).hasSize(1);
+        assertThat(simplified.operations().getFirst().request()).isNull();
+    }
+
+    @Test
+    void resolve_mapsJsonWithAdditionalMediaTypeToJsonRequest() {
+        RequestBody requestBody = new RequestBody().content(new Content()
+                .addMediaType("application/json", new MediaType().schema(new ObjectSchema().addProperty("name", new StringSchema())))
+                .addMediaType("application/xml", new MediaType().schema(new StringSchema())));
+        Operation save = new Operation()
+                .operationId("save")
+                .requestBody(requestBody)
+                .responses(new ApiResponses().addApiResponse("204", new ApiResponse()));
+
+        OpenAPI openAPI = new OpenAPI()
+                .paths(new Paths().addPathItem("/save", new PathItem().post(save)));
+
+        SimplifiedOas simplified = mapper.resolve(openAPI);
+
+        assertThat(simplified.operations()).hasSize(1);
+        assertThat(simplified.operations().getFirst().request()).isInstanceOf(SimplifiedRequest.Json.class);
+    }
+
+    @Test
+    void resolve_mapsBinaryWithAdditionalMediaTypeToBinaryRequest() {
+        RequestBody requestBody = new RequestBody().content(new Content()
+                .addMediaType("application/octet-stream", new MediaType().schema(new StringSchema().format("binary")))
+                .addMediaType("application/xml", new MediaType().schema(new StringSchema())));
+        Operation upload = new Operation()
+                .operationId("upload")
+                .requestBody(requestBody)
+                .responses(new ApiResponses().addApiResponse("204", new ApiResponse()));
+
+        OpenAPI openAPI = new OpenAPI()
+                .paths(new Paths().addPathItem("/upload", new PathItem().post(upload)));
+
+        SimplifiedOas simplified = mapper.resolve(openAPI);
+
+        assertThat(simplified.operations()).hasSize(1);
+        assertThat(simplified.operations().getFirst().request()).isEqualTo(new SimplifiedRequest.Binary("application/octet-stream"));
+    }
+
+    @Test
+    void resolve_ignoresJsonAndBinaryRequestBodyAndLogsWarning() {
+        RequestBody requestBody = new RequestBody().content(new Content()
+                .addMediaType("application/json", new MediaType().schema(new StringSchema()))
+                .addMediaType("application/octet-stream", new MediaType().schema(new StringSchema().format("binary"))));
+        Operation upload = new Operation()
+                .operationId("upload")
+                .requestBody(requestBody)
+                .responses(new ApiResponses().addApiResponse("204", new ApiResponse()));
+        OpenAPI openAPI = new OpenAPI()
+                .paths(new Paths().addPathItem("/upload", new PathItem().post(upload)));
+        CapturingLogger logger = new CapturingLogger();
+        Oas30ToSimpleSchemaMapper localMapper = new Oas30ToSimpleSchemaMapper(logger);
+
+        SimplifiedOas simplified = localMapper.resolve(openAPI);
+
+        assertThat(simplified.operations().getFirst().request()).isNull();
+        assertThat(logger.warnMessages)
+                .anyMatch(message -> message.contains("request body media types")
+                        && message.contains("application/json")
+                        && message.contains("application/octet-stream"));
+    }
+
+    @Test
+    void resolve_ignoresUnsupportedRequestBodyAndLogsWarning() {
+        RequestBody requestBody = new RequestBody().content(new Content()
+                .addMediaType("application/xml", new MediaType().schema(new StringSchema())));
+        Operation upload = new Operation()
+                .operationId("upload")
+                .requestBody(requestBody)
+                .responses(new ApiResponses().addApiResponse("204", new ApiResponse()));
+        OpenAPI openAPI = new OpenAPI()
+                .paths(new Paths().addPathItem("/upload", new PathItem().post(upload)));
+        CapturingLogger logger = new CapturingLogger();
+        Oas30ToSimpleSchemaMapper localMapper = new Oas30ToSimpleSchemaMapper(logger);
+
+        SimplifiedOas simplified = localMapper.resolve(openAPI);
+
+        assertThat(simplified.operations().getFirst().request()).isNull();
+        assertThat(logger.warnMessages)
+                .anyMatch(message -> message.contains("request body media types")
+                        && message.contains("application/xml"));
     }
 
     @Test

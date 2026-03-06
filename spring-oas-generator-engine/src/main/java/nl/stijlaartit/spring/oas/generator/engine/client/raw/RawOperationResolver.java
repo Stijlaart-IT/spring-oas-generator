@@ -2,12 +2,12 @@ package nl.stijlaartit.spring.oas.generator.engine.client.raw;
 
 import nl.stijlaartit.spring.oas.generator.engine.domain.OperationName;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.ResponseMediaType;
-import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleBinarySchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleParam;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleReponse;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOperation;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedRequest;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import nl.stijlaartit.spring.oas.generator.engine.naming.OperationIdNaming;
 import org.jspecify.annotations.NonNull;
@@ -47,11 +47,16 @@ public class RawOperationResolver {
                 ? OperationName.pathAndMethod(operation.path(), operation.method())
                 : OperationName.id(operation.operationId());
 
-        RequestBodyType requestBodyType = operation.requestBody() == null
-                ? new RequestBodyType.None()
-                : operation.requestBody() instanceof SimpleBinarySchema
-                ? new RequestBodyType.Resource()
-                : new RequestBodyType.Typed(operation.requestBody());
+        final RequestBodyType requestBodyType;
+        if (operation.request() == null) {
+            requestBodyType = new RequestBodyType.None();
+        } else if (operation.request() instanceof SimplifiedRequest.Binary binary) {
+            requestBodyType = new RequestBodyType.Resource(binary.mediaType());
+        } else if (operation.request() instanceof SimplifiedRequest.Json json) {
+            requestBodyType = new RequestBodyType.Typed(json.schema(), json.mediaType());
+        } else {
+            throw new IllegalStateException("Unhandled request variant: " + operation.request().getClass().getSimpleName());
+        }
         ResponseBodyType jsonResponseType = resolveResponseType(
                 operationName,
                 operation.responses(),

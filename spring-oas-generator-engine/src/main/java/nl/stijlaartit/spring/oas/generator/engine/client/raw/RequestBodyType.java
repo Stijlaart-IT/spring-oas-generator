@@ -4,7 +4,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema
 
 public sealed interface RequestBodyType permits RequestBodyType.Resource, RequestBodyType.None, RequestBodyType.Unknown, RequestBodyType.Typed {
 
-    record Resource() implements RequestBodyType {
+    record Resource(String mediaType) implements RequestBodyType {
     }
 
     record None() implements RequestBodyType {
@@ -13,6 +13,6 @@ public sealed interface RequestBodyType permits RequestBodyType.Resource, Reques
     record Unknown() implements RequestBodyType {
     }
 
-    record Typed(SimpleSchema schema) implements RequestBodyType {
+    record Typed(SimpleSchema schema, String mediaType) implements RequestBodyType {
     }
 }

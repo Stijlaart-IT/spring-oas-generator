@@ -13,6 +13,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleParam;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOperation;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedRequest;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.UnionSchema;
 
 import java.util.ArrayList;
@@ -100,8 +101,8 @@ public final class SchemaRegistry {
             }
         }
 
-        if (operation.requestBody() != null) {
-            collect(operation.requestBody(), SchemaPath.forRoot(PathRoot.requestBody(operationName)), instances, visiting);
+        if (operation.request() instanceof SimplifiedRequest.Json jsonRequest) {
+            collect(jsonRequest.schema(), SchemaPath.forRoot(PathRoot.requestBody(operationName)), instances, visiting);
         }
 
         if (operation.responses() == null || operation.responses().isEmpty()) {

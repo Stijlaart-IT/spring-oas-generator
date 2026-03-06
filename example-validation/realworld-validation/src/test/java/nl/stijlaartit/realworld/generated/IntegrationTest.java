@@ -6,6 +6,8 @@ import nl.stijlaartit.realworld.generated.client.FavoritesApi;
 import nl.stijlaartit.realworld.generated.client.ProfileApi;
 import nl.stijlaartit.realworld.generated.client.TagsApi;
 import nl.stijlaartit.realworld.generated.client.UserAndAuthenticationApi;
+import nl.stijlaartit.realworld.generated.models.UpdateCurrentUserRequest;
+import nl.stijlaartit.realworld.generated.models.UpdateUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -47,5 +49,17 @@ public class IntegrationTest {
         ResourceAccessException failure = assertThrows(ResourceAccessException.class, tagsApi::getTags);
         assertThat(failure.getMessage())
                 .startsWith("I/O error on GET request for \"http://localhost:7777/tags\":");
+    }
+
+    @Test
+    void shouldResolveTypesFromRequestBodyRefs() {
+        // Validates that request body is accepted
+        UpdateCurrentUserRequest payload = UpdateCurrentUserRequest.builder()
+                .user(UpdateUser.builder()
+                        .build())
+                .build();
+        ResourceAccessException failure = assertThrows(ResourceAccessException.class, () -> userAndAuthenticationApi.updateCurrentUser(payload));
+        assertThat(failure.getMessage())
+                .startsWith("I/O error on PUT request for \"http://localhost:7777/user\":");
     }
 }

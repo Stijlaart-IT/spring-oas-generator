@@ -6,10 +6,13 @@ import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.Paths;
 import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.Discriminator;
+import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.parameters.RequestBody;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import nl.stijlaartit.spring.oas.generator.engine.domain.SchemaRef;
@@ -30,6 +33,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleRepons
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleStringSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedRequest;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.StringEnumSchema;
 import nl.stijlaartit.spring.oas.generator.engine.logger.Logger;
 import org.junit.jupiter.api.Test;
@@ -231,6 +235,30 @@ class Oas31ToSimpleSchemaMapperTest {
     }
 
     @Test
+    void resolve_resolvesRequestBodyReferencesFromComponents() {
+        OpenAPI openAPI = new OpenAPI()
+                .openapi("3.1.0")
+                .components(new Components().requestBodies(Map.of(
+                        "UpdateUserRequest",
+                        new RequestBody().content(new Content().addMediaType(
+                                "application/json",
+                                new MediaType().schema(new Schema<>().type("object").addProperty("name", new StringSchema()))
+                        ))
+                )))
+                .paths(new Paths().addPathItem(
+                        "/user",
+                        new PathItem().put(new Operation()
+                                .operationId("UpdateCurrentUser")
+                                .requestBody(new RequestBody().$ref("#/components/requestBodies/UpdateUserRequest"))
+                                .responses(new ApiResponses().addApiResponse("200", new ApiResponse())))));
+
+        SimplifiedOas simplified = new Oas31ToSimpleSchemaMapper().resolve(openAPI);
+
+        assertThat(simplified.operations()).hasSize(1);
+        assertThat(simplified.operations().getFirst().request()).isInstanceOf(SimplifiedRequest.Json.class);
+    }
+
+    @Test
     void resolve_mapsAdditionalPropertiesTrueToSimpleAnySchema() {
         Schema<Object> dictionarySchema = new Schema<>().type("object");
         dictionarySchema.setAdditionalProperties(true);
@@ -283,8 +311,121 @@ class Oas31ToSimpleSchemaMapperTest {
 
         SimplifiedOas simplified = new Oas31ToSimpleSchemaMapper().resolve(openAPI);
         assertThat(simplified.operations()).hasSize(1);
-        assertThat(simplified.operations().getFirst().requestBody())
-                .isEqualTo(new SimpleBinarySchema(false));
+        assertThat(simplified.operations().getFirst().request())
+                .isEqualTo(new SimplifiedRequest.Binary("application/octet-stream"));
+    }
+
+    @Test
+    void resolve_mapsNoRequestBodyToNullRequest() {
+        OpenAPI openAPI = new OpenAPI()
+                .openapi("3.1.0")
+                .paths(new Paths().addPathItem(
+                        "/pets/{id}",
+                        new PathItem().get(new Operation()
+                                .operationId("getPet")
+                                .responses(new ApiResponses().addApiResponse("204", new ApiResponse())))));
+
+        SimplifiedOas simplified = new Oas31ToSimpleSchemaMapper().resolve(openAPI);
+
+        assertThat(simplified.operations()).hasSize(1);
+        assertThat(simplified.operations().getFirst().request()).isNull();
+    }
+
+    @Test
+    void resolve_mapsJsonWithAdditionalMediaTypeToJsonRequest() {
+        OpenAPI openAPI = new OpenAPI()
+                .openapi("3.1.0")
+                .paths(new Paths().addPathItem(
+                        "/save",
+                        new PathItem().post(new Operation()
+                                .operationId("save")
+                                .requestBody(new io.swagger.v3.oas.models.parameters.RequestBody().content(
+                                        new io.swagger.v3.oas.models.media.Content()
+                                                .addMediaType("application/json",
+                                                        new io.swagger.v3.oas.models.media.MediaType().schema(new Schema<>().type("string")))
+                                                .addMediaType("application/xml",
+                                                        new io.swagger.v3.oas.models.media.MediaType().schema(new Schema<>().type("string")))
+                                ))
+                                .responses(new ApiResponses().addApiResponse("204", new ApiResponse())))));
+
+        SimplifiedOas simplified = new Oas31ToSimpleSchemaMapper().resolve(openAPI);
+
+        assertThat(simplified.operations()).hasSize(1);
+        assertThat(simplified.operations().getFirst().request()).isInstanceOf(SimplifiedRequest.Json.class);
+    }
+
+    @Test
+    void resolve_mapsBinaryWithAdditionalMediaTypeToBinaryRequest() {
+        OpenAPI openAPI = new OpenAPI()
+                .openapi("3.1.0")
+                .paths(new Paths().addPathItem(
+                        "/upload",
+                        new PathItem().post(new Operation()
+                                .operationId("upload")
+                                .requestBody(new io.swagger.v3.oas.models.parameters.RequestBody().content(
+                                        new io.swagger.v3.oas.models.media.Content()
+                                                .addMediaType("application/octet-stream",
+                                                        new io.swagger.v3.oas.models.media.MediaType().schema(new Schema<>().type("string").format("binary")))
+                                                .addMediaType("application/xml",
+                                                        new io.swagger.v3.oas.models.media.MediaType().schema(new Schema<>().type("string")))
+                                ))
+                                .responses(new ApiResponses().addApiResponse("204", new ApiResponse())))));
+
+        SimplifiedOas simplified = new Oas31ToSimpleSchemaMapper().resolve(openAPI);
+
+        assertThat(simplified.operations()).hasSize(1);
+        assertThat(simplified.operations().getFirst().request()).isEqualTo(new SimplifiedRequest.Binary("application/octet-stream"));
+    }
+
+    @Test
+    void resolve_ignoresJsonAndBinaryRequestBodyAndLogsWarning() {
+        OpenAPI openAPI = new OpenAPI()
+                .openapi("3.1.0")
+                .paths(new Paths().addPathItem(
+                        "/upload",
+                        new PathItem().post(new Operation()
+                                .operationId("upload")
+                                .requestBody(new io.swagger.v3.oas.models.parameters.RequestBody().content(
+                                        new io.swagger.v3.oas.models.media.Content()
+                                                .addMediaType("application/json",
+                                                        new io.swagger.v3.oas.models.media.MediaType().schema(new Schema<>().type("string")))
+                                                .addMediaType("application/octet-stream",
+                                                        new io.swagger.v3.oas.models.media.MediaType().schema(new Schema<>().type("string").format("binary")))
+                                ))
+                                .responses(new ApiResponses().addApiResponse("204", new ApiResponse())))));
+        CapturingLogger logger = new CapturingLogger();
+
+        SimplifiedOas simplified = new Oas31ToSimpleSchemaMapper(logger).resolve(openAPI);
+
+        assertThat(simplified.operations().getFirst().request()).isNull();
+        assertThat(logger.warnMessages)
+                .anyMatch(message -> message.contains("request body media types")
+                        && message.contains("application/json")
+                        && message.contains("application/octet-stream"));
+    }
+
+    @Test
+    void resolve_ignoresUnsupportedRequestBodyAndLogsWarning() {
+        OpenAPI openAPI = new OpenAPI()
+                .openapi("3.1.0")
+                .paths(new Paths().addPathItem(
+                        "/upload",
+                        new PathItem().post(new Operation()
+                                .operationId("upload")
+                                .requestBody(new io.swagger.v3.oas.models.parameters.RequestBody().content(
+                                        new io.swagger.v3.oas.models.media.Content()
+                                                .addMediaType("application/xml",
+                                                        new io.swagger.v3.oas.models.media.MediaType().schema(new Schema<>().type("string")))
+                                ))
+                                .responses(new ApiResponses().addApiResponse("204", new ApiResponse())))));
+        CapturingLogger logger = new CapturingLogger();
+
+        SimplifiedOas simplified = new Oas31ToSimpleSchemaMapper(logger).resolve(openAPI);
+
+        assertThat(simplified.operations().getFirst().request()).isNull();
+        assertThat(logger.warnMessages)
+                .anyMatch(message -> message.contains("request body media types")
+                        && message.contains("application/xml"));
     }
 
     @Test

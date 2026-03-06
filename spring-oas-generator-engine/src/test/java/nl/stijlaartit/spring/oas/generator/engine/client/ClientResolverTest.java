@@ -337,9 +337,11 @@ class ClientResolverTest {
             openAPI.getComponents().addSchemas("Pet", new ObjectSchema());
 
             List<ApiFile> clients = resolveClient(openAPI);
-            TypeDescriptor body = clients.getFirst().getOperations().getFirst().requestBody();
+            ApiOperation operation = clients.getFirst().getOperations().getFirst();
+            TypeDescriptor body = operation.requestBody();
 
             assertEquals(TypeDescriptor.qualified("com.example.models", new JavaTypeName.Generated("Pet")), body);
+            assertEquals("application/json", operation.contentType());
         }
 
         @Test
@@ -367,9 +369,11 @@ class ClientResolverTest {
             );
 
             List<ApiFile> clients = resolveClient(openAPI);
-            TypeDescriptor body = clients.getFirst().getOperations().getFirst().requestBody();
+            ApiOperation operation = clients.getFirst().getOperations().getFirst();
+            TypeDescriptor body = operation.requestBody();
 
             assertEquals(TypeDescriptor.qualified("org.springframework.core.io", new JavaTypeName.Generated("Resource")), body);
+            assertEquals("application/octet-stream", operation.contentType());
         }
 
         @Test
@@ -412,6 +416,24 @@ class ClientResolverTest {
             TypeDescriptor body = clients.getFirst().getOperations().getFirst().requestBody();
 
             assertEquals(TypeDescriptor.qualified("com.example.models", new JavaTypeName.Generated("User")), body);
+        }
+
+        @Test
+        void resolvesNullForMixedJsonAndBinaryRequestBody() {
+            RequestBody requestBody = new RequestBody()
+                    .content(new Content()
+                            .addMediaType("application/json",
+                                    new MediaType().schema(new ObjectSchema().addProperty("name", new StringSchema())))
+                            .addMediaType("application/octet-stream",
+                                    new MediaType().schema(new StringSchema().format("binary"))));
+
+            OpenAPI openAPI = openApiWithOperation(
+                    "/pet/{petId}/uploadImage", "post", "uploadFile", "pet",
+                    List.of(), requestBody, null
+            );
+
+            List<ApiFile> clients = resolveClient(openAPI);
+            assertNull(clients.getFirst().getOperations().getFirst().requestBody());
         }
     }
 

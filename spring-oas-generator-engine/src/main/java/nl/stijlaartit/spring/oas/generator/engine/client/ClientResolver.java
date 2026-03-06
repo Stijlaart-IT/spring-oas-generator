@@ -30,6 +30,9 @@ import java.util.stream.Collectors;
 public class ClientResolver {
 
     public static final TypeDescriptor SPRING_RESOURCE_TYPE_DESCRIPTOR = TypeDescriptor.qualified("org.springframework.core.io", new JavaTypeName.Generated("Resource"));
+    private record RequestBodyResolution(TypeDescriptor requestBodyType, String contentType) {
+    }
+
     private final Logger logger;
     private final TypeInfoResolver typeInfoResolver;
 
@@ -81,12 +84,20 @@ public class ClientResolver {
                 OperationName.pathAndMethod(operation.path(), operation.method())
                 : OperationName.id(operation.operationId());
 
-        TypeDescriptor requestBodyType = switch (operation.requestBodyType()) {
-            case RequestBodyType.None ignored -> null;
-            case RequestBodyType.Resource ignored -> SPRING_RESOURCE_TYPE_DESCRIPTOR;
-            case RequestBodyType.Unknown ignored ->
-                    TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Object"));
-            case RequestBodyType.Typed typed -> typeInfoResolver.get(typed.schema()).typeDescriptor();
+        final RequestBodyResolution requestBodyResolution = switch (operation.requestBodyType()) {
+            case RequestBodyType.None ignored -> new RequestBodyResolution(null, null);
+            case RequestBodyType.Resource resource -> new RequestBodyResolution(
+                    SPRING_RESOURCE_TYPE_DESCRIPTOR,
+                    resource.mediaType()
+            );
+            case RequestBodyType.Unknown ignored -> new RequestBodyResolution(
+                    TypeDescriptor.qualified("java.lang", new JavaTypeName.Reserved("Object")),
+                    null
+            );
+            case RequestBodyType.Typed typed -> new RequestBodyResolution(
+                    typeInfoResolver.get(typed.schema()).typeDescriptor(),
+                    typed.mediaType()
+            );
         };
 
         TypeDescriptor responseType = switch (operation.responseBodyType()) {
@@ -105,8 +116,9 @@ public class ClientResolver {
                 toApiHttpMethod(operation.method()),
                 operation.path(),
                 operation.parameters().stream().map(this::rawParameterToParameterModel).toList(),
-                requestBodyType,
+                requestBodyResolution.requestBodyType(),
                 responseType,
+                requestBodyResolution.contentType(),
                 accept,
                 operation.deprecated()
         );

@@ -44,6 +44,7 @@ import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimpleString
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.StringEnumSchema;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOas;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedOperation;
+import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.SimplifiedRequest;
 import nl.stijlaartit.spring.oas.generator.engine.domain.simplified.UnionSchema;
 import org.jspecify.annotations.Nullable;
 
@@ -193,9 +194,9 @@ public final class Oas30ToSimpleSchemaMapper {
                 : new LinkedHashSet<>(operation.getTags());
         final List<SimpleParam> params = mapParams(openAPI, operation.getParameters(), false);
         final List<SimpleReponse> responses = mapResponses(openAPI, operationName, operation.getResponses());
-        final SimpleSchema requestBody = mapRequestBody(operationName, operation.getRequestBody());
+        final SimplifiedRequest request = mapRequestBody(openAPI, operationName, operation.getRequestBody());
 
-        operations.add(new SimplifiedOperation(path, method, operationId, tags, params, responses, requestBody));
+        operations.add(new SimplifiedOperation(path, method, operationId, tags, params, responses, request));
     }
 
     private List<SimpleReponse> mapResponses(OpenAPI openAPI, OperationName operationName, @Nullable ApiResponses responses) {
@@ -235,20 +236,80 @@ public final class Oas30ToSimpleSchemaMapper {
     }
 
     @Nullable
-    private SimpleSchema mapRequestBody(OperationName operationName, @Nullable RequestBody requestBody) {
+    private SimplifiedRequest mapRequestBody(OpenAPI openAPI, OperationName operationName, @Nullable RequestBody requestBody) {
         if (requestBody == null) {
             return null;
         }
-        final ResolvedContent resolvedContent = resolveContentSchema(requestBody.getContent());
-        if (resolvedContent == null) {
+        final RequestBody resolved = resolveRequestBodyRef(openAPI, requestBody);
+        final Content content = resolved.getContent();
+        if (content == null || content.isEmpty()) {
+            logger.warn("Operation '" + operationName.format()
+                    + "' request body has no media types with schemas. Request body ignored.");
             return null;
         }
-        if (resolvedContent.mediaType() == ResponseMediaType.APPLICATION_OCTET_STREAM
-                && isBinaryStringSchema(resolvedContent.schema())) {
-            return new SimpleBinarySchema(isNullable(resolvedContent.schema()));
+
+        final MediaType json = content.get(ResponseMediaType.APPLICATION_JSON.value());
+        final boolean hasJson = json != null && json.getSchema() != null;
+
+        String binaryMediaType = null;
+        int binaryMediaTypeCount = 0;
+        for (var entry : content.entrySet()) {
+            MediaType candidate = entry.getValue();
+            if (candidate == null || candidate.getSchema() == null) {
+                continue;
+            }
+            if (!isBinaryCandidateRequestMediaType(entry.getKey())) {
+                continue;
+            }
+            if (!isBinaryStringSchema(candidate.getSchema())) {
+                continue;
+            }
+            binaryMediaTypeCount++;
+            if (binaryMediaType == null) {
+                binaryMediaType = entry.getKey();
+            }
         }
-        final var path = SchemaPath.forRoot(PathRoot.requestBody(operationName));
-        return mapSchema(resolvedContent.schema(), path);
+
+        if (hasJson && binaryMediaTypeCount == 0) {
+            final var path = SchemaPath.forRoot(PathRoot.requestBody(operationName));
+            return new SimplifiedRequest.Json(mapSchema(json.getSchema(), path), ResponseMediaType.APPLICATION_JSON.value());
+        }
+        if (!hasJson && binaryMediaTypeCount == 1) {
+            return new SimplifiedRequest.Binary(binaryMediaType);
+        }
+
+        logger.warn("Operation '" + operationName.format()
+                + "' request body media types " + requestBodyMediaTypes(content)
+                + " are not supported. Request body ignored.");
+        return null;
+    }
+
+    private RequestBody resolveRequestBodyRef(OpenAPI openAPI, RequestBody requestBody) {
+        if (requestBody.get$ref() == null) {
+            return requestBody;
+        }
+
+        final Map<String, RequestBody> componentRequestBodies = openAPI.getComponents() == null
+                || openAPI.getComponents().getRequestBodies() == null
+                ? Map.of()
+                : openAPI.getComponents().getRequestBodies();
+
+        RequestBody current = requestBody;
+        Set<SchemaRef> visitedRefs = new HashSet<>();
+        while (current.get$ref() != null) {
+            final SchemaRef ref = SchemaRef.parseFromRefValue(current.get$ref());
+            if (!"requestBodies".equals(ref.type())) {
+                throw new IllegalArgumentException("Only component request body refs are supported: " + current.get$ref());
+            }
+            if (!visitedRefs.add(ref)) {
+                throw new IllegalArgumentException("Circular request body reference detected: " + ref.name());
+            }
+            current = componentRequestBodies.get(ref.name());
+            if (current == null) {
+                throw new IllegalArgumentException("Request body reference not found: " + ref.name());
+            }
+        }
+        return current;
     }
 
     private List<SimpleParam> mapParams(OpenAPI openAPI, @Nullable List<Parameter> parameters, boolean pathOnly) {
@@ -558,6 +619,19 @@ public final class Oas30ToSimpleSchemaMapper {
                 ResponseMediaType.from(firstEntry.getKey()),
                 firstEntry.getValue().getSchema()
         );
+    }
+
+    private static List<String> requestBodyMediaTypes(Content content) {
+        List<String> mediaTypes = new ArrayList<>();
+        for (var entry : content.entrySet()) {
+            MediaType mediaType = entry.getValue();
+            mediaTypes.add(entry.getKey() + (mediaType != null && mediaType.getSchema() != null ? "" : " (no schema)"));
+        }
+        return mediaTypes;
+    }
+
+    private static boolean isBinaryCandidateRequestMediaType(String mediaType) {
+        return ResponseMediaType.APPLICATION_OCTET_STREAM.value().equals(mediaType);
     }
 
     private record ResolvedContent(ResponseMediaType mediaType, Schema<?> schema) {
