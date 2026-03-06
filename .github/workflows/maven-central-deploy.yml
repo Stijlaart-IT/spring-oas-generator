@@ -1,17 +1,51 @@
 name: Release to Maven Central
 
 on:
-  release:
-    types: [created]
+  workflow_dispatch:
 
 jobs:
   publish:
-    if: github.event.release.prerelease == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
+      - name: Verify workflow ref is a tag
+        id: ref
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != refs/tags/* ]]; then
+            echo "::error::This workflow must be triggered on a tag ref. Got '${GITHUB_REF}'."
+            exit 1
+          fi
+
+          if [[ -z "${GITHUB_REF_NAME}" ]]; then
+            echo "::error::Unable to resolve tag name from ref '${GITHUB_REF}'."
+            exit 1
+          fi
+
+          echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag format and resolve deploy version
+        id: version
+        shell: bash
+        run: |
+          TAG="${{ steps.ref.outputs.tag }}"
+          SEMVER_REGEX='^([0-9]+)\.([0-9]+)\.([0-9]+)$'
+          SNAPSHOT_TAG_REGEX='^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]{12})-SNAPSHOT$'
+
+          if [[ "$TAG" =~ $SNAPSHOT_TAG_REGEX ]]; then
+            BASE_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+            DEPLOY_VERSION="${BASE_VERSION}-SNAPSHOT"
+          elif [[ "$TAG" =~ $SEMVER_REGEX ]]; then
+            DEPLOY_VERSION="$TAG"
+          else
+            echo "::error::Invalid tag '${TAG}'. Expected 'X.Y.Z' or 'X.Y.Z.YYYYMMDDHHMM-SNAPSHOT'."
+            exit 1
+          fi
+
+          echo "deploy_version=${DEPLOY_VERSION}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -24,13 +58,13 @@ jobs:
           java-version: '21'
           cache: maven
           server-id: central
-          server-username: CENTRAL_TOKEN_USERNAME
-          server-password: CENTRAL_TOKEN_PASSWORD
+          server-username: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          server-password: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
-          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+          gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
-      - name: Set version from release tag
-        run: mvn versions:set -DnewVersion=${{ github.event.release.tag_name }}
+      - name: Set version from tag
+        run: mvn versions:set -DnewVersion=${{ steps.version.outputs.deploy_version }}
 
       - name: Run tests
         run: mvn -B -ntp verify
