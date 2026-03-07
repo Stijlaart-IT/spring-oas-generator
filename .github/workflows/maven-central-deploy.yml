@@ -37,14 +37,17 @@ jobs:
           if [[ "$TAG" =~ $SNAPSHOT_TAG_REGEX ]]; then
             BASE_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
             DEPLOY_VERSION="${BASE_VERSION}-SNAPSHOT"
+            PUBLISHING_SERVER_ID="central-snapshots"
           elif [[ "$TAG" =~ $SEMVER_REGEX ]]; then
             DEPLOY_VERSION="$TAG"
+            PUBLISHING_SERVER_ID="central"
           else
             echo "::error::Invalid tag '${TAG}'. Expected 'X.Y.Z' or 'X.Y.Z.YYYYMMDDHHMM-SNAPSHOT'."
             exit 1
           fi
 
           echo "deploy_version=${DEPLOY_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "publishing_server_id=${PUBLISHING_SERVER_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,7 +60,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-          server-id: central
+          server-id: ${{ steps.version.outputs.publishing_server_id }}
           server-username: CENTRAL_TOKEN_USERNAME
           server-password: CENTRAL_TOKEN_PASSWORD
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
@@ -74,4 +77,4 @@ jobs:
           CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
           CENTRAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-        run: mvn -B -ntp -Prelease clean deploy
+        run: mvn -B -ntp -Prelease -Dcentral.publishing.server.id=${{ steps.version.outputs.publishing_server_id }} clean deploy
