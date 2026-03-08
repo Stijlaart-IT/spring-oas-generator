@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>spring-oas-generator-maven-plugin</artifactId>
+    <name>Spring OAS Generator Maven Plugin</name>
     <packaging>maven-plugin</packaging>
 
     <properties>

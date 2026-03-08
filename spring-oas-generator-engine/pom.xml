@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>spring-oas-generator-engine</artifactId>
+    <name>Spring OAS Generator Engine</name>
 
     <dependencies>
         <dependency>

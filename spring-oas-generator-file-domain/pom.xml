@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>spring-oas-generator-file-domain</artifactId>
+    <name>Spring OAS Generator File Domain</name>
 
     <dependencies>
         <dependency>

@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>spring-oas-generator-serialization</artifactId>
+    <name>Spring OAS Generator Serialization</name>
 
     <dependencies>
         <dependency>
