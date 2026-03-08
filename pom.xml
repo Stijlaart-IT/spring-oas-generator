@@ -214,7 +214,6 @@
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>${central.publishing.server.id}</publishingServerId>
-                            <tokenAuth>true</tokenAuth>
                             <autoPublish>true</autoPublish>
                             <waitUntil>published</waitUntil>
                         </configuration>
