@@ -150,6 +150,70 @@ See all CLI argument in the Configuration Reference below.
 </dependencies>
 ```
 
+## Using Generated HTTP Service Clients
+
+Generated API interfaces are placed under `<basePackage>.client`, and generated models under `<basePackage>.models`.
+Operations are grouped by OpenAPI tag into `*Api` interfaces; operations without tags are generated in `DefaultApi`.
+
+### 1. Create an API bean
+
+```java
+import com.example.generated.client.PetApi;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
+
+@Configuration
+public class ApiClientConfig {
+
+    @Bean
+    PetApi petApi() {
+        RestClient restClient = RestClient.builder()
+                .baseUrl("https://api.example.com")
+                .build();
+        RestClientAdapter adapter = RestClientAdapter.create(restClient);
+        HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
+        return factory.createClient(PetApi.class);
+    }
+}
+```
+
+### 2. Inject and call generated clients
+
+```java
+import com.example.generated.client.PetApi;
+import com.example.generated.models.Pet;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+@Service
+public class PetService {
+
+    private final PetApi petApi;
+
+    public PetService(PetApi petApi) {
+        this.petApi = petApi;
+    }
+
+    public Pet createPet(Pet input) {
+        // Generated operation method: direct response type.
+        Pet created = petApi.addPet(input);
+
+        // Generated operation method: ResponseEntity variant.
+        ResponseEntity<Pet> createdResponse = petApi.addPetResponseEntity(input);
+
+        return createdResponse.getBody() != null ? createdResponse.getBody() : created;
+    }
+}
+```
+
+For each generated operation, two methods are available:
+
+- A direct return method (`T` or `void`)
+- A `...ResponseEntity` method (`ResponseEntity<T>` or `ResponseEntity<Void>`)
+
 ## Configuration Reference
 
 | Property | Description | Maven Configuration | CLI Flag | Allowed Values |
