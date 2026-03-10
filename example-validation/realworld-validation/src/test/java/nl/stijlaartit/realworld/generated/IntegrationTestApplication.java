@@ -22,7 +22,8 @@ public class IntegrationTestApplication {
 
     @Bean
     HttpServiceProxyFactory httpServiceProxyFactory() {
-        RestClient restClient = RestClient.create("http://localhost:7777");
+        String url = System.getProperty("mockserver.url");
+        RestClient restClient = RestClient.create(url);
         RestClientAdapter adapter = RestClientAdapter.create(restClient);
         return HttpServiceProxyFactory.builderFor(adapter).build();
     }
