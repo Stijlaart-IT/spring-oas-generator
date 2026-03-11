@@ -9,6 +9,7 @@ Generated code is written under your chosen base package:
 
 - `<basePackage>.client`
 - `<basePackage>.models`
+- `<basePackage>.config` (optional, only when `springConfig` is configured)
 
 You can run the generator either:
 
@@ -82,6 +83,9 @@ Full plugin configuration (all options):
                             <disableJacksonRequired>false</disableJacksonRequired>
                             <jacksonVersion>3</jacksonVersion>
                         </recordModel>
+                        <springConfig>
+                            <serviceGroupName>petstore</serviceGroupName>
+                        </springConfig>
                     </configuration>
                 </execution>
             </executions>
@@ -106,7 +110,8 @@ Run pattern:
 java -jar spring-oas-generator-cli/target/spring-oas-generator-cli-<version>.jar \
   --openapi-spec path/to/openapi.yml \
   --output-path path/to/generated/sources/root \
-  --output-package com.example.generated
+  --output-package com.example.generated \
+  --spring-config-service-group-name petstore
 ```
 
 See all CLI argument in the Configuration Reference below.
@@ -152,7 +157,7 @@ See all CLI argument in the Configuration Reference below.
 
 ## Using Generated HTTP Service Clients
 
-Generated API interfaces are placed under `<basePackage>.client`, and generated models under `<basePackage>.models`.
+Generated API interfaces are placed under `<basePackage>.client`, generated models under `<basePackage>.models`, and optional Spring configuration under `<basePackage>.config`.
 Operations are grouped by OpenAPI tag into `*Api` interfaces; operations without tags are generated in `DefaultApi`.
 
 ### 1. Create an API bean
@@ -219,11 +224,12 @@ For each generated operation, two methods are available:
 | Property | Description | Maven Configuration | CLI Flag | Allowed Values |
 | --- | --- | --- | --- | --- |
 | `openapiSpec` | Path to the input OpenAPI spec file. Must exist, be readable, and end with `.yml`, `.yaml`, or `.json`. No default value (required). Determines which API definition is used for generated sources. | `<openapiSpec>...</openapiSpec>` | `--openapi-spec /path/to/spec.yml` | valid file path |
-| `outputPackage` | Base Java package for generated code. No default value (required). Generated files go to `<outputPackage>.client` and `<outputPackage>.models`. | `<outputPackage>com.example.generated</outputPackage>` | `--output-package com.example.generated` | valid Java package name |
+| `outputPackage` | Base Java package for generated code. No default value (required). Generated files go to `<outputPackage>.client` and `<outputPackage>.models` and optionally `<outputPackage>.config`. | `<outputPackage>com.example.generated</outputPackage>` | `--output-package com.example.generated` | valid Java package name |
 | Maven output path / CLI output path | Where generated files are written. Maven default is `${project.build.directory}/generated-sources`; CLI has no default value (required). Maven output dir is auto-added as compile source root; CLI writes to the provided directory. | Maven plugin always writes to `${project.build.directory}/generated-sources`. | `--output-path /path/to/output` | valid directory path |
 | `recordModel.builderMode` | Controls record builder generation and strictness. Default is `STRICT`. `DISABLED`: no builder. `STRICT`: builder enforces required non-null fields in `build()`. `RELAXED`: builder generated without required non-null enforcement in `build()`. | `<recordModel><builderMode>STRICT</builderMode></recordModel>` | `--record-model-builder-mode STRICT` | `DISABLED`, `STRICT`, `RELAXED` |
 | `recordModel.disableJacksonRequired` | Controls whether `@JsonProperty(required = true)` is emitted for required fields. Default is `false`. `true` disables required=true on generated `@JsonProperty` annotations for required fields. | `<recordModel><disableJacksonRequired>false</disableJacksonRequired></recordModel>` | `--record-model-disable-jackson-required` or `--record-model-disable-jackson-required=true|false` | `true`, `false` |
 | `recordModel.jacksonVersion` | Selects Jackson 2 vs Jackson 3 APIs in generated `NullWrapper` code. Default is `3`. `2` generates `com.fasterxml...` imports/APIs. `3` generates `tools.jackson...` imports/APIs. | `<recordModel><jacksonVersion>3</jacksonVersion></recordModel>` | `--record-model-jackson-version 3` | `2`, `3` |
+| `springConfig.serviceGroupName` | Enables Spring HTTP service config generation. When provided, generator emits `<outputPackage>.config.ApiConfiguration` with `@ImportHttpServices(group = "<value>", types = {...})`. When absent, no config class is generated. | `<springConfig><serviceGroupName>petstore</serviceGroupName></springConfig>` | `--spring-config-service-group-name petstore` | non-blank string |
 
 ## Development Requirements
 

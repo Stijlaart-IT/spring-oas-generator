@@ -3,6 +3,7 @@ package nl.stijlaartit.spring.oas.generator.engine;
 import nl.stijlaartit.spring.oas.generator.serialization.ClientWriterConfig;
 import nl.stijlaartit.spring.oas.generator.serialization.NullWrapperSerializerConfig;
 import nl.stijlaartit.spring.oas.generator.serialization.RecordModelWriterConfig;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.Objects;
@@ -13,7 +14,8 @@ public record GeneratorConfig(
         String outputPackage,
         RecordModelWriterConfig recordModelWriterConfig,
         ClientWriterConfig clientWriterConfig,
-        NullWrapperSerializerConfig nullWrapperSerializerConfig
+        NullWrapperSerializerConfig nullWrapperSerializerConfig,
+        @Nullable SpringConfigGenerationConfig springConfigGenerationConfig
 ) {
 
     public GeneratorConfig {
@@ -32,19 +34,24 @@ public record GeneratorConfig(
                 outputPackage,
                 RecordModelWriterConfig.defaultConfig(),
                 ClientWriterConfig.defaultConfig(),
-                NullWrapperSerializerConfig.defaultConfig()
+                NullWrapperSerializerConfig.defaultConfig(),
+                null
         );
     }
 
     public GeneratorConfig withRecordModelWriterConfig(RecordModelWriterConfig recordModelWriterConfig) {
-        return new GeneratorConfig(specFile, outputDirectory, outputPackage, recordModelWriterConfig, clientWriterConfig, nullWrapperSerializerConfig);
+        return new GeneratorConfig(specFile, outputDirectory, outputPackage, recordModelWriterConfig, clientWriterConfig, nullWrapperSerializerConfig, springConfigGenerationConfig);
     }
 
     public GeneratorConfig withClientWriterConfig(ClientWriterConfig clientWriterConfig) {
-        return new GeneratorConfig(specFile, outputDirectory, outputPackage, recordModelWriterConfig, clientWriterConfig, nullWrapperSerializerConfig);
+        return new GeneratorConfig(specFile, outputDirectory, outputPackage, recordModelWriterConfig, clientWriterConfig, nullWrapperSerializerConfig, springConfigGenerationConfig);
     }
 
     public GeneratorConfig withNullWrapperSerializerConfig(NullWrapperSerializerConfig nullWrapperSerializerConfig) {
-        return new GeneratorConfig(specFile, outputDirectory, outputPackage, recordModelWriterConfig, clientWriterConfig, nullWrapperSerializerConfig);
+        return new GeneratorConfig(specFile, outputDirectory, outputPackage, recordModelWriterConfig, clientWriterConfig, nullWrapperSerializerConfig, springConfigGenerationConfig);
+    }
+
+    public GeneratorConfig withSpringConfigGenerationConfig(SpringConfigGenerationConfig springConfigGenerationConfig) {
+        return new GeneratorConfig(specFile, outputDirectory, outputPackage, recordModelWriterConfig, clientWriterConfig, nullWrapperSerializerConfig, springConfigGenerationConfig);
     }
 }

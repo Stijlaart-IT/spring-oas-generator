@@ -44,7 +44,7 @@ public class EngineIntegrationTest {
         final var modelResolver = new ModelResolver(schemaTypes, typeInfoResolver, Logger.noOp());
         final var clientResolver = new ClientResolver(logger, typeInfoResolver);
 
-        final var utilityResolver = new UtilityResolver(modelsPackage, apiPackage);
+        final var utilityResolver = new UtilityResolver(modelsPackage, apiPackage, "com.example.config", null);
 
         final var modelFiles = modelResolver.resolve();
         final var clientFiles = clientResolver.resolve(simplifiedOas);

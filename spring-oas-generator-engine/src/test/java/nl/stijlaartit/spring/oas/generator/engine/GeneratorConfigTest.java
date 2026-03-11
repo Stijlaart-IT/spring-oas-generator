@@ -20,6 +20,7 @@ class GeneratorConfigTest {
         assertThat(config.recordModelWriterConfig()).isEqualTo(RecordModelWriterConfig.defaultConfig());
         assertThat(config.clientWriterConfig()).isEqualTo(ClientWriterConfig.defaultConfig());
         assertThat(config.nullWrapperSerializerConfig()).isEqualTo(NullWrapperSerializerConfig.defaultConfig());
+        assertThat(config.springConfigGenerationConfig()).isNull();
     }
 
     @Test
@@ -29,10 +30,13 @@ class GeneratorConfigTest {
         ClientWriterConfig clientConfig = new ClientWriterConfig(ClientWriterConfig.IoMode.REACTIVE);
         NullWrapperSerializerConfig nullWrapperConfig =
                 new NullWrapperSerializerConfig(JacksonVersion.V2);
+        SpringConfigGenerationConfig springConfigGenerationConfig =
+                new SpringConfigGenerationConfig("petstore");
 
         GeneratorConfig withRecordConfig = config.withRecordModelWriterConfig(recordConfig);
         GeneratorConfig withClientConfig = config.withClientWriterConfig(clientConfig);
         GeneratorConfig withNullWrapperConfig = config.withNullWrapperSerializerConfig(nullWrapperConfig);
+        GeneratorConfig withSpringConfig = config.withSpringConfigGenerationConfig(springConfigGenerationConfig);
 
         assertThat(withRecordConfig.recordModelWriterConfig()).isEqualTo(recordConfig);
         assertThat(withRecordConfig.clientWriterConfig()).isEqualTo(config.clientWriterConfig());
@@ -43,5 +47,9 @@ class GeneratorConfigTest {
         assertThat(withNullWrapperConfig.nullWrapperSerializerConfig()).isEqualTo(nullWrapperConfig);
         assertThat(withNullWrapperConfig.recordModelWriterConfig()).isEqualTo(config.recordModelWriterConfig());
         assertThat(withNullWrapperConfig.clientWriterConfig()).isEqualTo(config.clientWriterConfig());
+
+        assertThat(withSpringConfig.springConfigGenerationConfig()).isEqualTo(springConfigGenerationConfig);
+        assertThat(withSpringConfig.recordModelWriterConfig()).isEqualTo(config.recordModelWriterConfig());
+        assertThat(withSpringConfig.clientWriterConfig()).isEqualTo(config.clientWriterConfig());
     }
 }

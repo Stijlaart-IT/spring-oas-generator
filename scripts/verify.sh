@@ -16,6 +16,7 @@ rm -rf \
   "$PROJECT_DIR/example-validation/variants-validation/src/main/java/nl/stijlaartit/variants/generated" \
   "$PROJECT_DIR/example-validation/spotify-validation/src/main/java/nl/stijlaartit/spotify/generated" \
   "$PROJECT_DIR/example-validation/pokeapi-validation/src/main/java/nl/stijlaartit/pokeapi/generated" \
+  "$PROJECT_DIR/example-validation/spring-config-validation/src/main/java/nl/stijlaartit/springconfig/generated" \
   "$PROJECT_DIR/example-validation/petstore-validation-maven-plugin/target/generated-sources/nl/stijlaartit/petstore/generated"
 
 echo "Generating petstore sources..."
@@ -54,6 +55,13 @@ java -jar "$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli
   --openapi-spec "$PROJECT_DIR/examples/pokeapi.yml" \
   --output-path "$PROJECT_DIR/example-validation/pokeapi-validation/src/main/java" \
   --output-package "nl.stijlaartit.pokeapi.generated"
+
+echo "Generating spring-config sources..."
+java -jar "$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli-0.0.1-SNAPSHOT.jar" \
+  --openapi-spec "$PROJECT_DIR/examples/petstore.json" \
+  --output-path "$PROJECT_DIR/example-validation/spring-config-validation/src/main/java" \
+  --output-package "nl.stijlaartit.springconfig.generated" \
+  --spring-config-service-group-name "petstore"
 
 echo "Validating generated sources..."
 mvn -f "$PROJECT_DIR/example-validation/pom.xml" test
