@@ -43,6 +43,20 @@ paths:
                     name:
                       type: string
           description: "Ok"
+  /ping:
+    get:
+      summary: Checks if the server is alive
+      operationId: getPing
+      parameters:
+        - in: header
+          name: X-Request-ID
+          schema:
+            type: string
+            format: uuid
+          required: true
+      responses:
+        "204":
+          description: No Content
 components:
   responses:
     RefResponse:
