@@ -1,6 +1,7 @@
 spotify-validation/src/main/java/nl/stijlaartit/spotify/generated
 realworld-validation/src/main/java/nl/stijlaartit/realworld/generated
 petstore-validation/src/main/java/nl/stijlaartit/petstore/generated
+spring-config-validation/src/main/java/nl/stijlaartit/springconfig/generated
 session-validation/src/main/java/nl/stijlaartit/session/generated
 inline-request-body-validation/src/main/java/nl/stijlaartit/inlinerequestbody/generated
 variants-validation/src/main/java/nl/stijlaartit/variants/generated

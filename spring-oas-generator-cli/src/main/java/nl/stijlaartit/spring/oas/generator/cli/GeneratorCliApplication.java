@@ -2,6 +2,7 @@ package nl.stijlaartit.spring.oas.generator.cli;
 
 import nl.stijlaartit.spring.oas.generator.engine.Generator;
 import nl.stijlaartit.spring.oas.generator.engine.GeneratorConfig;
+import nl.stijlaartit.spring.oas.generator.engine.SpringConfigGenerationConfig;
 import nl.stijlaartit.spring.oas.generator.serialization.BuilderMode;
 import nl.stijlaartit.spring.oas.generator.serialization.JacksonVersion;
 import nl.stijlaartit.spring.oas.generator.serialization.NullWrapperSerializerConfig;
@@ -31,6 +32,7 @@ public class GeneratorCliApplication implements ApplicationRunner {
     private static final String OPTION_RECORD_MODEL_BUILDER_MODE = "record-model-builder-mode";
     private static final String OPTION_RECORD_MODEL_DISABLE_JACKSON_REQUIRED = "record-model-disable-jackson-required";
     private static final String OPTION_RECORD_MODEL_JACKSON_VERSION = "record-model-jackson-version";
+    private static final String OPTION_SPRING_CONFIG_SERVICE_GROUP_NAME = "spring-config-service-group-name";
 
     public static void main(String[] args) {
         SpringApplication.run(GeneratorCliApplication.class, args);
@@ -44,13 +46,14 @@ public class GeneratorCliApplication implements ApplicationRunner {
         Optional<String> outputPathOpt = getSingleValue(parsedOptions, OPTION_OUTPUT_PATH);
         Optional<String> outputPackageOpt = getSingleValue(parsedOptions, OPTION_OUTPUT_PACKAGE);
         if (specFileOpt.isEmpty() || outputPathOpt.isEmpty() || outputPackageOpt.isEmpty()) {
-            LOG.error("Usage: --{} <openapi-spec-file> --{} <output-path> --{} <output-package> [--{} <DISABLED|STRICT|RELAXED>] [--{}[=<true|false>]] [--{} <2|3>]",
+            LOG.error("Usage: --{} <openapi-spec-file> --{} <output-path> --{} <output-package> [--{} <DISABLED|STRICT|RELAXED>] [--{}[=<true|false>]] [--{} <2|3>] [--{} <name>]",
                     OPTION_OPENAPI_SPEC,
                     OPTION_OUTPUT_PATH,
                     OPTION_OUTPUT_PACKAGE,
                     OPTION_RECORD_MODEL_BUILDER_MODE,
                     OPTION_RECORD_MODEL_DISABLE_JACKSON_REQUIRED,
-                    OPTION_RECORD_MODEL_JACKSON_VERSION);
+                    OPTION_RECORD_MODEL_JACKSON_VERSION,
+                    OPTION_SPRING_CONFIG_SERVICE_GROUP_NAME);
             System.exit(1);
         }
         String specFile = specFileOpt.orElseThrow();
@@ -60,6 +63,8 @@ public class GeneratorCliApplication implements ApplicationRunner {
         LOG.info("- spec file: [{}]", specFile);
         LOG.info("- output path [{}]", outputPath);
         LOG.info("- output package [{}]", outputPackage);
+        Optional<String> springConfigServiceGroupNameOpt = getSingleValue(parsedOptions, OPTION_SPRING_CONFIG_SERVICE_GROUP_NAME);
+        springConfigServiceGroupNameOpt.ifPresent(v -> LOG.info("- spring config service group name [{}]", v));
 
         Path specPath = Path.of(specFile);
         if (!Files.isRegularFile(specPath)) {
@@ -113,11 +118,21 @@ public class GeneratorCliApplication implements ApplicationRunner {
         GeneratorConfig generatorConfig = new GeneratorConfig(specPath, outputDir, trimmedPackage)
                 .withRecordModelWriterConfig(recordModelWriterConfig)
                 .withNullWrapperSerializerConfig(new NullWrapperSerializerConfig(jacksonVersion));
+        if (springConfigServiceGroupNameOpt.isPresent()) {
+            try {
+                generatorConfig = generatorConfig.withSpringConfigGenerationConfig(
+                        new SpringConfigGenerationConfig(springConfigServiceGroupNameOpt.orElseThrow())
+                );
+            } catch (IllegalArgumentException e) {
+                LOG.error("Invalid --{} value: {}", OPTION_SPRING_CONFIG_SERVICE_GROUP_NAME, e.getMessage());
+                System.exit(1);
+            }
+        }
 
         new Generator(logger).generate(generatorConfig);
     }
 
-    private static Optional<String> getSingleValue(Map<String, List<String>> options, String optionName) {
+    static Optional<String> getSingleValue(Map<String, List<String>> options, String optionName) {
         List<String> values = options.get(optionName);
         if (values == null || values.isEmpty()) {
             return Optional.empty();
@@ -129,7 +144,7 @@ public class GeneratorCliApplication implements ApplicationRunner {
         return Optional.of(value);
     }
 
-    private static boolean parseBooleanFlag(Map<String, List<String>> options, String optionName) {
+    static boolean parseBooleanFlag(Map<String, List<String>> options, String optionName) {
         List<String> values = options.get(optionName);
         if (values == null) {
             return false;
@@ -144,7 +159,7 @@ public class GeneratorCliApplication implements ApplicationRunner {
         return Boolean.parseBoolean(value.trim());
     }
 
-    private static Map<String, List<String>> parseNamedOptions(String[] sourceArgs) {
+    static Map<String, List<String>> parseNamedOptions(String[] sourceArgs) {
         Map<String, List<String>> options = new HashMap<>();
         for (int i = 0; i < sourceArgs.length; i++) {
             String token = sourceArgs[i];

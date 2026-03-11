@@ -23,9 +23,8 @@ import nl.stijlaartit.spring.oas.generator.engine.naming.OperationIdNaming;
 import nl.stijlaartit.spring.oas.generator.serialization.JavaIdentifierUtils;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ClientResolver {
 
@@ -59,8 +58,16 @@ public class ClientResolver {
             }
         });
 
-        Set<String> tags = generatableOperations.stream().flatMap(v -> v.tags().stream())
-                .collect(Collectors.toSet());
+        // LinkedHashSet preserves insertion order so generated API ordering remains stable.
+        final var orderedTags = new LinkedHashSet<String>();
+        for (GeneratableOperation operation : generatableOperations) {
+            orderedTags.addAll(operation.tags());
+        }
+        boolean hasDefault = orderedTags.remove("default");
+        List<String> tags = new ArrayList<>(orderedTags);
+        if (hasDefault) {
+            tags.add("default");
+        }
 
         return tags.stream()
                 .map(tag -> apiFileFromTag(tag, generatableOperations))

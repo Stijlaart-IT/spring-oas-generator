@@ -2,6 +2,7 @@ package nl.stijlaartit.spring.oas.generator.maven;
 
 import nl.stijlaartit.spring.oas.generator.engine.Generator;
 import nl.stijlaartit.spring.oas.generator.engine.GeneratorConfig;
+import nl.stijlaartit.spring.oas.generator.engine.SpringConfigGenerationConfig;
 import nl.stijlaartit.spring.oas.generator.serialization.BuilderMode;
 import nl.stijlaartit.spring.oas.generator.serialization.JacksonVersion;
 import nl.stijlaartit.spring.oas.generator.serialization.NullWrapperSerializerConfig;
@@ -28,6 +29,9 @@ public class GenerateMojo extends AbstractMojo {
 
     @Parameter
     private ModelConfiguration recordModel = new ModelConfiguration();
+
+    @Parameter
+    private SpringConfigConfiguration springConfig;
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
@@ -75,6 +79,13 @@ public class GenerateMojo extends AbstractMojo {
             GeneratorConfig generatorConfig = new GeneratorConfig(specPath, outputDir, trimmedPackage)
                     .withRecordModelWriterConfig(recordModelWriterConfig)
                     .withNullWrapperSerializerConfig(new NullWrapperSerializerConfig(jacksonVersion));
+            if (springConfig != null) {
+                String serviceGroupName = springConfig.serviceGroupName() == null ? "" : springConfig.serviceGroupName().trim();
+                if (serviceGroupName.isBlank()) {
+                    throw new MojoExecutionException("springConfig.serviceGroupName must not be blank when springConfig is configured.");
+                }
+                generatorConfig = generatorConfig.withSpringConfigGenerationConfig(new SpringConfigGenerationConfig(serviceGroupName));
+            }
 
             Files.createDirectories(outputDir);
             new Generator(logger).generate(generatorConfig);

@@ -39,7 +39,7 @@ public class RawOperationResolver {
     private List<GeneratableOperation> buildGeneratableOperations(SimplifiedOperation operation) {
         List<String> tags = operation.tags().isEmpty()
                 ? List.of("default")
-                : operation.tags().stream().sorted().toList();
+                : operation.tags().stream().toList();
         List<RawParameter> parameters = resolveParameters(operation.path(), operation.params());
         String operationId = normalizeOperationId(operation.operationId());
 

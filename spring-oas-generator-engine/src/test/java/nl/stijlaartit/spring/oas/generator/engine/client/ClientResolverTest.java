@@ -152,6 +152,61 @@ class ClientResolverTest {
         }
 
         @Test
+        void preservesDetectedTagOrderForGeneratedClients() {
+            OpenAPI openAPI = new OpenAPI();
+            Paths paths = new Paths();
+
+            PathItem pathA = new PathItem();
+            pathA.setGet(new Operation()
+                    .operationId("firstOperation")
+                    .tags(List.of("store"))
+                    .responses(new ApiResponses()));
+            paths.addPathItem("/a", pathA);
+
+            PathItem pathB = new PathItem();
+            pathB.setGet(new Operation()
+                    .operationId("secondOperation")
+                    .tags(List.of("pet"))
+                    .responses(new ApiResponses()));
+            paths.addPathItem("/b", pathB);
+
+            openAPI.setPaths(paths);
+
+            List<ApiFile> clients = resolveClient(openAPI);
+
+            assertEquals(2, clients.size());
+            assertEquals("StoreApi", clients.getFirst().name());
+            assertEquals("PetApi", clients.get(1).name());
+        }
+
+        @Test
+        void placesDefaultApiLastWhenPresentWithOtherTags() {
+            OpenAPI openAPI = new OpenAPI();
+            Paths paths = new Paths();
+
+            PathItem withDefaultTag = new PathItem();
+            withDefaultTag.setGet(new Operation()
+                    .operationId("untaggedOperation")
+                    .responses(new ApiResponses()));
+            paths.addPathItem("/untagged", withDefaultTag);
+
+            PathItem withTag = new PathItem();
+            withTag.setGet(new Operation()
+                    .operationId("taggedOperation")
+                    .tags(List.of("pet"))
+                    .responses(new ApiResponses()));
+            paths.addPathItem("/tagged", withTag);
+
+            openAPI.setPaths(paths);
+
+            List<ApiFile> clients = resolveClient(openAPI);
+
+            assertEquals(2, clients.size());
+            assertEquals("PetApi", clients.getFirst().name());
+            assertEquals("DefaultApi", clients.get(1).name());
+        }
+
+        @Test
         void generatesFallbackOperationIdWhenMissing() {
             OpenAPI openAPI = openApiWithOperation(
                     "/auth/session", "get", null, "auth",

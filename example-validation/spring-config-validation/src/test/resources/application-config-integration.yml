@@ -1,0 +1,8 @@
+spring:
+  http:
+    clients:
+      read-timeout: 2s
+
+    serviceclient:
+      petstore:
+        base-url: ${MOCKSERVER_URL}

@@ -22,6 +22,7 @@ import nl.stijlaartit.spring.oas.generator.serialization.JacksonV3NullWrapperSer
 import nl.stijlaartit.spring.oas.generator.serialization.PackageInfoSerializer;
 import nl.stijlaartit.spring.oas.generator.serialization.RecordModelSerializer;
 import nl.stijlaartit.spring.oas.generator.serialization.SerializedFile;
+import nl.stijlaartit.spring.oas.generator.serialization.SpringConfigSerializer;
 import nl.stijlaartit.spring.oas.generator.serialization.UnionModelSerializer;
 
 import java.nio.file.Path;
@@ -40,6 +41,7 @@ public class Generator {
     public void generate(GeneratorConfig config) throws Exception {
         String modelsPackage = config.outputPackage() + ".models";
         String clientPackage = config.outputPackage() + ".client";
+        String configPackage = config.outputPackage() + ".config";
 
         SwaggerParseResult result = new OpenAPIV3Parser().readLocation(config.specFile().toString(), null, null);
         OpenAPI openAPI = result.getOpenAPI();
@@ -68,7 +70,7 @@ public class Generator {
 
         final var modelResolver = new ModelResolver(schemaTypes, typeInfoResolver, logger);
         final var clientResolver = new ClientResolver(logger, typeInfoResolver);
-        final var utilityResolver = new UtilityResolver(modelsPackage, clientPackage);
+        final var utilityResolver = new UtilityResolver(modelsPackage, clientPackage, configPackage, config.springConfigGenerationConfig());
 
         final var modelFiles = modelResolver.resolve();
         logger.info("Found [" + modelFiles.size() + "] model(s) to generate");
@@ -93,6 +95,7 @@ public class Generator {
                 new EnumModelSerializer(modelsPackage, implementsByModel),
                 new UnionModelSerializer(modelsPackage),
                 new ClientSerializer(clientPackage, modelsPackage, config.clientWriterConfig()),
+                new SpringConfigSerializer(),
                 new PackageInfoSerializer(),
                 nullWrapperSerializer
         );
