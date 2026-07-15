@@ -19,7 +19,7 @@
     <properties>
         <java.version>21</java.version>
 
-        <mockwebserver.version>5.3.2</mockwebserver.version>
+        <mockwebserver.version>5.4.0</mockwebserver.version>
     </properties>
 
     <modules>
