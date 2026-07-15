@@ -3,9 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SPRING_OAS_GENERATOR_MAVEN_PLUGIN_VERSION="${SPRING_OAS_GENERATOR_MAVEN_PLUGIN_VERSION:-0.0.1-SNAPSHOT}"
 
-echo "Building project..."
-mvn -f "$PROJECT_DIR/pom.xml" verify -q
+echo "Installing project artifacts..."
+mvn -f "$PROJECT_DIR/pom.xml" install -q
 
 echo "Removing generated sources..."
 rm -rf \
@@ -64,6 +65,8 @@ java -jar "$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli
   --spring-config-service-group-name "petstore"
 
 echo "Validating generated sources..."
-mvn -f "$PROJECT_DIR/example-validation/pom.xml" test
+mvn -f "$PROJECT_DIR/example-validation/pom.xml" \
+  -Dspring-oas-generator-maven-plugin.version="$SPRING_OAS_GENERATOR_MAVEN_PLUGIN_VERSION" \
+  test
 
 echo "Verification complete."

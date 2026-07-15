@@ -28,12 +28,38 @@ updates:
       time: "06:00"
       timezone: "Europe/Amsterdam"
     open-pull-requests-limit: 10
+    exclude-paths:
+      - "variants-validation-jackson2/pom.xml"
     cooldown:
       default-days: 5
     commit-message:
       prefix: "deps"
     groups:
       maven-example-validation-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "maven"
+    directory: "/example-validation/variants-validation-jackson2"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 5
+    commit-message:
+      prefix: "deps"
+    ignore:
+      - dependency-name: "org.springframework.boot:spring-boot-starter-parent"
+        update-types:
+          - "version-update:semver-major"
+    groups:
+      maven-variants-validation-jackson2-minor-patch:
         patterns:
           - "*"
         update-types:

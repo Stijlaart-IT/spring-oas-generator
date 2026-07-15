@@ -17,6 +17,7 @@
 
     <properties>
         <mockwebserver.version>5.3.2</mockwebserver.version>
+        <spring-oas-generator-maven-plugin.version>0.1.0</spring-oas-generator-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -52,7 +53,7 @@
             <plugin>
                 <groupId>nl.stijlaart-it.spring-oas-generator</groupId>
                 <artifactId>spring-oas-generator-maven-plugin</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>${spring-oas-generator-maven-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>generate-petstore</id>
