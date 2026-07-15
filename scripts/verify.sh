@@ -3,9 +3,29 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-SPRING_OAS_GENERATOR_MAVEN_PLUGIN_VERSION="${SPRING_OAS_GENERATOR_MAVEN_PLUGIN_VERSION:-0.0.1-SNAPSHOT}"
+VERIFY_RUN_ID="$(date -u +%Y%m%d%H%M%S)-$$"
+SPRING_OAS_GENERATOR_VERSION="${SPRING_OAS_GENERATOR_VERSION:-0.0.1-verify-$VERIFY_RUN_ID-SNAPSHOT}"
+SPRING_OAS_GENERATOR_MAVEN_PLUGIN_VERSION="${SPRING_OAS_GENERATOR_MAVEN_PLUGIN_VERSION:-$SPRING_OAS_GENERATOR_VERSION}"
+SPRING_OAS_GENERATOR_CLI_JAR="$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli-$SPRING_OAS_GENERATOR_VERSION.jar"
 
-echo "Installing project artifacts..."
+restore_project_version() {
+  if find "$PROJECT_DIR" -name pom.xml.versionsBackup -print -quit | grep -q .; then
+    echo "Restoring project artifact versions..."
+    mvn -f "$PROJECT_DIR/pom.xml" versions:revert -q
+  fi
+}
+
+trap restore_project_version EXIT
+
+echo "Setting project artifact version to $SPRING_OAS_GENERATOR_VERSION..."
+mvn -f "$PROJECT_DIR/pom.xml" \
+  versions:set \
+  -DnewVersion="$SPRING_OAS_GENERATOR_VERSION" \
+  -DprocessAllModules=true \
+  -DgenerateBackupPoms=true \
+  -q
+
+echo "Installing project artifacts with version $SPRING_OAS_GENERATOR_VERSION..."
 mvn -f "$PROJECT_DIR/pom.xml" install -q
 
 echo "Removing generated sources..."
@@ -21,44 +41,44 @@ rm -rf \
   "$PROJECT_DIR/example-validation/petstore-validation-maven-plugin/target/generated-sources/nl/stijlaartit/petstore/generated"
 
 echo "Generating petstore sources..."
-java -jar "$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli-0.0.1-SNAPSHOT.jar" \
+java -jar "$SPRING_OAS_GENERATOR_CLI_JAR" \
   --openapi-spec "$PROJECT_DIR/examples/petstore.json" \
   --output-path "$PROJECT_DIR/example-validation/petstore-validation/src/main/java" \
   --output-package "nl.stijlaartit.petstore.generated"
 
 echo "Generating realworld sources..."
-java -jar "$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli-0.0.1-SNAPSHOT.jar" \
+java -jar "$SPRING_OAS_GENERATOR_CLI_JAR" \
   --openapi-spec "$PROJECT_DIR/examples/realworld.yml" \
   --output-path "$PROJECT_DIR/example-validation/realworld-validation/src/main/java" \
   --output-package "nl.stijlaartit.realworld.generated"
 
 echo "Generating variants jackson2 sources..."
-java -jar "$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli-0.0.1-SNAPSHOT.jar" \
+java -jar "$SPRING_OAS_GENERATOR_CLI_JAR" \
   --openapi-spec "$PROJECT_DIR/examples/variants.yml" \
   --output-path "$PROJECT_DIR/example-validation/variants-validation-jackson2/src/main/java" \
   --output-package "nl.stijlaartit.variants.jackson2.generated" \
   --record-model-jackson-version 2
 
 echo "Generating variants sources..."
-java -jar "$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli-0.0.1-SNAPSHOT.jar" \
+java -jar "$SPRING_OAS_GENERATOR_CLI_JAR" \
   --openapi-spec "$PROJECT_DIR/examples/variants.yml" \
   --output-path "$PROJECT_DIR/example-validation/variants-validation/src/main/java" \
   --output-package "nl.stijlaartit.variants.generated"
 
 echo "Generating spotify sources..."
-java -jar "$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli-0.0.1-SNAPSHOT.jar" \
+java -jar "$SPRING_OAS_GENERATOR_CLI_JAR" \
   --openapi-spec "$PROJECT_DIR/examples/spotify.yml" \
   --output-path "$PROJECT_DIR/example-validation/spotify-validation/src/main/java" \
   --output-package "nl.stijlaartit.spotify.generated"
 
 echo "Generating pokeapi sources..."
-java -jar "$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli-0.0.1-SNAPSHOT.jar" \
+java -jar "$SPRING_OAS_GENERATOR_CLI_JAR" \
   --openapi-spec "$PROJECT_DIR/examples/pokeapi.yml" \
   --output-path "$PROJECT_DIR/example-validation/pokeapi-validation/src/main/java" \
   --output-package "nl.stijlaartit.pokeapi.generated"
 
 echo "Generating spring-config sources..."
-java -jar "$PROJECT_DIR/spring-oas-generator-cli/target/spring-oas-generator-cli-0.0.1-SNAPSHOT.jar" \
+java -jar "$SPRING_OAS_GENERATOR_CLI_JAR" \
   --openapi-spec "$PROJECT_DIR/examples/petstore.json" \
   --output-path "$PROJECT_DIR/example-validation/spring-config-validation/src/main/java" \
   --output-package "nl.stijlaartit.springconfig.generated" \
