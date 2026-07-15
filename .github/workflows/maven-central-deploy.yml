@@ -50,7 +50,7 @@ jobs:
           echo "publishing_server_id=${PUBLISHING_SERVER_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
