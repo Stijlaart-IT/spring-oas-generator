@@ -17,7 +17,7 @@
 
     <properties>
         <mockwebserver.version>5.4.0</mockwebserver.version>
-        <spring-oas-generator-maven-plugin.version>0.1.0</spring-oas-generator-maven-plugin.version>
+        <spring-oas-generator-maven-plugin.version>0.2.0</spring-oas-generator-maven-plugin.version>
     </properties>
 
     <dependencies>
