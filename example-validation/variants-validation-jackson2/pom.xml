@@ -18,7 +18,7 @@
 
     <properties>
         <mockwebserver.version>5.4.0</mockwebserver.version>
-        <jspecify.version>1.0.0</jspecify.version>
+        <jspecify.version>1.0.1</jspecify.version>
     </properties>
 
     <dependencies>
