@@ -57,8 +57,8 @@
         <java.version>21</java.version>
 
         <!-- Dependencies -->
-        <javapoet.version>0.18.0</javapoet.version>
-        <swagger-parser.version>2.1.45</swagger-parser.version>
+        <javapoet.version>0.19.0</javapoet.version>
+        <swagger-parser.version>2.1.47</swagger-parser.version>
 
         <!-- Maven Plugin -->
         <maven-plugin-api.version>3.9.16</maven-plugin-api.version>
