@@ -14,6 +14,7 @@ import nl.stijlaartit.spring.oas.generator.domain.file.JavaTypeName;
 
 import javax.lang.model.element.Modifier;
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -130,14 +131,16 @@ public class EnumModelSerializer implements GenerationFileSerializer<EnumModel> 
             return "EMPTY";
         }
         boolean negative = value.startsWith("-");
-        String normalized = negative ? value.substring(1) : value;
+        String normalized = Normalizer.normalize(negative ? value.substring(1) : value, Normalizer.Form.NFD);
         StringBuilder result = new StringBuilder();
         boolean previousUnderscore = false;
         for (int i = 0; i < normalized.length(); i++) {
             char c = normalized.charAt(i);
-            if (Character.isLetterOrDigit(c)) {
-                result.append(Character.toUpperCase(c));
+            if (isAsciiLetterOrDigit(c)) {
+                result.append(toAsciiUpperCase(c));
                 previousUnderscore = false;
+            } else if (isCombiningMark(c)) {
+                // Diacritics are folded into their ASCII base character.
             } else if (!previousUnderscore) {
                 result.append('_');
                 previousUnderscore = true;
@@ -152,6 +155,23 @@ public class EnumModelSerializer implements GenerationFileSerializer<EnumModel> 
             sanitized = "_" + sanitized;
         }
         return negative ? "NEGATIVE" + sanitized : sanitized;
+    }
+
+    private static boolean isAsciiLetterOrDigit(char value) {
+        return value >= 'A' && value <= 'Z'
+                || value >= 'a' && value <= 'z'
+                || value >= '0' && value <= '9';
+    }
+
+    private static char toAsciiUpperCase(char value) {
+        return value >= 'a' && value <= 'z' ? (char) (value - ('a' - 'A')) : value;
+    }
+
+    private static boolean isCombiningMark(char value) {
+        int type = Character.getType(value);
+        return type == Character.NON_SPACING_MARK
+                || type == Character.COMBINING_SPACING_MARK
+                || type == Character.ENCLOSING_MARK;
     }
 
     private static String uniqueName(String baseName, Map<String, Integer> usedNames) {
