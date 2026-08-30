@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EnumModelSerializerTest {
@@ -64,6 +65,18 @@ class EnumModelSerializerTest {
 
         assertTrue(source.contains("enum Mode"));
         assertTrue(source.contains("implements ModeWrapper"));
+    }
+
+    @Test
+    void usesAsciiEnumConstantNamesForAccentedValues() {
+        EnumModel model = new EnumModel(new JavaTypeName.Generated("DocumentType"), EnumValueType.STRING,
+                List.of("résumé", "resume"));
+
+        String source = writer.toJavaFile(model).toString();
+
+        assertTrue(source.contains("@JsonProperty(\"résumé\")\n    RESUME,"));
+        assertTrue(source.contains("@JsonProperty(\"resume\")\n    RESUME_2"));
+        assertFalse(source.contains("RÉSUMÉ"));
     }
 
     private static void assertGeneratedAnnotation(String source) {
