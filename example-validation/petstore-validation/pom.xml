@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.1</version>
+        <version>4.1.2</version>
     </parent>
 
     <groupId>nl.stijlaart-it.spring-oas-generator.validation</groupId>
@@ -15,7 +15,7 @@
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
-        <mockwebserver.version>5.5.0</mockwebserver.version>
+        <mockwebserver.version>5.5.1</mockwebserver.version>
     </properties>
 
     <dependencies>
